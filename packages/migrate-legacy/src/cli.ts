@@ -3,9 +3,11 @@
  *   pnpm migrate:run [--reset] [--no-timetables]   빈 DB(또는 --reset)에 전량 적재
  *   pnpm migrate:verify                            역변환·대조 → docs/legacy/migration-report-<날짜>.md + .json
  *   pnpm migrate:check                             변환만 하고 계약(zod) 검사(DB 없음)
+ *   pnpm migrate:config                            수집기 설정(ingest.config)만 기존 보정 파일에서 다시 넣는다(이미 이관한 DB 용)
  */
 import pg from 'pg';
 import { checkContracts } from './check';
+import { legacyIngestConfig, writeIngestConfig } from './ingest-config';
 import { loadLegacy } from './read/legacy';
 import { resetDatabase, runLoad } from './load';
 import { transformAll } from './transform';
@@ -48,9 +50,16 @@ async function main(): Promise<void> {
     }
     await withDb(async (db) => {
       if (args.includes('--reset')) await resetDatabase(db, log);
-      const r = await runLoad(db, legacy, tr, { log });
+      const r = await runLoad(db, legacy, tr, { log, timetables: !args.includes('--no-timetables') });
       log(`완료 ${(r.totalMs / 1000).toFixed(1)}s — ${JSON.stringify(tr.counts)}`);
     });
+    return;
+  }
+  if (cmd === 'config') {
+    const legacy = loadLegacy();
+    const rows = legacyIngestConfig(legacy.root);
+    await withDb((db) => writeIngestConfig(db, rows));
+    for (const r of rows) log(`ingest.config (${r.task}, ${r.key}) 갱신`);
     return;
   }
   if (cmd === 'verify') {
@@ -65,7 +74,7 @@ async function main(): Promise<void> {
     });
     return;
   }
-  console.error('사용법: cli.ts run [--reset] [--no-timetables] | verify | check');
+  console.error('사용법: cli.ts run [--reset] [--no-timetables] | verify | check | config');
   process.exitCode = 2;
 }
 

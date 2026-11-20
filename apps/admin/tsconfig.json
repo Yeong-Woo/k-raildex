@@ -3,11 +3,7 @@
   "compilerOptions": {
     "types": ["vite/client", "node"],
     "jsx": "react-jsx",
-    "lib": ["ES2023", "DOM", "DOM.Iterable"],
-    "paths": {
-      "@k-raildex/domain/calc": ["../../packages/domain/src/calc.ts"],
-      "@k-raildex/map": ["../../packages/map/src/index.ts"]
-    }
+    "lib": ["ES2023", "DOM", "DOM.Iterable"]
   },
   "include": ["src", "e2e", "vite.config.ts", "vitest.config.ts", "playwright.config.ts"]
 }

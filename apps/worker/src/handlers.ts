@@ -9,6 +9,7 @@ import {
   type JobPayloads,
   type ObjectStore,
 } from '@k-raildex/domain';
+import { runImporter, type ImporterJob } from '@k-raildex/importers';
 import type pg from 'pg';
 import { sharpCropper } from './cropper';
 
@@ -63,4 +64,12 @@ export async function docCrop(deps: WorkerDeps, data: JobPayloads['doc.crop']) {
     }),
   );
   return { document_id: r.document.id, created: r.created };
+}
+
+/** 수집기 실행(docs/08 3-1). 시간표 쓰기는 한 트랜잭션이라 풀에서 연결 하나를 빌린다 */
+export async function importerRun(deps: WorkerDeps, data: ImporterJob) {
+  const r = await withClient(deps.pool, (c) =>
+    runImporter(c, data.task, { trigger: 'event', ...data.options }, (m) => console.log(`[importer] ${m}`)),
+  );
+  return { run_id: r.runId, sets: r.stats.sets ?? null, entries: r.stats.entries ?? null, issues: r.stats.issues };
 }

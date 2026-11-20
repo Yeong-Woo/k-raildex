@@ -11,7 +11,7 @@ import { resolveStops } from '../src/transform/service';
 import { milestoneBasisOf, transformPlan } from '../src/transform/plan';
 import { operatorOfEnum } from '../src/transform/operator-map';
 import { transformGlossary } from '../src/transform/misc';
-import { groupTagoRaw, tagoMinute } from '../src/transform/timetable';
+import { tagoMinute, transformTagoTimetables } from '../src/transform/timetable';
 import { topoSort } from '../src/transform';
 
 const P = (sources: string[] = ['src-a']) => ({ sources, checked_at: '2026-10-11' });
@@ -402,13 +402,36 @@ describe('시간표', () => {
         { subwayRouteId: 'MTRS11', depTime: '0', arrTime: '060000', dailyTypeCode: '01', upDownTypeCode: 'U' },
       ],
     };
-    const g = groupTagoRaw([raw], new Map([['MTRS11001', 'stn-ga']]), [
-      { route_id: 'MTRS11', name: '1호선', direction: { U: 'inner' } },
+    const report = new MigrationReport();
+    const sets = transformTagoTimetables(
+      [raw],
+      [{ route_id: 'MTRS11', name: '1호선', direction: { U: 'inner' } }],
+      new Map([['MTRS11001', 'stn-ga']]),
+      [
+        {
+          id: 'tt-ga-mtrs11-weekday-inner',
+          station_id: 'stn-ga',
+          route_code: 'MTRS11',
+          day_type: 'weekday',
+          direction: 'inner',
+          direction_label: '끝 방면',
+          first: '05:30',
+          last: '06:00',
+          count: 3,
+          by_hour: [],
+          detail_file: '',
+          data_as_of: '2026-10-11',
+          provenance: P(['src-tago-subway']),
+        },
+      ],
+      { stationIds: new Set(['stn-ga']), serviceLines: new Map(), lsByStation: new Map() },
+      report,
+    );
+    expect(sets.map((s) => s.id)).toEqual(['tt-ga-mtrs11-weekday-inner']);
+    expect(sets[0]!.entries.map((e) => [e.minute, e.dest_name])).toEqual([
+      [330, '끝'],
+      [360, null],
     ]);
-    expect([...g.rows.keys()]).toEqual(['tt-ga-mtrs11-weekday-inner']);
-    expect(g.rows.get('tt-ga-mtrs11-weekday-inner')).toEqual([
-      { minute: 330, to: '끝' },
-      { minute: 360, to: null },
-    ]);
+    expect(report.issues.get('시간표 행 수 ≠ 기존 요약 count')).toEqual(['tt-ga-mtrs11-weekday-inner: 2 vs 3']);
   });
 });

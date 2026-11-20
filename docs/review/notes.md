@@ -26,3 +26,15 @@
   - `line.length_km numeric(7,2)` 가 기존 값을 자름(15건, 예 32.7001 → 32.7, 22.361 → 22.36) — 열 정밀도를 넓혀야 손실 없음.
   - `v_station_area` 가 시·도 없는 역의 권역(노선에서)에 3개 이상이면 national 을 더함 — 기존 build.ts 는 역에는 더하지 않음(2건).
   - 계산 단계 ≠ 기존 stage 4건(인천 계획 4개: 기존 abandoned, 이력에 폐기 이벤트 없음) — 이력 보정 또는 stage_override 필요.
+
+## M8 기계적 수집기(packages/importers, WP 8.1~8.3) — 2026-11-21
+
+임시 가정으로 진행한 것(round-04 Q98·Q104 는 권장안 A 로 가정).
+
+- **운행정보 원본 xlsx 내려받기**: 기존 fetch-kric-train-ops.ts(레일포털 파일 id 900 xlsx → 노선번호별 json.gz)를 이식하려면 xlsx 해석기 의존성(예: exceljs)이 필요하다. 지금은 기존 저장소의 정규화 json.gz 를 `--from-raw` 로 읽는다. 의존성을 더할지, 정규화 파일을 data 저장소(원본 파일)로 계속 둘지?
+- **당고개 → 불암산 수기 역명**: 기존 kric-train-ops-routes.yaml `names.I4103.당고개: stn-danggogae` 의 역 id 가 없다(역 이름이 불암산으로 바뀜). 같은 파일 맨 끝에 들여쓰기가 틀린 `당고개: stn-buramsan` 이 있다(노선번호 밖이라 쓰이지 않음). `ingest.config (kric-train-ops, routes)` 의 I4103 항목을 stn-buramsan 으로 고칠지? (고치면 4호선 불암산 정차 행이 해석된다. 지금은 TAGO 가 그 역을 덮어 세트 수에는 영향 없음)
+- **미해석 역명 9종**: 원본 셀 글자 깨짐 7(“��설동” 등)·“센럴파크”(센트럴파크 오기)·“215인천가좌”(역번호 접두). 수기 names 로 넣을지(원본이 바뀌면 사라질 수 있음)?
+- **방향 unknown 세트 정리**: 정차역 순서 규칙을 더해 기존 unknown 세트 100개가 없어졌다(TAGO 중복). 시간표 세트 수 4,249 → 4,153.
+- **이관 도구의 수집기 참조**: `@k-raildex/importers` 를 migrate-legacy 의존성으로 더하면 pnpm-lock.yaml 이 바뀌어 지금은 상대 경로(`packages/migrate-legacy/src/importers.ts`)로 가져온다. 잠금 파일을 바꿀 수 있을 때 의존성으로 옮긴다(결정 아님 — 정리 항목).
+- **예약 실행**: 08 문서 5절은 시간표 재수집 예약을 허용하지만 키가 없어 `JOB_SCHEDULES` 에 넣지 않았다. 주기(예: TAGO 월 1회, 운행정보 분기 1회)를 정할지?
+- **day_note 표기**: 운행정보 세트 `day_note` = `운행정보 요일구분 "토요일+공휴일" — 토요일·공휴일 공통 다이아` 식. 공개 사이트 표시 문구로 그대로 쓸지?

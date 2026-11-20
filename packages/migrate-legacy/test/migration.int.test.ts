@@ -26,8 +26,15 @@ describe.skipIf(!legacyExists())('기존 저장소 전량 이관', () => {
     const v = await runVerify(fx.client, legacy, tr);
     expect(v.hardViolations).toEqual([]);
     for (const c of v.counts)
-      if (c.legacy !== null && c.entity !== 'timetable_entry')
+      if (c.legacy !== null && !c.entity.startsWith('timetable_'))
         expect(c, c.entity).toMatchObject({ migrated: c.legacy });
     expect(v.events.legacyIdsMissing).toEqual([]);
+    // 시간표: TAGO 는 기존과 같고, 운행정보 보강 세트(수집기 kric-train-ops)는 설명된 차이만
+    const tt = v.timetables.summaryDiffs;
+    expect(tt.missing).toEqual([]);
+    expect(tt.extra).toEqual([]);
+    expect(Object.values(tt.fields).filter((f) => !f.intended)).toEqual([]);
+    const explained = (o?: Record<string, string[]>) => Object.values(o ?? {}).reduce((a, l) => a + l.length, 0);
+    expect(v.timetables.sets).toBe(tt.legacyCount - explained(tt.explainedMissing) + explained(tt.explainedExtra));
   });
 });

@@ -25,6 +25,12 @@ function diffSection(d: EntityDiff): string[] {
   const out = [`### ${d.entity}`, '', `기존 ${d.legacyCount} / 역변환 ${d.migratedCount}`, ''];
   if (d.missing.length) out.push(`- 새 DB 에 없음 ${d.missing.length}: ${d.missing.slice(0, 20).join(', ')}`);
   if (d.extra.length) out.push(`- 기존에 없음 ${d.extra.length}: ${d.extra.slice(0, 20).join(', ')}`);
+  for (const [why, ids] of Object.entries(d.explainedMissing ?? {}))
+    out.push(
+      `- 새 DB 에 없음(설명: ${why}) ${ids.length}: ${ids.slice(0, 10).join(', ')}${ids.length > 10 ? ' …' : ''}`,
+    );
+  for (const [why, ids] of Object.entries(d.explainedExtra ?? {}))
+    out.push(`- 기존에 없음(설명: ${why}) ${ids.length}: ${ids.slice(0, 10).join(', ')}${ids.length > 10 ? ' …' : ''}`);
   const fields = Object.entries(d.fields).sort((a, b) => b[1].count - a[1].count);
   if (!fields.length) {
     out.push('- 필드 차이 없음', '');

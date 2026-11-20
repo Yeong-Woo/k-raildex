@@ -21,7 +21,8 @@ import { OPERATORS } from './operator-map';
 import { planRelations, transformPlan, transformPlanProgram } from './plan';
 import { transformService, transformTrainClass } from './service';
 import { transformSource } from './source';
-import { groupTagoRaw, tagoStationMap, transformTimetables } from './timetable';
+import { tagoStationMap, transformTagoTimetables } from './timetable';
+import type { TagoRouteConfig } from '../importers';
 
 export interface Stage {
   key: string;
@@ -272,20 +273,16 @@ export function transformAll(legacy: LegacyData, opts: { timetables?: boolean } 
     );
   } else report.add('용어 사전 없음', 'docs/TERMINOLOGY.md');
 
-  // 14. 시간표
+  // 14. 시간표 — TAGO 세트는 수집기 구현(buildTagoSets)으로. 운행정보 보강 세트는 적재 단계에서 수집기 kric-train-ops 로(load.ts)
   let timetables: TimetableSet[] = [];
   if (opts.timetables !== false) {
-    const tago = groupTagoRaw(
+    timetables = transformTagoTimetables(
       (function* () {
         for (const f of legacy.tagoTimetableFiles) yield legacy.readTago(f);
       })(),
+      own.tagoRoutes as unknown as TagoRouteConfig[],
       tagoStationMap(build.stations),
-      own.tagoRoutes,
-    );
-    for (const t of tago.unmatchedTago) report.add('TAGO 역 id 미매칭(시간표 raw)', t);
-    timetables = transformTimetables(
       build.timetableSummaries,
-      tago,
       {
         stationIds: new Set(build.stations.map((s) => s.id)),
         serviceLines: new Map(own.services.items.map((s) => [s.id, s.line_ids])),

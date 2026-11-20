@@ -8,7 +8,7 @@
 - 미설명 차이(필드·누락·추가): **0**
 - 계산 단계 ≠ 기존 stage: 4
 - 이벤트: 테이블 989 + 파생 뷰 1135, 기존 id 중 새 DB(테이블∪뷰)에 없는 것 0
-- 시간표: 세트 4249, 행 430909
+- 시간표: 세트 4153, 행 605418
 - FK 위반: 0 (DB 외래 키가 적재 때 강제)
 
 ## 1. 개체 수
@@ -30,8 +30,8 @@
 | train_number_range | 196 | 196 |  |
 | rolling_stock_range | 61 | 61 |  |
 | glossary_term | 54 | 54 | TERMINOLOGY.md 파싱 항목 수 |
-| timetable_set | 4249 | 4249 |  |
-| timetable_entry | 617209 | 430909 | 기존 = 요약 count 합(운행정보 보강 세트 포함) |
+| timetable_set | 4249 | 4153 | TAGO + 운행정보 보강(수집기 kric-train-ops 결과, 5절 설명) |
+| timetable_entry | 617209 | 605418 | 기존 = 요약 count 합(운행정보 보강 세트 포함) |
 
 ## 2. 의도된 차이(D-1~D-7)
 
@@ -95,15 +95,11 @@
 
 ### timetable_summary
 
-기존 4249 / 역변환 4249
+기존 4249 / 역변환 4153
 
-
-| 필드 | 차이 수 | 분류 | 예(id: 기존 → 새) |
-| --- | ---: | --- | --- |
-| first [운행정보 보강 세트 시각 행 미재구성] | 1323 | 운행정보 보강 세트 시각 행 미재구성 | tt-achasan-s1105-saturday-down: "05:38" → null<br>tt-achasan-s1105-saturday-up: "05:38" → null |
-| last [운행정보 보강 세트 시각 행 미재구성] | 1323 | 운행정보 보강 세트 시각 행 미재구성 | tt-achasan-s1105-saturday-down: "24:00" → null<br>tt-achasan-s1105-saturday-up: "23:48" → null |
-| count [운행정보 보강 세트 시각 행 미재구성] | 1323 | 운행정보 보강 세트 시각 행 미재구성 | tt-achasan-s1105-saturday-down: 164 → 0<br>tt-achasan-s1105-saturday-up: 162 → 0 |
-| by_hour [운행정보 보강 세트 시각 행 미재구성] | 1323 | 운행정보 보강 세트 시각 행 미재구성 | tt-achasan-s1105-saturday-down: [1,0,0,0,0,2,7,8,9,9,10,9,9,9,10,9,9,9,10,9,9,9,9,8] → [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]<br>tt-achasan-s1105-saturday-up: [0,0,0,0,0,3,9,9,9,9,10,9,9,9,9,10,9,9,9,10,9,9,7,5] → [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0] |
+- 새 DB 에 없음(설명: 방향 unknown 세트 → 정차역 순서로 상·하행 판정(같은 역·계통·요일 세트가 이미 있어 생략)) 100: tt-ansan-i4103-holiday-unknown, tt-ansan-i4103-weekday-unknown, tt-banwol-i4103-holiday-unknown, tt-banwol-i4103-weekday-unknown, tt-beomgye-i4103-holiday-unknown, tt-beomgye-i4103-weekday-unknown, tt-byeollaebyeolgaram-i4103-holiday-unknown, tt-byeollaebyeolgaram-i4103-weekday-unknown, tt-changdong-i4103-holiday-unknown, tt-changdong-i4103-weekday-unknown …
+- 기존에 없음(설명: 기존에 해석하지 못한 운행정보 역명을 새 DB 역명·별칭으로 해석(새 역의 세트)) 4: tt-sinchon-mapo-s1102-saturday-outer, tt-sinchon-mapo-s1102-holiday-inner, tt-sinchon-mapo-s1102-saturday-inner, tt-sinchon-mapo-s1102-holiday-outer
+- 필드 차이 없음
 
 ## 6. 계획
 
@@ -118,8 +114,8 @@
 
 - plan_line.upgrades: 165
 - plan_line.new: 23
-- plan_station.existing: 190
 - plan_station.new: 159
+- plan_station.existing: 190
 
 ## 7. Hard 위반
 
@@ -227,49 +223,49 @@
 - map-korail-national file korail-national-20250101.jpg
 - map-seoul-city file seoul-subway-202603.jpg
 
-### 시간표 노선별 역 미해석 (124)
+### 시간표 노선별 역 미해석 (90)
 
-- tt-buramsan-mtrs14-holiday-down (svc-sudogwon-4)
-- tt-buramsan-mtrs14-holiday-up (svc-sudogwon-4)
-- tt-buramsan-mtrs14-weekday-down (svc-sudogwon-4)
-- tt-buramsan-mtrs14-weekday-up (svc-sudogwon-4)
-- tt-buramsan-s1104-saturday-down (svc-sudogwon-4)
-- tt-buramsan-s1104-saturday-up (svc-sudogwon-4)
-- tt-byeongjeom-mtrkr1-holiday-down (svc-sudogwon-1)
-- tt-byeongjeom-mtrkr1-holiday-up (svc-sudogwon-1)
+- tt-incheon-int-l-airport-terminal-1-mtriam1-saturday-down (svc-sudogwon-jagibusang)
+- tt-incheon-int-l-airport-terminal-1-mtriam1-saturday-up (svc-sudogwon-jagibusang)
+- tt-yongsan-seoul-mtrkr1-weekday-down (svc-sudogwon-1)
+- tt-yongsan-seoul-mtrkr1-weekday-up (svc-sudogwon-1)
+- tt-yongsan-seoul-mtrkr1-holiday-down (svc-sudogwon-1)
+- tt-yongsan-seoul-mtrkr1-holiday-up (svc-sudogwon-1)
+- tt-guro-mtrkr1-weekday-down (svc-sudogwon-1)
+- tt-guro-mtrkr1-weekday-up (svc-sudogwon-1)
+- tt-guro-mtrkr1-holiday-down (svc-sudogwon-1)
+- tt-guro-mtrkr1-holiday-up (svc-sudogwon-1)
+- tt-geumcheon-gu-office-mtrkr1-weekday-down (svc-sudogwon-1)
+- tt-geumcheon-gu-office-mtrkr1-weekday-up (svc-sudogwon-1)
+- tt-geumcheon-gu-office-mtrkr1-holiday-down (svc-sudogwon-1)
+- tt-geumcheon-gu-office-mtrkr1-holiday-up (svc-sudogwon-1)
 - tt-byeongjeom-mtrkr1-weekday-down (svc-sudogwon-1)
 - tt-byeongjeom-mtrkr1-weekday-up (svc-sudogwon-1)
-- tt-byeongjeom-s1101-saturday-down (svc-sudogwon-1)
-- tt-byeongjeom-s1101-saturday-up (svc-sudogwon-1)
-- tt-cheonan-i4101-holiday-down (svc-sudogwon-1)
-- tt-cheonan-i4101-holiday-up (svc-sudogwon-1)
-- tt-cheonan-i4101-weekday-down (svc-sudogwon-1)
-- tt-cheonan-i4101-weekday-up (svc-sudogwon-1)
-- tt-cheonan-s1101-saturday-down (svc-sudogwon-1)
-- tt-cheonan-s1101-saturday-up (svc-sudogwon-1)
-- tt-cheongnyangni-mtrkrk1-holiday-down (svc-sudogwon-suinbundang)
-- tt-cheongnyangni-mtrkrk1-holiday-up (svc-sudogwon-suinbundang)
+- tt-byeongjeom-mtrkr1-holiday-down (svc-sudogwon-1)
+- tt-byeongjeom-mtrkr1-holiday-up (svc-sudogwon-1)
+- tt-geumjeong-mtrkr4-weekday-down (svc-sudogwon-4)
+- tt-geumjeong-mtrkr4-weekday-up (svc-sudogwon-4)
+- tt-geumjeong-mtrkr4-holiday-down (svc-sudogwon-4)
+- tt-geumjeong-mtrkr4-holiday-up (svc-sudogwon-4)
 - tt-cheongnyangni-mtrkrk1-weekday-down (svc-sudogwon-suinbundang)
 - tt-cheongnyangni-mtrkrk1-weekday-up (svc-sudogwon-suinbundang)
-- tt-cheongnyangni-mtrkrk2-holiday-down (svc-sudogwon-gyeongchun)
-- tt-cheongnyangni-mtrkrk2-holiday-up (svc-sudogwon-gyeongchun)
+- tt-cheongnyangni-mtrkrk1-holiday-down (svc-sudogwon-suinbundang)
+- tt-cheongnyangni-mtrkrk1-holiday-up (svc-sudogwon-suinbundang)
+- tt-hangyang-univ-at-ansan-mtrkrk1-weekday-down (svc-sudogwon-suinbundang)
+- tt-hangyang-univ-at-ansan-mtrkrk1-weekday-up (svc-sudogwon-suinbundang)
+- tt-hangyang-univ-at-ansan-mtrkrk1-holiday-down (svc-sudogwon-suinbundang)
+- tt-hangyang-univ-at-ansan-mtrkrk1-holiday-up (svc-sudogwon-suinbundang)
+- tt-oido-mtrkrk1-weekday-down (svc-sudogwon-suinbundang)
+- tt-oido-mtrkrk1-weekday-up (svc-sudogwon-suinbundang)
+- tt-oido-mtrkrk1-holiday-down (svc-sudogwon-suinbundang)
+- tt-oido-mtrkrk1-holiday-up (svc-sudogwon-suinbundang)
 - tt-cheongnyangni-mtrkrk2-weekday-down (svc-sudogwon-gyeongchun)
 - tt-cheongnyangni-mtrkrk2-weekday-up (svc-sudogwon-gyeongchun)
-- tt-cheongnyangni-mtrkrk4-holiday-down (svc-sudogwon-gyeonguijungang)
-- tt-cheongnyangni-mtrkrk4-holiday-up (svc-sudogwon-gyeonguijungang)
-- tt-cheongnyangni-mtrkrk4-weekday-down (svc-sudogwon-gyeonguijungang)
-- tt-cheongnyangni-mtrkrk4-weekday-up (svc-sudogwon-gyeonguijungang)
-- tt-cheongnyangni-mtrs11-holiday-down (svc-sudogwon-1)
-- tt-cheongnyangni-mtrs11-holiday-up (svc-sudogwon-1)
-- tt-cheongnyangni-mtrs11-weekday-down (svc-sudogwon-1)
-- tt-cheongnyangni-mtrs11-weekday-up (svc-sudogwon-1)
-- tt-cheongnyangni-s1101-saturday-down (svc-sudogwon-1)
-- tt-cheongnyangni-s1101-saturday-up (svc-sudogwon-1)
-- tt-daegok-gyeonggi-mtrkrws-holiday-down (svc-sudogwon-seohae)
-- tt-daegok-gyeonggi-mtrkrws-holiday-up (svc-sudogwon-seohae)
-- tt-daegok-gyeonggi-mtrkrws-weekday-down (svc-sudogwon-seohae)
-- tt-daegok-gyeonggi-mtrkrws-weekday-up (svc-sudogwon-seohae)
-- … 외 84건(JSON 참고)
+- tt-cheongnyangni-mtrkrk2-holiday-down (svc-sudogwon-gyeongchun)
+- tt-cheongnyangni-mtrkrk2-holiday-up (svc-sudogwon-gyeongchun)
+- tt-hoegi-mtrkrk2-weekday-down (svc-sudogwon-gyeongchun)
+- tt-hoegi-mtrkrk2-weekday-up (svc-sudogwon-gyeongchun)
+- … 외 50건(JSON 참고)
 
 ### 용어 사전 절 머리 본문 → 절 이름 항목으로 적재 (2)
 
@@ -378,8 +374,7 @@
 - 노선별 역.상태가 역 상태와 다름(배분): 32
 - 단계 이력.gazette_auto: 70
 - 번호대.operator other → id 접두사로 운영기관: 16
-- 시간표.노선별 역 해석: 4125
-- 시간표.운행정보 보강 세트(시각 행 미재구성): 1323
+- 시간표.노선별 역 해석(TAGO): 2836
 - 역.노선 없음(own_*): 71
 - 역.다중 노선: 205
 - 용어.정의 글머리 없음(본문 전체를 정의로): 15

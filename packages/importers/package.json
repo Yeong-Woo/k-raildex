@@ -8,7 +8,10 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "check": "tsc -p tsconfig.json"
+    "check": "tsc -p tsconfig.json",
+    "tago-timetable": "tsx src/cli.ts tago-timetable",
+    "kric-train-ops": "tsx src/cli.ts kric-train-ops",
+    "importer": "tsx src/cli.ts"
   },
   "dependencies": {
     "@k-raildex/contracts": "workspace:*",

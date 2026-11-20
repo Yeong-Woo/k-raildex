@@ -16,6 +16,8 @@
     "@dnd-kit/sortable": "10.0.0",
     "@hookform/resolvers": "7.0.7",
     "@k-raildex/contracts": "workspace:*",
+    "@k-raildex/domain": "workspace:*",
+    "@k-raildex/map": "workspace:*",
     "@k-raildex/ui": "workspace:*",
     "@tanstack/react-query": "5.108.2",
     "@tanstack/react-router": "1.170.46",

@@ -11,12 +11,14 @@
     "check": "tsc -p tsconfig.json",
     "migrate:run": "tsx src/cli.ts run",
     "migrate:verify": "tsx src/cli.ts verify",
-    "migrate:check": "tsx src/cli.ts check"
+    "migrate:check": "tsx src/cli.ts check",
+    "migrate:config": "tsx src/cli.ts config"
   },
   "dependencies": {
     "@k-raildex/contracts": "workspace:*",
     "@k-raildex/db": "workspace:*",
     "@k-raildex/domain": "workspace:*",
+    "@k-raildex/importers": "workspace:*",
     "pg": "8.23.1",
     "yaml": "2.9.1",
     "zod": "4.6.7"

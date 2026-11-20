@@ -67,8 +67,14 @@ export interface EntityDiff {
   migratedCount: number;
   missing: string[];
   extra: string[];
+  /** 설명된 누락·추가(분류 → id 목록). missing·extra 에는 들어가지 않는다 */
+  explainedMissing?: Record<string, string[]>;
+  explainedExtra?: Record<string, string[]>;
   fields: Record<string, FieldDiff>;
 }
+
+/** 누락(missing: 기존에만)·추가(extra: 새 DB 에만) 레코드 설명. 설명 못 하면 null */
+type PresenceClassifier = (kind: 'missing' | 'extra', record: Obj) => string | null;
 
 /** 필드별 의도된 차이 분류. (entity, field, 레코드) → 분류 문자열 또는 null */
 type Classifier = (field: string, legacy: Obj, migrated: Obj) => string | null;
@@ -80,6 +86,7 @@ function diffEntity(
   keyOf: (o: Obj) => string,
   fields: string[],
   classify: Classifier,
+  presence?: PresenceClassifier,
 ): EntityDiff {
   const mById = new Map(migrated.map((m) => [keyOf(m), m]));
   const lById = new Map(legacy.map((l) => [keyOf(l), l]));
@@ -87,10 +94,18 @@ function diffEntity(
     entity,
     legacyCount: legacy.length,
     migratedCount: migrated.length,
-    missing: [...lById.keys()].filter((k) => !mById.has(k)),
-    extra: [...mById.keys()].filter((k) => !lById.has(k)),
+    missing: [],
+    extra: [],
     fields: {},
   };
+  const place = (kind: 'missing' | 'extra', id: string, rec: Obj) => {
+    const why = presence?.(kind, rec) ?? null;
+    if (!why) return void out[kind].push(id);
+    const bucket = kind === 'missing' ? (out.explainedMissing ??= {}) : (out.explainedExtra ??= {});
+    (bucket[why] ??= []).push(id);
+  };
+  for (const [k, l] of lById) if (!mById.has(k)) place('missing', k, l);
+  for (const [k, m] of mById) if (!lById.has(k)) place('extra', k, m);
   for (const [id, l] of lById) {
     const m = mById.get(id);
     if (!m) continue;
@@ -531,7 +546,12 @@ export async function runVerify(db: Queryable, legacy: LegacyData, tr: Transform
       migrated: await live('glossary_term'),
       note: 'TERMINOLOGY.md 파싱 항목 수',
     },
-    { entity: 'timetable_set', legacy: build.timetableSummaries.length, migrated: ttSets, note: '' },
+    {
+      entity: 'timetable_set',
+      legacy: build.timetableSummaries.length,
+      migrated: ttSets,
+      note: 'TAGO + 운행정보 보강(수집기 kric-train-ops 결과, 5절 설명)',
+    },
     {
       entity: 'timetable_entry',
       legacy: build.timetableSummaries.reduce((a, s) => a + s.count, 0),
@@ -678,6 +698,12 @@ export async function runVerify(db: Queryable, legacy: LegacyData, tr: Transform
     m == null
       ? undefined
       : `${String(Math.floor(Number(m) / 60)).padStart(2, '0')}:${String(Number(m) % 60).padStart(2, '0')}`;
+  const ttCombos = new Set(ttRev.map((r) => `${String(r.station_id)}|${String(r.service_id)}|${String(r.day_type)}`));
+  const legacyOpsStations = new Set(
+    build.timetableSummaries
+      .filter((s) => !s.route_code.startsWith('MTR'))
+      .map((s) => `${s.station_id}|${s.route_code}`),
+  );
   const ttDiff = diffEntity(
     'timetable_summary',
     build.timetableSummaries.map((s) => ({ ...(s as unknown as Obj) })),
@@ -701,10 +727,19 @@ export async function runVerify(db: Queryable, legacy: LegacyData, tr: Transform
       'count',
       'by_hour',
     ],
-    (f, l) => {
-      if (!String(l.route_code).startsWith('MTR') && ['first', 'last', 'count', 'by_hour'].includes(f))
-        return '운행정보 보강 세트 시각 행 미재구성';
-      if (['count', 'by_hour', 'first', 'last'].includes(f)) return '같은 분 다른 종착 행 제외(PK)';
+    (f, l, m) => {
+      if (!String(l.route_code).startsWith('MTR') && ['first', 'last', 'count', 'by_hour'].includes(f) && !m.count)
+        return '운행정보 보강 세트 시각 행 미재구성(kric-train-ops 미실행)';
+      return null;
+    },
+    // 운행정보 보강 세트는 수집기 kric-train-ops 가 새 DB(역명·별칭·정차 패턴)로 다시 만든다(Q104 A) — 기존과 다른 세트의 설명
+    (kind, r) => {
+      if (String(r.route_code).startsWith('MTR')) return null;
+      const k = `${String(r.station_id)}|${String(r.service_id)}|${String(r.day_type)}`;
+      if (kind === 'missing' && r.direction === 'unknown' && ttCombos.has(k))
+        return '방향 unknown 세트 → 정차역 순서로 상·하행 판정(같은 역·계통·요일 세트가 이미 있어 생략)';
+      if (kind === 'extra' && !legacyOpsStations.has(`${String(r.station_id)}|${String(r.route_code)}`))
+        return '기존에 해석하지 못한 운행정보 역명을 새 DB 역명·별칭으로 해석(새 역의 세트)';
       return null;
     },
   );

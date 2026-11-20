@@ -6,13 +6,18 @@
  *   (수집기의 시간표 재수집과 같은 성격, CLAUDE.md 3절 8 "자동 반영은 기계적 갱신뿐").
  * - 기존 변경 묶음 170건은 본문만 보관하는 op 없는 변경 묶음으로(Q36 A).
  */
-import { readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { TimetableSet } from '@k-raildex/contracts';
 import { migrate, seedReference } from '@k-raildex/db';
 import { applyChangeset, DomainError, ensureServiceUser, type Queryable } from '@k-raildex/domain';
 import { parseDocument } from 'yaml';
+import { finishRun, replaceTimetableSetsNoTx, runKricTrainOps, startRun, TAGO_TASK } from './importers';
+import { legacyIngestConfig, writeIngestConfig } from './ingest-config';
 import type { LegacyData } from './read/legacy';
+
+export const legacyTagoDir = (root: string) => join(root, 'data/public/raw/src-tago-subway/timetable');
+export const legacyKricDir = (root: string) => join(root, 'data/public/raw/src-kric-file-train-ops');
 import type { IdRedirect, Stage, TransformResult } from './transform';
 
 export type Log = (msg: string) => void;
@@ -79,8 +84,13 @@ export async function applyStages(
   return timings;
 }
 
-/** 시간표·id 리다이렉트: 한 트랜잭션 SQL */
-export async function writeMechanical(db: Queryable, sets: TimetableSet[], redirects: IdRedirect[]): Promise<void> {
+/** 시간표·id 리다이렉트: 한 트랜잭션 SQL. 시간표 쓰기는 수집기의 writer(replaceTimetableSetsNoTx)를 쓴다 */
+export async function writeMechanical(
+  db: Queryable,
+  sets: TimetableSet[],
+  redirects: IdRedirect[],
+  runId: number | null = null,
+): Promise<void> {
   await db.query('BEGIN');
   try {
     for (const r of redirects) {
@@ -89,41 +99,9 @@ export async function writeMechanical(db: Queryable, sets: TimetableSet[], redir
         [r.old_id, r.new_id, r.reason],
       );
     }
-    for (const s of sets) {
-      await db.query(
-        `INSERT INTO timetable_set (id, station_id, line_station_id, service_id, route_code, day_type, direction,
-           direction_label, day_note, data_as_of, source_id, import_run_id)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
-        [
-          s.id,
-          s.station_id,
-          s.line_station_id,
-          s.service_id,
-          s.route_code,
-          s.day_type,
-          s.direction,
-          s.direction_label,
-          s.day_note,
-          s.data_as_of,
-          s.source_id,
-          s.import_run_id,
-        ],
-      );
-      // 행은 묶어서(파라미터 7개 × 최대 1000행). ord = 세트 안 순서
-      for (let i = 0; i < s.entries.length; i += 1000) {
-        const chunk = s.entries.slice(i, i + 1000);
-        const params: unknown[] = [];
-        const values = chunk.map((e, j) => {
-          params.push(s.id, i + j + 1, e.minute, e.dest_name, e.dest_station_id, e.train_no, e.note);
-          const b = params.length - 7;
-          return `($${b + 1}, $${b + 2}, $${b + 3}, $${b + 4}, $${b + 5}, $${b + 6}, $${b + 7})`;
-        });
-        await db.query(
-          `INSERT INTO timetable_entry (set_id, ord, minute, dest_name, dest_station_id, train_no, note) VALUES ${values.join(', ')}`,
-          params,
-        );
-      }
-    }
+    const bySource = new Map<string, TimetableSet[]>();
+    for (const s of sets) bySource.set(s.source_id, [...(bySource.get(s.source_id) ?? []), s]);
+    for (const [source_id, list] of bySource) await replaceTimetableSetsNoTx(db, { source_id, keys: [] }, list, runId);
     await db.query('COMMIT');
   } catch (e) {
     await db.query('ROLLBACK').catch(() => {});
@@ -176,7 +154,7 @@ export async function runLoad(
   db: Queryable,
   legacy: LegacyData,
   tr: TransformResult,
-  opts: { date?: string; log?: Log } = {},
+  opts: { date?: string; log?: Log; timetables?: boolean } = {},
 ): Promise<RunResult> {
   const log = opts.log ?? (() => {});
   const date = opts.date ?? new Date().toISOString().slice(0, 10);
@@ -185,11 +163,28 @@ export async function runLoad(
   const author = await ensureServiceUser(db, 'system', 'legacy-migration');
   const timings = await applyStages(db, tr.stages, author, date, log);
   const t1 = performance.now();
-  await writeMechanical(db, tr.timetables, tr.redirects);
-  const timetableMs = performance.now() - t1;
+  // 수집기 설정(ingest.config) — 기존 보정 파일 이관
+  await writeIngestConfig(db, legacyIngestConfig(legacy.root));
+  // TAGO 세트(수집기 구현으로 변환된 것) + id 리다이렉트. 시간표는 수집 실행(ingest.run) 단위로 기록(Q98 A)
+  const ttRun = tr.timetables.length
+    ? await startRun(db, TAGO_TASK, 'manual', { origin: 'legacy_migration', from_raw: legacyTagoDir(legacy.root) })
+    : null;
+  await writeMechanical(db, tr.timetables, tr.redirects, ttRun?.id ?? null);
+  if (ttRun)
+    await finishRun(db, ttRun, {
+      sets: tr.timetables.length,
+      entries: tr.timetables.reduce((a, s) => a + s.entries.length, 0),
+    });
   log(
-    `  시간표 세트 ${tr.timetables.length}건·id 리다이렉트 ${tr.redirects.length}건 ${(timetableMs / 1000).toFixed(1)}s`,
+    `  시간표(TAGO) 세트 ${tr.timetables.length}건·id 리다이렉트 ${tr.redirects.length}건 ${((performance.now() - t1) / 1000).toFixed(1)}s`,
   );
+  // 레일포털 운행정보 보강 세트(Q104 A): 수집기 kric-train-ops 를 DB 에 대해 실행
+  const kricDir = legacyKricDir(legacy.root);
+  if (opts.timetables !== false && existsSync(kricDir)) {
+    const r = await runKricTrainOps(db, { fromRaw: kricDir, trigger: 'manual' });
+    log(`  시간표(운행정보) run ${r.runId}: 세트 ${String(r.stats.sets)}, 행 ${String(r.stats.entries)}`);
+  }
+  const timetableMs = performance.now() - t1;
   const legacyChangesets = await archiveLegacyChangesets(db, legacy.root, author);
   log(`  기존 변경 묶음 ${legacyChangesets}건 보관`);
   await db.query('SELECT refresh_derived()');
