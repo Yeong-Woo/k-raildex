@@ -2,7 +2,7 @@
 
 - 작성일: 2026-11-20
 - 대상: `/home/kimyw/Git/future-rail-db`(이하 **기존 시스템**)를 대체하는 새 구현(이 저장소, 이하 **새 시스템**)
-- 상태: **설계 확정본**(round-01~03 결정 반영, 2026-11-20). 결정 표 [decisions.md](decisions.md).
+- 상태: **설계 확정본**(round-01~03 결정 반영, 2026-11-20). 결정 표 [decisions.md](decisions.md). 구현 계획 [11-implementation-plan.md](11-implementation-plan.md).
 
 ## 문서 목록
 
@@ -18,6 +18,7 @@
 | 08  | [08-ingestion-closed-loop.md](08-ingestion-closed-loop.md) | 공공데이터 수집기와 LLM 에이전트 Closed Loop(후순위)                  |
 | 09  | [09-non-functional.md](09-non-functional.md)               | 성능, 보안, 접근성, 라이선스, 백업, 관측, 테스트, CI                  |
 | 10  | [10-roadmap.md](10-roadmap.md)                             | 단계별 구현 순서와 완료 기준                                          |
+| 11  | [11-implementation-plan.md](11-implementation-plan.md)     | 상세 구현 계획(작업 패키지·마이그레이션 순서·완료 기준·위험)          |
 | —   | [review/README.md](review/README.md)                       | 리뷰 운영 규칙                                                        |
 | —   | [review/round-01.md](review/round-01.md)                   | **1차 리뷰 질문**(추천 답변 포함) — 답변 완료                         |
 | —   | [review/round-02.md](review/round-02.md)                   | **2차 리뷰 질문**(후속 질문·미래 지도) — 답변 완료                    |
