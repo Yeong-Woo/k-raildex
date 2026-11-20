@@ -80,19 +80,41 @@ describe('퍼지 날짜 SQL = TS', () => {
 });
 
 describe('핵심 제약', () => {
-  async function entity(id: string, type: string) {
-    await client.query('INSERT INTO entity (id, type) VALUES ($1, $2)', [id, type]);
+  /** 큐레이션 개체는 출처가 있어야 커밋된다(V-H01): entity + 행 + record_source 를 한 트랜잭션에 */
+  async function curated(id: string, type: string, insertSql: string) {
+    await client.query('BEGIN');
+    try {
+      await client.query('INSERT INTO entity (id, type) VALUES ($1, $2)', [id, type]);
+      await client.query(insertSql);
+      await client.query(`INSERT INTO record_source (entity_id, source_id) VALUES ($1, 'src-test')`, [id]);
+      await client.query('COMMIT');
+    } catch (e) {
+      await client.query('ROLLBACK');
+      throw e;
+    }
   }
 
-  it('역 id 형식·좌표 범위·자기 병합 금지', async () => {
-    await entity('stn-test-a', 'station');
+  beforeAll(async () => {
+    await client.query(`INSERT INTO entity (id, type) VALUES ('src-test', 'source')`);
     await client.query(
+      `INSERT INTO source (id, title, publisher, type, license, license_class, retrieved_at, checked_at)
+       VALUES ('src-test', '시험', '시험', 'news', '-', 'restricted', '2026-11-20', '2026-11-20')`,
+    );
+  });
+
+  it('역 id 형식·좌표 범위·자기 병합 금지', async () => {
+    await curated(
+      'stn-test-a',
+      'station',
       `INSERT INTO station (id, name_ko, geom, coord_source, checked_at)
        VALUES ('stn-test-a', '테스트', ST_GeogFromText('POINT(127.0 37.5)'), 'manual', '2026-11-20')`,
     );
-    await entity('stn-Bad', 'station');
     await expect(
-      client.query(`INSERT INTO station (id, name_ko, checked_at) VALUES ('stn-Bad', 'x', '2026-11-20')`),
+      curated(
+        'stn-Bad',
+        'station',
+        `INSERT INTO station (id, name_ko, checked_at) VALUES ('stn-Bad', 'x', '2026-11-20')`,
+      ),
     ).rejects.toThrow(/station_id_chk/);
     await expect(
       client.query(`UPDATE station SET geom = ST_GeogFromText('POINT(140 37)') WHERE id = 'stn-test-a'`),
@@ -103,13 +125,11 @@ describe('핵심 제약', () => {
   });
 
   it('기대 일정은 추정 금지·출처 필수(Q94 A)', async () => {
-    await entity('src-test', 'source');
-    await client.query(
-      `INSERT INTO source (id, title, publisher, type, license, license_class, retrieved_at, checked_at)
-       VALUES ('src-test', '시험', '시험', 'news', '-', 'restricted', '2026-11-20', '2026-11-20')`,
+    await curated(
+      'plan-test',
+      'plan',
+      `INSERT INTO plan (id, name_ko, checked_at) VALUES ('plan-test', '시험 사업', '2026-11-20')`,
     );
-    await entity('plan-test', 'plan');
-    await client.query(`INSERT INTO plan (id, name_ko, checked_at) VALUES ('plan-test', '시험 사업', '2026-11-20')`);
     const ins = (basis: string, src: string | null) =>
       client.query(
         `INSERT INTO plan_milestone (plan_id, stage, expected_value, expected_precision, basis, source_id)
@@ -124,17 +144,20 @@ describe('핵심 제약', () => {
   });
 
   it('id 변경은 참조로 전파된다(ON UPDATE CASCADE)', async () => {
-    await entity('line-test', 'line');
-    await client.query(
+    await curated(
+      'line-test',
+      'line',
       `INSERT INTO line (id, name_ko, category, rail_class, status, checked_at)
        VALUES ('line-test', '시험선', 'conventional', 'conventional', 'operating', '2026-11-20')`,
     );
-    await entity('ls-test--test-a', 'line_station');
+    await client.query(`INSERT INTO entity (id, type) VALUES ('ls-test--test-a', 'line_station')`);
     await client.query(
       `INSERT INTO line_station (id, line_id, station_id, seq, status) VALUES ('ls-test--test-a', 'line-test', 'stn-test-a', 1, 'operating')`,
     );
     await client.query(`UPDATE entity SET id = 'stn-test-b' WHERE id = 'stn-test-a'`);
     const { rows } = await client.query(`SELECT station_id FROM line_station WHERE id = 'ls-test--test-a'`);
     expect(rows[0].station_id).toBe('stn-test-b');
+    const src = await client.query(`SELECT count(*)::int n FROM record_source WHERE entity_id = 'stn-test-b'`);
+    expect(src.rows[0].n).toBe(1);
   });
 });

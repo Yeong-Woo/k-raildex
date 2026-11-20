@@ -2,3 +2,4 @@
 export * from './codes';
 export * from './fuzzy-date';
 export * from './ids';
+export * from './entities';
