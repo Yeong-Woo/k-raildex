@@ -8,3 +8,4 @@ export * from './check';
 export * from './load';
 export * from './verify';
 export * from './report';
+export * from './headers';

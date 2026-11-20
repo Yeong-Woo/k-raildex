@@ -3,7 +3,6 @@
  * (docs/04-api.md 7절 8단계, docs/02-architecture.md)
  */
 import { JOB, JOB_QUEUES, JOB_SCHEDULES, type JobName, type JobPayloads, type ObjectStore } from '@k-raildex/domain';
-import { IMPORTER_JOB, type ImporterJob } from '@k-raildex/importers';
 import pg from 'pg';
 import { PgBoss } from 'pg-boss';
 import { Debouncer } from './debounce';
@@ -25,7 +24,7 @@ export interface RunningWorker {
   boss: PgBoss;
   pool: pg.Pool;
   /** 처리 완료 기록(시험·로그용) */
-  completed: { name: JobName | typeof IMPORTER_JOB; result: unknown }[];
+  completed: { name: JobName; result: unknown }[];
   stop(): Promise<void>;
 }
 
@@ -43,12 +42,16 @@ export async function startWorker(opts: WorkerOptions): Promise<RunningWorker> {
   const pollingIntervalSeconds = opts.pollingIntervalSeconds ?? 2;
   const register = async <N extends JobName>(name: N, fn: (data: JobPayloads[N]) => Promise<unknown>) => {
     await boss.work<JobPayloads[N]>(name, { pollingIntervalSeconds }, async (jobs) => {
+      const results: unknown[] = [];
       for (const job of jobs) {
         const t = Date.now();
         const result = await fn(job.data ?? ({} as JobPayloads[N]));
+        results.push(result);
         completed.push({ name, result });
         log(`${name} ${job.id} 완료 ${Date.now() - t}ms ${JSON.stringify(result)}`);
       }
+      // 처리기 반환값은 pg-boss 작업 output 이 된다(관리 앱 작업 상세). 기본 묶음 크기 1
+      return jobs.length === 1 ? results[0] : results;
     });
   };
   await register(JOB.refreshDerived, () => h.refreshDerived(deps));
@@ -56,16 +59,9 @@ export async function startWorker(opts: WorkerOptions): Promise<RunningWorker> {
   await register(JOB.docTextExtract, (d) => h.docTextExtract(deps, d));
   await register(JOB.docPageImages, (d) => h.docPageImages(deps, d));
   await register(JOB.docCrop, (d) => h.docCrop(deps, d));
+  await register(JOB.validateAll, () => h.validateAll(deps));
   // 수집기(packages/importers): { task, options } — 실패해도 이전 세트 유지(재시도 없음, 실행 기록 ingest.run 에 failed)
-  await boss.createQueue(IMPORTER_JOB, { policy: 'standard', retryLimit: 0, expireInSeconds: 7200 });
-  await boss.work<ImporterJob>(IMPORTER_JOB, { pollingIntervalSeconds }, async (jobs) => {
-    for (const job of jobs) {
-      const t = Date.now();
-      const result = await h.importerRun(deps, job.data);
-      completed.push({ name: IMPORTER_JOB, result });
-      log(`${IMPORTER_JOB} ${job.id} 완료 ${Date.now() - t}ms ${JSON.stringify(result)}`);
-    }
-  });
+  await register(JOB.importerRun, (d) => h.importerRun(deps, d));
 
   // data_changed 수신: 전용 연결. 끊기면 다시 붙고, 그 사이 놓친 변경을 위해 갱신 한 번
   let lastVersion: number | undefined;

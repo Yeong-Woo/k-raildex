@@ -13,6 +13,7 @@ import { operatorOfEnum } from '../src/transform/operator-map';
 import { transformGlossary } from '../src/transform/misc';
 import { tagoMinute, transformTagoTimetables } from '../src/transform/timetable';
 import { topoSort } from '../src/transform';
+import { renderHeaders } from '../src/headers';
 
 const P = (sources: string[] = ['src-a']) => ({ sources, checked_at: '2026-10-11' });
 const empty = <T>() => ({ items: [] as T[], notes: new Map<string, string>(), header: null, file: '' });
@@ -433,5 +434,20 @@ describe('시간표', () => {
       [360, null],
     ]);
     expect(report.issues.get('시간표 행 수 ≠ 기존 요약 count')).toEqual(['tt-ga-mtrs11-weekday-inner: 2 vs 3']);
+  });
+});
+
+describe('파일 머리 주석 문서(FR-MIG-005)', () => {
+  it('경로순, 울타리 안에 원문 그대로', () => {
+    const md = renderHeaders(
+      new Map([
+        ['data/own/sources.yaml', '출처 목록\n규칙: id 는 src-'],
+        ['data/own/plans/a.yaml', '코드 ``` 포함'],
+      ]),
+    );
+    expect(md.indexOf('data/own/plans/a.yaml')).toBeLessThan(md.indexOf('data/own/sources.yaml'));
+    expect(md).toContain('```text\n출처 목록\n규칙: id 는 src-\n```');
+    expect(md).toContain('````text\n코드 ``` 포함\n````');
+    expect(md).toContain('파일 2개');
   });
 });

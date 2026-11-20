@@ -6,10 +6,11 @@ import {
   cropFigure,
   extractDocumentText,
   renderPageImages,
+  validateAll as runValidateAll,
   type JobPayloads,
   type ObjectStore,
 } from '@k-raildex/domain';
-import { runImporter, type ImporterJob } from '@k-raildex/importers';
+import { runImporter, type ImporterOptions } from '@k-raildex/importers';
 import type pg from 'pg';
 import { sharpCropper } from './cropper';
 
@@ -67,9 +68,17 @@ export async function docCrop(deps: WorkerDeps, data: JobPayloads['doc.crop']) {
 }
 
 /** 수집기 실행(docs/08 3-1). 시간표 쓰기는 한 트랜잭션이라 풀에서 연결 하나를 빌린다 */
-export async function importerRun(deps: WorkerDeps, data: ImporterJob) {
+export async function importerRun(deps: WorkerDeps, data: JobPayloads['importer.run']) {
+  // task·options 는 runImporter 가 ImporterJobSchema 로 검증한다(모르는 과제·옵션이면 작업 실패)
+  const options = { trigger: 'event', ...data.options } as ImporterOptions;
   const r = await withClient(deps.pool, (c) =>
-    runImporter(c, data.task, { trigger: 'event', ...data.options }, (m) => console.log(`[importer] ${m}`)),
+    runImporter(c, data.task, options, (m) => console.log(`[importer] ${m}`)),
   );
   return { run_id: r.runId, sets: r.stats.sets ?? null, entries: r.stats.entries ?? null, issues: r.stats.issues };
+}
+
+/** 전체 검증 → app_setting validation.last(요약만 돌려준다 — 작업 output 에 위반 목록 전체를 두지 않는다) */
+export async function validateAll(deps: WorkerDeps) {
+  const r = await withClient(deps.pool, (c) => runValidateAll(c));
+  return { at: r.at, ms: r.ms, entity_count: r.entity_count, hard_count: r.hard_count, soft_total: r.soft_total };
 }

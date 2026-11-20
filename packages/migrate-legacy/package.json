@@ -12,7 +12,8 @@
     "migrate:run": "tsx src/cli.ts run",
     "migrate:verify": "tsx src/cli.ts verify",
     "migrate:check": "tsx src/cli.ts check",
-    "migrate:config": "tsx src/cli.ts config"
+    "migrate:config": "tsx src/cli.ts config",
+    "migrate:headers": "tsx src/cli.ts headers"
   },
   "dependencies": {
     "@k-raildex/contracts": "workspace:*",

@@ -20,3 +20,5 @@ export * from './map';
 export * from './bulk';
 export * from './external-api';
 export * from './external-catalog';
+export * from './ops';
+export * from './ops-refetch';

@@ -3,11 +3,17 @@ import {
   applyChangeset,
   ensureServiceUser,
   fixtureOps,
+  getJob,
+  IMPORTER_TASK_LIST,
   JOB,
+  lastValidation,
+  listJobs,
   listPageImages,
+  opsStatus,
   MemoryObjectStore,
   uploadDocument,
 } from '@k-raildex/domain';
+import { IMPORTER_JOB, IMPORTER_TASKS } from '@k-raildex/importers';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { makePdf } from '../../../packages/domain/test/pdf';
 import { Debouncer } from '../src/debounce';
@@ -42,6 +48,14 @@ describe('Debouncer', () => {
     vi.advanceTimersByTime(2000);
     expect(calls.length).toBe(3);
     vi.useRealTimers();
+  });
+});
+
+describe('수집기 과제 목록', () => {
+  it('api 정적 목록(IMPORTER_TASK_LIST)에 importers 의 과제가 모두 있다', () => {
+    expect(IMPORTER_JOB).toBe(JOB.importerRun);
+    const listed = IMPORTER_TASK_LIST.map((t) => t.task);
+    for (const t of IMPORTER_TASKS) expect(listed).toContain(t);
   });
 });
 
@@ -132,5 +146,30 @@ describe('worker(pg-boss)', () => {
     expect(r.cleared).toBe(1);
     const left = await w.pool.query(`SELECT count(*)::int AS n FROM ingest.api_call WHERE response_body IS NOT NULL`);
     expect(left.rows[0].n).toBe(1);
+  });
+
+  it('validate-all 작업 → validation.last, 작업 목록·상태에 pg-boss 작업이 보인다', async () => {
+    const id = await w.boss.send(JOB.validateAll, { reason: 'test' });
+    await waitFor(() => w.completed.some((c) => c.name === JOB.validateAll));
+    const last = await lastValidation(w.pool);
+    expect(last?.hard_count).toBe(0);
+    const list = await listJobs(w.pool, { name: JOB.validateAll });
+    expect(list.pgboss).toBe(true);
+    await waitFor(async () => (await getJob(w.pool, id!)).state === 'completed');
+    const job = await getJob(w.pool, id!);
+    expect(job).toMatchObject({ kind: 'job', name: 'validate-all', data: { reason: 'test' } });
+    expect(job.output).toMatchObject({ hard_count: 0 });
+    const s = await opsStatus(w.pool);
+    expect(s.failed_jobs_24h).toBe(0);
+  });
+
+  it('importer.run 모르는 과제 → 실패 작업(배너 집계)', async () => {
+    const id = await w.boss.send(JOB.importerRun, { task: 'no-such-task' });
+    await waitFor(async () => (await getJob(w.pool, id!)).state === 'failed');
+    const job = await getJob(w.pool, id!);
+    expect(job.error).toBeTruthy();
+    const s = await opsStatus(w.pool);
+    expect(s.failed_jobs_24h).toBe(1);
+    expect(s.recent_failures[0]).toMatchObject({ id, kind: 'job', name: 'importer.run' });
   });
 });

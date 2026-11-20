@@ -7,6 +7,7 @@ import { api, qs } from '../lib/api';
 import { toSlug } from '../lib/entity-types';
 import { statusTone, type ChangesetRow } from './Changesets';
 import { useQualityRules } from './Quality';
+import { OpsStatusBanner } from '../ops/OpsStatusBanner';
 
 interface Meta {
   data_version: { version: number; committed_at: string; changeset_id: string | null } | null;
@@ -27,6 +28,7 @@ export function Dashboard() {
   return (
     <div className="flex flex-col gap-4">
       <h1 className="text-lg font-bold">대시보드</h1>
+      <OpsStatusBanner />
       <Card>
         <CardHeader
           title={`데이터 판 ${meta.data?.data_version?.version ?? '-'}${meta.data?.data_version ? ` · ${meta.data.data_version.committed_at.slice(0, 16).replace('T', ' ')}` : ''}`}

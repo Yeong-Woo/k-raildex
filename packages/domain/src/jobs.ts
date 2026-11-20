@@ -14,6 +14,10 @@ export const JOB = {
   docCrop: 'doc.crop',
   /** 외부 API 호출 기록의 응답 본문 7일 뒤 비우기 */
   cleanupApiCalls: 'cleanup-api-calls',
+  /** 전체 검증(Hard 규칙 전 개체 + Soft 규칙 건수) → app_setting validation.last (ops.ts) */
+  validateAll: 'validate-all',
+  /** 수집기 실행 — 처리기·과제 정의는 packages/importers(IMPORTER_JOB 과 같은 이름) */
+  importerRun: 'importer.run',
 } as const;
 
 export type JobName = (typeof JOB)[keyof typeof JOB];
@@ -30,6 +34,9 @@ export interface JobPayloads {
     author_id?: string | null;
   };
   'cleanup-api-calls': { days?: number };
+  'validate-all': { reason?: string };
+  /** task·options 검증은 worker(@k-raildex/importers ImporterJobSchema)가 한다 */
+  'importer.run': { task: string; options?: Record<string, unknown> };
 }
 
 /** 큐 설정(pg-boss createQueue 옵션의 부분 집합) */
@@ -47,6 +54,9 @@ export const JOB_QUEUES: Readonly<Record<JobName, JobQueueOptions>> = {
   'doc.page-images': { policy: 'standard', retryLimit: 1, expireInSeconds: 1800 },
   'doc.crop': { policy: 'standard', retryLimit: 1, expireInSeconds: 300 },
   'cleanup-api-calls': { policy: 'stately', retryLimit: 1, expireInSeconds: 600 },
+  'validate-all': { policy: 'stately', retryLimit: 0, expireInSeconds: 1800 },
+  // 실패해도 이전 세트 유지(재시도 없음, 실행 기록 ingest.run 에 failed)
+  'importer.run': { policy: 'standard', retryLimit: 0, expireInSeconds: 7200 },
 };
 
 /** 매일 04:00(Asia/Seoul) 정리 */

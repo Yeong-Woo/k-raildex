@@ -4,9 +4,11 @@
  *   pnpm migrate:verify                            역변환·대조 → docs/legacy/migration-report-<날짜>.md + .json
  *   pnpm migrate:check                             변환만 하고 계약(zod) 검사(DB 없음)
  *   pnpm migrate:config                            수집기 설정(ingest.config)만 기존 보정 파일에서 다시 넣는다(이미 이관한 DB 용)
+ *   pnpm migrate:headers                           YAML 파일 머리 주석 → docs/legacy/own-file-headers.md(DB 없음, FR-MIG-005)
  */
 import pg from 'pg';
 import { checkContracts } from './check';
+import { writeHeaders } from './headers';
 import { legacyIngestConfig, writeIngestConfig } from './ingest-config';
 import { loadLegacy } from './read/legacy';
 import { resetDatabase, runLoad } from './load';
@@ -55,6 +57,12 @@ async function main(): Promise<void> {
     });
     return;
   }
+  if (cmd === 'headers') {
+    const legacy = loadLegacy();
+    const path = writeHeaders(legacy.headers);
+    log(`파일 머리 주석 ${legacy.headers.size}개 → ${path}`);
+    return;
+  }
   if (cmd === 'config') {
     const legacy = loadLegacy();
     const rows = legacyIngestConfig(legacy.root);
@@ -74,7 +82,7 @@ async function main(): Promise<void> {
     });
     return;
   }
-  console.error('사용법: cli.ts run [--reset] [--no-timetables] | verify | check | config');
+  console.error('사용법: cli.ts run [--reset] [--no-timetables] | verify | check | config | headers');
   process.exitCode = 2;
 }
 
