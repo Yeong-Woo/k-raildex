@@ -8,7 +8,10 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "check": "tsc -p tsconfig.json"
+    "check": "tsc -p tsconfig.json",
+    "migrate:run": "tsx src/cli.ts run",
+    "migrate:verify": "tsx src/cli.ts verify",
+    "migrate:check": "tsx src/cli.ts check"
   },
   "dependencies": {
     "@k-raildex/contracts": "workspace:*",
