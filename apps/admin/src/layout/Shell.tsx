@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { entityUiMeta } from '@k-raildex/contracts';
 import { cn } from '@k-raildex/ui';
 import {
+  Cog,
   Database,
   Gauge,
   Globe,
@@ -12,6 +13,7 @@ import {
   Map as MapIcon,
   Moon,
   Search,
+  Settings2,
   Sheet,
   Sun,
   Trash2,
@@ -137,6 +139,15 @@ export function Shell() {
           <div className="px-2 text-xs font-semibold text-fg-muted">조사</div>
           <NavLink to="/external">
             <Globe className="size-4" /> 외부 API
+          </NavLink>
+        </nav>
+        <nav className="flex flex-col gap-0.5">
+          <div className="px-2 text-xs font-semibold text-fg-muted">운영</div>
+          <NavLink to="/jobs">
+            <Cog className="size-4" /> 작업
+          </NavLink>
+          <NavLink to="/settings">
+            <Settings2 className="size-4" /> 설정
           </NavLink>
         </nav>
         <div className="mt-auto flex items-center gap-1 px-1">

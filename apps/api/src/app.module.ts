@@ -22,6 +22,7 @@ import { MapModule } from './map/map.module';
 import { QualityModule } from './quality/quality.module';
 import { BulkModule } from './bulk/bulk.module';
 import { ExternalModule } from './external/external.module';
+import { OpsModule } from './ops/ops.module';
 import { ACCESS_KEYS, CONFIG, EXTERNAL_HTTP, JOB_QUEUE, OBJECT_STORE, PG_POOL, type ExternalHttp } from './tokens';
 
 export interface AppModuleOptions {
@@ -86,6 +87,7 @@ export class AppModule {
         ChangesetModule,
         BulkModule,
         ExternalModule,
+        OpsModule,
         HealthModule,
       ],
       providers: [{ provide: APP_FILTER, useClass: AllExceptionsFilter }],

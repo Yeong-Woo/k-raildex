@@ -85,6 +85,11 @@ const map = createRoute({
   component: MapPage,
 });
 
+import { Jobs } from './pages/Jobs';
+import { Settings } from './pages/Settings';
+
+const jobs = createRoute({ getParentRoute: () => rootRoute, path: '/jobs', component: Jobs });
+const settings = createRoute({ getParentRoute: () => rootRoute, path: '/settings', component: Settings });
 const bulk = createRoute({ getParentRoute: () => rootRoute, path: '/bulk', component: Bulk });
 
 const external = createRoute({
@@ -108,6 +113,8 @@ const routeTree = rootRoute.addChildren([
   map,
   bulk,
   external,
+  jobs,
+  settings,
 ]);
 
 export const router = createRouter({ routeTree, defaultPreload: 'intent' });
