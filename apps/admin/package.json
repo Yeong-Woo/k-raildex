@@ -8,7 +8,8 @@
     "check": "tsc -p tsconfig.json",
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "@dnd-kit/core": "6.3.1",

@@ -45,3 +45,47 @@ export const qs = (o: Record<string, string | number | boolean | undefined | nul
   const s = p.toString();
   return s ? `?${s}` : '';
 };
+
+/** 아직 없는 경로(백엔드 구현 전)·404 는 null — 빈 상태로 보여 준다 */
+export async function apiOptional<T>(path: string, init?: RequestInit & { json?: unknown }): Promise<T | null> {
+  try {
+    return await api<T>(path, init);
+  } catch (e) {
+    if (e instanceof ApiError && (e.status === 404 || e.status === 501)) return null;
+    throw e;
+  }
+}
+
+/** 토스트용 오류 문구(검증 위반·참조 목록 포함) */
+export function errorText(e: unknown): string {
+  if (e instanceof ApiError) {
+    const parts = [e.body.message];
+    if (e.status === 409 && e.body.current_version !== undefined)
+      parts.push('다른 곳에서 먼저 수정했습니다 — 새로 불러온 뒤 다시 저장하세요');
+    for (const d of e.body.details?.slice(0, 5) ?? [])
+      parts.push(`${d.rule ? `[${d.rule}] ` : ''}${d.path ? `${d.path}: ` : ''}${d.message}`);
+    if (e.body.references?.length)
+      parts.push(`참조: ${e.body.references.map((r) => `${r.table}(${r.owner_id ?? '-'})`).join(', ')}`);
+    return parts.join('\n');
+  }
+  return e instanceof Error ? e.message : String(e);
+}
+
+/** 개체 상세 응답(GET /v1/admin/:type/:id) */
+export interface EntityResponse<T = Record<string, unknown>> {
+  data: T & { version?: number };
+  version: number;
+  derived: Record<string, unknown>;
+  referenced_by: {
+    total: number;
+    items: {
+      table: string;
+      column: string;
+      owner_id: string | null;
+      owner_type: string | null;
+      owner_label: string | null;
+      owner_deleted: boolean;
+      count: number;
+    }[];
+  };
+}

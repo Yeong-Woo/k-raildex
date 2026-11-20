@@ -24,7 +24,7 @@ function useLookup(type: EntityType, q: string, enabled: boolean) {
 }
 
 /** 선택된 id 의 표시 이름 */
-function useLabel(type: EntityType, id: string | null) {
+export function useLabel(type: EntityType, id: string | null) {
   return useQuery({
     queryKey: ['lookup-label', type, id],
     enabled: !!id,

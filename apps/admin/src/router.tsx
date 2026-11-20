@@ -6,6 +6,8 @@ import { EntityDetail } from './pages/EntityDetail';
 import { Changesets } from './pages/Changesets';
 import { ChangesetDetail } from './pages/ChangesetDetail';
 import { Trash } from './pages/Trash';
+import { Quality } from './pages/Quality';
+import { MapPage } from './pages/MapPage';
 
 const rootRoute = createRootRoute({ component: Shell });
 
@@ -49,7 +51,39 @@ const changesets = createRoute({
 const changeset = createRoute({ getParentRoute: () => rootRoute, path: '/changesets/$id', component: ChangesetDetail });
 const trash = createRoute({ getParentRoute: () => rootRoute, path: '/trash', component: Trash });
 
-const routeTree = rootRoute.addChildren([dashboard, list, detail, changesets, changeset, trash]);
+const quality = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/quality',
+  validateSearch: (s: Record<string, unknown>): { rule?: string; offset?: number } => ({
+    rule: typeof s.rule === 'string' ? s.rule : undefined,
+    offset: typeof s.offset === 'number' ? s.offset : undefined,
+  }),
+  component: Quality,
+});
+
+export interface MapSearch {
+  tab?: 'edit' | 'future' | 'satellite';
+  /** 지도 편집: 고른 역 */
+  station?: string;
+  /** 미래 지도: 연도 또는 'future'(목표 미정 포함 끝 칸) */
+  at?: string;
+  stage_min?: string;
+  undated?: boolean;
+}
+const map = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/map',
+  validateSearch: (s: Record<string, unknown>): MapSearch => ({
+    tab: s.tab === 'future' || s.tab === 'satellite' || s.tab === 'edit' ? s.tab : undefined,
+    station: typeof s.station === 'string' ? s.station : undefined,
+    at: typeof s.at === 'string' || typeof s.at === 'number' ? String(s.at) : undefined,
+    stage_min: typeof s.stage_min === 'string' ? s.stage_min : undefined,
+    undated: typeof s.undated === 'boolean' ? s.undated : undefined,
+  }),
+  component: MapPage,
+});
+
+const routeTree = rootRoute.addChildren([dashboard, list, detail, changesets, changeset, trash, quality, map]);
 
 export const router = createRouter({ routeTree, defaultPreload: 'intent' });
 

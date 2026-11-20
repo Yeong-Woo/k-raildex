@@ -21,6 +21,9 @@ import { api, ApiError, qs } from '../lib/api';
 import { changedFields, pretty } from '../lib/diff';
 import { fromSlug, toSlug } from '../lib/entity-types';
 import { emptyRecord, FormEngine } from '../form/FormEngine';
+import { LineStationsEditor } from '../editors/LineStationsEditor';
+import { StationLineStations } from '../editors/StationLineStations';
+import { AttachmentsTab } from '../editors/AttachmentsTab';
 
 type Obj = Record<string, unknown>;
 interface EntityResponse {
@@ -190,7 +193,7 @@ function Detail({ type, id, tab }: { type: EntityType; id: string; tab: string }
   const title = String(draft[meta.titleField] ?? '') || (isNew ? `새 ${meta.label}` : id);
 
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-4">
+    <div className={`mx-auto flex flex-col gap-4 ${tab === 'stations' ? 'max-w-7xl' : 'max-w-5xl'}`}>
       <div className="flex flex-wrap items-center gap-2">
         <Link
           to="/data/$type"
@@ -262,6 +265,9 @@ function Detail({ type, id, tab }: { type: EntityType; id: string; tab: string }
       >
         <TabsList>
           <TabsTrigger value="info">정보</TabsTrigger>
+          {!isNew && type === 'line' ? <TabsTrigger value="stations">역 순서</TabsTrigger> : null}
+          {!isNew && type === 'station' ? <TabsTrigger value="line-stations">노선별</TabsTrigger> : null}
+          {!isNew ? <TabsTrigger value="attachments">첨부</TabsTrigger> : null}
           {!isNew ? <TabsTrigger value="derived">파생 값</TabsTrigger> : null}
           {!isNew ? <TabsTrigger value="history">이력</TabsTrigger> : null}
           {!isNew ? (
@@ -277,6 +283,19 @@ function Detail({ type, id, tab }: { type: EntityType; id: string; tab: string }
         </TabsContent>
         {!isNew && q.data ? (
           <>
+            {type === 'line' ? (
+              <TabsContent value="stations" className="pt-4">
+                <LineStationsEditor lineId={id} />
+              </TabsContent>
+            ) : null}
+            {type === 'station' ? (
+              <TabsContent value="line-stations" className="pt-4">
+                <StationLineStations stationId={id} derived={q.data.derived} />
+              </TabsContent>
+            ) : null}
+            <TabsContent value="attachments" className="pt-4">
+              <AttachmentsTab entityId={id} />
+            </TabsContent>
             <TabsContent value="derived" className="pt-4">
               <Card>
                 <CardHeader title="계산된 값(저장하지 않음 — DB 뷰)" />

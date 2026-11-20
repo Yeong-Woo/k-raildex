@@ -2,15 +2,38 @@ import { Link, Outlet, useNavigate } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 import { entityUiMeta } from '@k-raildex/contracts';
 import { cn } from '@k-raildex/ui';
-import { Database, History, Inbox, LayoutDashboard, Moon, Search, Sun, Trash2 } from 'lucide-react';
+import {
+  Database,
+  Gauge,
+  History,
+  Inbox,
+  LayoutDashboard,
+  Map as MapIcon,
+  Moon,
+  Search,
+  Sun,
+  Trash2,
+} from 'lucide-react';
 import { NAV_GROUPS, toSlug } from '../lib/entity-types';
 import { GlobalSearch } from './GlobalSearch';
 
-function NavLink({ to, params, children }: { to: string; params?: Record<string, string>; children: React.ReactNode }) {
+function NavLink({
+  to,
+  params,
+  search,
+  children,
+}: {
+  to: string;
+  params?: Record<string, string>;
+  search?: Record<string, unknown>;
+  children: React.ReactNode;
+}) {
   return (
     <Link
       to={to}
       params={params as never}
+      search={search as never}
+      activeOptions={search ? { includeSearch: true, exact: false } : undefined}
       className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-fg-muted hover:bg-muted hover:text-fg"
       activeProps={{ className: 'bg-muted text-fg font-medium' }}
     >
@@ -82,7 +105,22 @@ export function Shell() {
           </nav>
         ))}
         <nav className="flex flex-col gap-0.5">
+          <div className="px-2 text-xs font-semibold text-fg-muted">지도</div>
+          <NavLink to="/map" search={{ tab: 'edit' }}>
+            <MapIcon className="size-4" /> 지도 편집
+          </NavLink>
+          <NavLink to="/map" search={{ tab: 'future' }}>
+            <MapIcon className="size-4" /> 미래 지도 미리 보기
+          </NavLink>
+          <NavLink to="/map" search={{ tab: 'satellite' }}>
+            <MapIcon className="size-4" /> 위성 비교
+          </NavLink>
+        </nav>
+        <nav className="flex flex-col gap-0.5">
           <div className="px-2 text-xs font-semibold text-fg-muted">검수·기록</div>
+          <NavLink to="/quality">
+            <Gauge className="size-4" /> 품질
+          </NavLink>
           <NavLink to="/changesets">
             <Inbox className="size-4" /> 변경 묶음
           </NavLink>

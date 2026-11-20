@@ -3,6 +3,7 @@ import { entityContracts, entityUiMeta, type EntityType } from '@k-raildex/contr
 import { Card, FieldShell } from '@k-raildex/ui';
 import type { Z } from './introspect';
 import { defaultFor, WidgetInput } from './widgets/Widget';
+import { specialEditor } from './special';
 
 type Obj = Record<string, unknown>;
 
@@ -59,6 +60,21 @@ export function FormEngine({
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
               {fields.map(([name, f]) => {
                 const err = errors[name] ?? Object.entries(errors).find(([p]) => p.startsWith(`${name}.`))?.[1];
+                const special = f.widget.kind === 'editor' ? specialEditor(f.widget.editor) : null;
+                if (special) {
+                  if (special.hidden) return null;
+                  return (
+                    <FieldShell
+                      key={name}
+                      label={special.label ?? f.label}
+                      help={f.help}
+                      error={special.ownErrors ? undefined : err}
+                      className="md:col-span-2"
+                    >
+                      {special.render({ name, record: value, onChange, errors })}
+                    </FieldShell>
+                  );
+                }
                 return (
                   <FieldShell
                     key={name}

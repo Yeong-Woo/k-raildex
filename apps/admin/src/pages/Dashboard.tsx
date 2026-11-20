@@ -6,6 +6,7 @@ import { Badge, Card, CardHeader, Empty } from '@k-raildex/ui';
 import { api, qs } from '../lib/api';
 import { toSlug } from '../lib/entity-types';
 import { statusTone, type ChangesetRow } from './Changesets';
+import { useQualityRules } from './Quality';
 
 interface Meta {
   data_version: { version: number; committed_at: string; changeset_id: string | null } | null;
@@ -46,6 +47,7 @@ export function Dashboard() {
           ))}
         </div>
       </Card>
+      <QualityCard />
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <ChangesetCard title={`검수 대기 ${drafts.data?.total ?? 0}건`} items={drafts.data?.items} />
         <ChangesetCard title="최근 반영" items={recent.data?.items} />
@@ -73,6 +75,47 @@ function ChangesetCard({ title, items }: { title: string; items: ChangesetRow[] 
             </li>
           ))}
         </ul>
+      )}
+    </Card>
+  );
+}
+
+/** 품질 요약(Soft 규칙별 건수) → 클릭 시 품질 화면 목록 */
+function QualityCard() {
+  const q = useQualityRules();
+  const rules = q.data?.rules ?? [];
+  const open = rules.reduce((n, r) => n + r.count, 0);
+  return (
+    <Card>
+      <CardHeader
+        title={q.data ? `품질 · 확인할 항목 ${open.toLocaleString()}건` : '품질'}
+        actions={
+          <Link to="/quality" search={{}} className="text-xs text-fg-muted hover:underline">
+            전체 보기
+          </Link>
+        }
+      />
+      {q.isLoading ? (
+        <Empty>불러오는 중…</Empty>
+      ) : !q.data ? (
+        <Empty>{q.error ? '품질 정보를 불러오지 못했습니다' : '품질 API 가 아직 없습니다'}</Empty>
+      ) : (
+        <div className="grid grid-cols-1 gap-2 p-4 sm:grid-cols-2 lg:grid-cols-4" data-testid="quality-summary">
+          {rules.map((r) => (
+            <Link
+              key={r.id}
+              to="/quality"
+              search={{ rule: r.id }}
+              className="flex items-center gap-2 rounded-md border border-border p-2 text-sm hover:bg-muted"
+            >
+              <span className="min-w-0 flex-1 truncate" title={r.title}>
+                <code className="mr-1 text-xs text-fg-muted">{r.id}</code>
+                {r.title}
+              </span>
+              <Badge tone={r.count === 0 ? 'good' : 'warn'}>{r.count.toLocaleString()}</Badge>
+            </Link>
+          ))}
+        </div>
       )}
     </Card>
   );

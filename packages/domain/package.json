@@ -5,7 +5,8 @@
   "description": "변경 묶음 적용기·검증 규칙·계산 규칙(현재 단계·개통 목표·역 상태)",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./calc": "./src/calc.ts"
   },
   "scripts": {
     "check": "tsc -p tsconfig.json",
