@@ -7,3 +7,10 @@ export const ACCESS_KEYS = Symbol('ACCESS_KEYS');
 export const OBJECT_STORE = Symbol('OBJECT_STORE');
 /** 작업 큐(JobQueue). 운영은 pg-boss, 시험은 기록용 가짜 */
 export const JOB_QUEUE = Symbol('JOB_QUEUE');
+/** 외부 API 탐색기: fetch 구현·키 환경 변수(시험에서 가짜로 바꾼다) */
+export const EXTERNAL_HTTP = Symbol('EXTERNAL_HTTP');
+
+export interface ExternalHttp {
+  fetchImpl?: (url: string, init: RequestInit) => Promise<Response>;
+  env: Readonly<Record<string, string | undefined>>;
+}

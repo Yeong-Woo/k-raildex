@@ -10,7 +10,8 @@
   },
   "scripts": {
     "check": "tsc -p tsconfig.json",
-    "fixtures:load": "tsx src/cli-fixtures.ts"
+    "fixtures:load": "tsx src/cli-fixtures.ts",
+    "api-catalog:seed": "tsx src/cli-api-catalog.ts"
   },
   "dependencies": {
     "@k-raildex/contracts": "workspace:*",

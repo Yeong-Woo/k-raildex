@@ -3,6 +3,7 @@ import { freshDb, type FreshDb } from '@k-raildex/db/testing';
 import { applyChangeset, ensureServiceUser, fixtureOps, MemoryObjectStore } from '@k-raildex/domain';
 import type { JWTVerifyGetKey } from 'jose';
 import pg from 'pg';
+import type { AppModuleOptions } from '../src/app.module';
 import { createApp } from '../src/app';
 import { envSchema, type AppConfig } from '../src/config';
 import { RecordingJobQueue } from '../src/jobs/job-queue';
@@ -28,7 +29,12 @@ export function testConfig(url: string, env: Record<string, string> = {}): AppCo
 
 /** 새 DB + 픽스처 + Nest 앱(Fastify inject 용) */
 export async function startApp(
-  opts: { env?: Record<string, string>; accessKeys?: JWTVerifyGetKey | null; fixtures?: boolean } = {},
+  opts: {
+    env?: Record<string, string>;
+    accessKeys?: JWTVerifyGetKey | null;
+    fixtures?: boolean;
+    external?: AppModuleOptions['external'];
+  } = {},
 ): Promise<TestApp> {
   const fx = await freshDb();
   if (opts.fixtures !== false) {
@@ -44,7 +50,7 @@ export async function startApp(
   const store = new MemoryObjectStore();
   const jobs = new RecordingJobQueue();
   const app = await createApp(
-    { config: testConfig(fx.url, opts.env), pool, accessKeys: opts.accessKeys, store, jobs },
+    { config: testConfig(fx.url, opts.env), pool, accessKeys: opts.accessKeys, store, jobs, external: opts.external },
     { logger: false },
   );
   return {

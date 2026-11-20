@@ -20,7 +20,9 @@ import { EntityModule } from './entity/entity.module';
 import { HealthModule } from './health/health.module';
 import { MapModule } from './map/map.module';
 import { QualityModule } from './quality/quality.module';
-import { ACCESS_KEYS, CONFIG, JOB_QUEUE, OBJECT_STORE, PG_POOL } from './tokens';
+import { BulkModule } from './bulk/bulk.module';
+import { ExternalModule } from './external/external.module';
+import { ACCESS_KEYS, CONFIG, EXTERNAL_HTTP, JOB_QUEUE, OBJECT_STORE, PG_POOL, type ExternalHttp } from './tokens';
 
 export interface AppModuleOptions {
   config: AppConfig;
@@ -31,6 +33,8 @@ export interface AppModuleOptions {
   store?: ObjectStore;
   /** 작업 큐(없으면 보낸 작업을 기록만 함) */
   jobs?: JobQueue;
+  /** 외부 API 탐색기: fetch·키 환경 변수(없으면 전역 fetch·process.env) */
+  external?: Partial<ExternalHttp>;
 }
 
 @Global()
@@ -52,9 +56,16 @@ class CoreModule {
         { provide: ACCESS_KEYS, useValue: keys },
         { provide: OBJECT_STORE, useValue: opts.store ?? new UnconfiguredObjectStore() },
         { provide: JOB_QUEUE, useValue: opts.jobs ?? new RecordingJobQueue() },
+        {
+          provide: EXTERNAL_HTTP,
+          useValue: {
+            fetchImpl: opts.external?.fetchImpl,
+            env: opts.external?.env ?? process.env,
+          } satisfies ExternalHttp,
+        },
         DbService,
       ],
-      exports: [CONFIG, PG_POOL, ACCESS_KEYS, OBJECT_STORE, JOB_QUEUE, DbService],
+      exports: [CONFIG, PG_POOL, ACCESS_KEYS, OBJECT_STORE, JOB_QUEUE, EXTERNAL_HTTP, DbService],
     };
   }
 }
@@ -73,6 +84,8 @@ export class AppModule {
         MapModule,
         EntityModule,
         ChangesetModule,
+        BulkModule,
+        ExternalModule,
         HealthModule,
       ],
       providers: [{ provide: APP_FILTER, useClass: AllExceptionsFilter }],

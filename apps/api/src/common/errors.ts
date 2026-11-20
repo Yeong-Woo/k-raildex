@@ -43,6 +43,7 @@ export const DOMAIN_STATUS: Record<DomainErrorCode, number> = {
   referenced: 409,
   invalid_state: 409,
   validation: 422,
+  rate_limited: 429,
 };
 
 const HTTP_CODE: Record<number, string> = {

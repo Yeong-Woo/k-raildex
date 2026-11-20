@@ -699,11 +699,13 @@ CREATE TABLE timetable_entry (
   minute smallint NOT NULL CHECK (minute BETWEEN 0 AND 1679),
   dest_name text, dest_station_id text REFERENCES station(id),
   train_no text NOT NULL DEFAULT '', note text,
-  PRIMARY KEY (set_id, minute, train_no)
+  ord integer NOT NULL CHECK (ord >= 1),   -- 세트 안 순서(0016: 열차번호 없는 TAGO 의 같은 분·다른 종착 행 보존)
+  PRIMARY KEY (set_id, ord)
 );
+CREATE INDEX ON timetable_entry (set_id, minute);
 ```
 
-시간표는 기계적 갱신(수집기가 세트 통째 교체, 소프트 삭제 대상 아님 — 감사는 수집 실행 단위).
+시간표는 기계적 갱신(수집기가 세트 통째 교체, 소프트 삭제 대상 아님 — 감사는 수집 실행 단위: `import_run_id` → `ingest.run.id`, 08 문서 3-1-1절).
 
 ### 4-18. 용어 `glossary_term` (Q34 B → Q86 A: 처음부터 DB 가 원천)
 
@@ -771,6 +773,8 @@ CREATE TABLE ingest.api_preset (id bigint GENERATED ALWAYS AS IDENTITY PRIMARY K
 ```
 
 - 수집기(08 문서)도 같은 카탈로그·호출 기록·한도 계산을 쓴다(한도는 엔드포인트별 오늘 호출 수 합).
+- 구현(2026-11-21): `params` 항목은 `{name, label, description, required, default, example, kind(text|int|date|enum|station_ref), ref_system, options, fixed}`. DB 비교 설정 `{code_field, name_field, lat_field, lng_field}` 는 열을 따로 두지 않고 `paging` jsonb 의 `compare` 키에 둔다. `api_call.params` 는 `{query(키 뺀 매개변수), url(키 가림), content_type, size_bytes}`, `response_body` 는 키를 가린 원문(압축 없음), `response_sha256` 은 그 원문의 sha256. "오늘" 은 한국 시간 자정 기준.
+- 구현(2026-11-21): `params` 항목은 `{name, label, description, required, default, example, kind(text|int|date|enum|station_ref), ref_system, options, fixed}`. DB 비교 설정 `{code_field, name_field, lat_field, lng_field}` 는 열을 따로 두지 않고 `paging` jsonb 의 `compare` 키에 둔다. `api_call.params` 는 `{query(키 뺀 매개변수), url(키 가림), content_type, size_bytes}`, `response_body` 는 키를 가린 원문(압축 없음), `response_sha256` 은 그 원문의 sha256. "오늘" 은 한국 시간 자정 기준.
 
 ### 4-20. 시스템 테이블 (Q42 A·Q43 → Q80 A: 관리자 1인)
 

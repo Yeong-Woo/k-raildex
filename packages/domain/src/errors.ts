@@ -14,7 +14,8 @@ export type DomainErrorCode =
   | 'version_conflict' // 409
   | 'referenced' // 409: 활성 참조가 있어 삭제 불가(V-H12)
   | 'invalid_state' // 409: 휴지통에 없는 개체 복구 등
-  | 'validation'; // 422
+  | 'validation' // 422
+  | 'rate_limited'; // 429: 외부 API 일일 한도 등
 
 export class DomainError extends Error {
   constructor(

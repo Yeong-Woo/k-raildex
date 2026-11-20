@@ -3,13 +3,15 @@
  * 1) PostGIS — TEST_DATABASE_URL(관리자 접속 URL)이 있으면 그 서버에 새 DB, 없으면 Testcontainers 로 컨테이너를 띄운다
  * 2) 마이그레이션·참조 시드(@k-raildex/db cli) + 개발 픽스처(@k-raildex/domain fixtureOps → applyChangeset) + 지도 MV 갱신
  * 3) API(tsx src/main.ts, AUTH_DEV_BYPASS=1)와 Vite 개발 서버(ADMIN_API_PROXY)를 빈 포트에 띄운다
- * 결과 주소는 process.env.E2E_BASE_URL 로 작업자에게 넘긴다.
+ * 4) 외부 API 탐색기용 가짜 외부 서버(127.0.0.1, TAGO 비슷한 JSON). API 에는 가짜 키 DATA_GO_KR_KEY_E2E_STUB 만 준다(실제 키 없음)
+ * 결과 주소는 process.env.E2E_BASE_URL·E2E_API_URL·E2E_MOCK_URL 로 작업자에게 넘긴다.
  *
  * 관리 앱은 서버 패키지에 의존하지 않으므로 pg·testcontainers 는 @k-raildex/db 의 의존성에서 불러오고,
  * 마이그레이션·픽스처는 각 패키지의 CLI 를 하위 프로세스로 돌린다.
  */
 import { execFileSync, spawn, type ChildProcess } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
+import { createServer as createHttpServer, type Server } from 'node:http';
 import { createServer } from 'node:net';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
@@ -85,6 +87,59 @@ function kill(p: ChildProcess | undefined) {
 
 let stopping = false;
 
+/** 가짜 외부 키(실제 키 아님) — 탐색기 E2E 가 가림 처리를 확인한다 */
+export const E2E_STUB_KEY = 'e2e-stub-not-a-real-key';
+
+/** TAGO 지하철역 목록 흉내: 3건, numOfRows 쪽 나눔. 키가 다르면 공공데이터포털 게이트웨이 오류(30) */
+async function startMockExternal(): Promise<{ url: string; server: Server }> {
+  const port = await freePort();
+  const all = [
+    { subwayStationId: 'MTR-A', subwayStationName: '가', subwayRouteName: '시험 1호선' },
+    { subwayStationId: 'MTR-B', subwayStationName: '나다른이름', subwayRouteName: '시험 1호선' },
+    { subwayStationId: 'MTR-Z', subwayStationName: '없는역', subwayRouteName: '시험 9호선' },
+  ];
+  const server = createHttpServer((req, res) => {
+    const u = new URL(req.url ?? '/', `http://127.0.0.1:${port}`);
+    res.setHeader('content-type', 'application/json; charset=utf-8');
+    if (u.searchParams.get('serviceKey') !== E2E_STUB_KEY) {
+      res.end(
+        JSON.stringify({
+          OpenAPI_ServiceResponse: {
+            cmmMsgHeader: {
+              errMsg: 'SERVICE ERROR',
+              returnAuthMsg: 'SERVICE_KEY_IS_NOT_REGISTERED_ERROR',
+              returnReasonCode: '30',
+            },
+          },
+        }),
+      );
+      return;
+    }
+    const size = Number(u.searchParams.get('numOfRows') ?? 10) || 10;
+    const page = Number(u.searchParams.get('pageNo') ?? 1) || 1;
+    const name = u.searchParams.get('subwayStationName') ?? '';
+    const hits = all.filter((r) => !name || r.subwayStationName.includes(name));
+    const items = hits.slice((page - 1) * size, page * size);
+    res.end(
+      JSON.stringify({
+        response: {
+          header: { resultCode: '00', resultMsg: 'NORMAL SERVICE.' },
+          // 키를 되돌려 주는 서버여도 화면·기록에는 가려져야 한다
+          body: {
+            items: { item: items },
+            numOfRows: size,
+            pageNo: page,
+            totalCount: hits.length,
+            echo: u.searchParams.get('serviceKey'),
+          },
+        },
+      }),
+    );
+  });
+  await new Promise<void>((r) => server.listen(port, '127.0.0.1', () => r()));
+  return { url: `http://127.0.0.1:${port}`, server };
+}
+
 export default async function globalSetup(): Promise<() => Promise<void>> {
   // 1) DB
   let adminUrl = process.env.TEST_DATABASE_URL;
@@ -126,7 +181,8 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
     await db.query(`REFRESH MATERIALIZED VIEW "${String(r.schemaname)}"."${String(r.matviewname)}"`);
   await db.end();
 
-  // 3) API · Vite
+  // 3) 가짜 외부 서버 · API · Vite
+  const mock = await startMockExternal();
   const apiPort = await freePort();
   const webPort = await freePort();
   const api = startProcess('api', ['-F', '@k-raildex/api', 'exec', 'tsx', 'src/main.ts'], {
@@ -135,6 +191,7 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
     HOST: '127.0.0.1',
     AUTH_DEV_BYPASS: '1',
     NODE_ENV: 'development',
+    DATA_GO_KR_KEY_E2E_STUB: E2E_STUB_KEY,
   });
   await waitFor(`http://127.0.0.1:${apiPort}/health`, 60_000, api, 'API');
   const web = startProcess('vite', ['-F', '@k-raildex/admin', 'exec', 'vite', '--clearScreen', 'false'], {
@@ -145,11 +202,13 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
 
   process.env.E2E_BASE_URL = `http://127.0.0.1:${webPort}`;
   process.env.E2E_API_URL = `http://127.0.0.1:${apiPort}`;
+  process.env.E2E_MOCK_URL = mock.url;
 
   return async () => {
     stopping = true;
     kill(web);
     kill(api);
+    mock.server.close();
     await new Promise((r) => setTimeout(r, 500));
     try {
       const a = new pg.Client({ connectionString: adminUrl! });

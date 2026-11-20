@@ -5,12 +5,14 @@ import { cn } from '@k-raildex/ui';
 import {
   Database,
   Gauge,
+  Globe,
   History,
   Inbox,
   LayoutDashboard,
   Map as MapIcon,
   Moon,
   Search,
+  Sheet,
   Sun,
   Trash2,
 } from 'lucide-react';
@@ -124,8 +126,17 @@ export function Shell() {
           <NavLink to="/changesets">
             <Inbox className="size-4" /> 변경 묶음
           </NavLink>
+          <NavLink to="/bulk">
+            <Sheet className="size-4" /> 여러 건 입력
+          </NavLink>
           <NavLink to="/trash">
             <Trash2 className="size-4" /> 휴지통
+          </NavLink>
+        </nav>
+        <nav className="flex flex-col gap-0.5">
+          <div className="px-2 text-xs font-semibold text-fg-muted">조사</div>
+          <NavLink to="/external">
+            <Globe className="size-4" /> 외부 API
           </NavLink>
         </nav>
         <div className="mt-auto flex items-center gap-1 px-1">

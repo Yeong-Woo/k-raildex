@@ -8,6 +8,8 @@ import { ChangesetDetail } from './pages/ChangesetDetail';
 import { Trash } from './pages/Trash';
 import { Quality } from './pages/Quality';
 import { MapPage } from './pages/MapPage';
+import { Bulk } from './pages/Bulk';
+import { External, type ExternalSearch } from './pages/External';
 
 const rootRoute = createRootRoute({ component: Shell });
 
@@ -83,7 +85,30 @@ const map = createRoute({
   component: MapPage,
 });
 
-const routeTree = rootRoute.addChildren([dashboard, list, detail, changesets, changeset, trash, quality, map]);
+const bulk = createRoute({ getParentRoute: () => rootRoute, path: '/bulk', component: Bulk });
+
+const external = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/external',
+  validateSearch: (s: Record<string, unknown>): ExternalSearch => ({
+    endpoint: typeof s.endpoint === 'string' ? s.endpoint : undefined,
+    tab: s.tab === 'call' || s.tab === 'history' || s.tab === 'edit' ? s.tab : undefined,
+  }),
+  component: External,
+});
+
+const routeTree = rootRoute.addChildren([
+  dashboard,
+  list,
+  detail,
+  changesets,
+  changeset,
+  trash,
+  quality,
+  map,
+  bulk,
+  external,
+]);
 
 export const router = createRouter({ routeTree, defaultPreload: 'intent' });
 

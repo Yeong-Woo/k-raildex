@@ -140,17 +140,17 @@ worker(수집기/에이전트) → POST /v1/agent/changesets (status draft, 근�
 
 ## 6. 환경 변수(초안)
 
-| 변수                                                                                  | 사용처                                       | 비밀    |
-| ------------------------------------------------------------------------------------- | -------------------------------------------- | ------- |
-| `DATABASE_URL`                                                                        | api, worker                                  | O       |
-| `S3_ENDPOINT`·`S3_BUCKET`·`S3_ACCESS_KEY`·`S3_SECRET_KEY`                             | api, worker                                  | O       |
-| `API_URL`·`WEB_API_TOKEN`                                                             | web                                          | O(토큰) |
-| `CF_ACCESS_TEAM_DOMAIN`·`CF_ACCESS_AUD`·`ADMIN_EMAIL`                                 | api(Access JWT 검증)                         | O       |
-| `VWORLD_API_KEY`                                                                      | web·admin(지도, 도메인 묶인 공개 키)         | △       |
-| `DATA_GO_KR_KEY`·`DATA_GO_KR_KEY_<서비스>`·`KRIC_KEY`·`SEOUL_OPEN_KEY`·`LAW_GO_KR_OC` | worker(수집기)                               | O       |
-| `GOOGLE_MAPS_API_KEY`                                                                 | admin(위성 비교, 도메인 제한)                | △       |
-| `ANTHROPIC_API_KEY`                                                                   | worker(에이전트 CLI, 후순위, 월 30달러 상한) | O       |
-| `CLOUDFLARE_TUNNEL_TOKEN`                                                             | cloudflared                                  | O       |
-| `SITE_URL`·`PUBLIC_ISSUES_URL`                                                        | web                                          | —       |
+| 변수                                                                                  | 사용처                                                | 비밀    |
+| ------------------------------------------------------------------------------------- | ----------------------------------------------------- | ------- |
+| `DATABASE_URL`                                                                        | api, worker                                           | O       |
+| `S3_ENDPOINT`·`S3_BUCKET`·`S3_ACCESS_KEY`·`S3_SECRET_KEY`                             | api, worker                                           | O       |
+| `API_URL`·`WEB_API_TOKEN`                                                             | web                                                   | O(토큰) |
+| `CF_ACCESS_TEAM_DOMAIN`·`CF_ACCESS_AUD`·`ADMIN_EMAIL`                                 | api(Access JWT 검증)                                  | O       |
+| `VWORLD_API_KEY`                                                                      | web·admin(지도, 도메인 묶인 공개 키)                  | △       |
+| `DATA_GO_KR_KEY`·`DATA_GO_KR_KEY_<서비스>`·`KRIC_KEY`·`SEOUL_OPEN_KEY`·`LAW_GO_KR_OC` | worker(수집기)·api(외부 API 탐색기, 서버가 주입·가림) | O       |
+| `GOOGLE_MAPS_API_KEY`                                                                 | admin(위성 비교, 도메인 제한)                         | △       |
+| `ANTHROPIC_API_KEY`                                                                   | worker(에이전트 CLI, 후순위, 월 30달러 상한)          | O       |
+| `CLOUDFLARE_TUNNEL_TOKEN`                                                             | cloudflared                                           | O       |
+| `SITE_URL`·`PUBLIC_ISSUES_URL`                                                        | web                                                   | —       |
 
 `.env.example` 에 이름만 두고 실제 값은 커밋하지 않는다(C-8). 키 조회는 "서비스별 변수 → 공통 변수" 순서(기존 규칙 승계).
