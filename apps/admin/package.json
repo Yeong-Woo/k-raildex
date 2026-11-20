@@ -5,6 +5,37 @@
   "description": "관리 앱 Vite React SPA(M5)",
   "type": "module",
   "scripts": {
-    "check": "tsc -p tsconfig.json"
+    "check": "tsc -p tsconfig.json",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@dnd-kit/core": "6.3.1",
+    "@dnd-kit/sortable": "10.0.0",
+    "@hookform/resolvers": "7.0.7",
+    "@k-raildex/contracts": "workspace:*",
+    "@k-raildex/ui": "workspace:*",
+    "@tanstack/react-query": "5.108.2",
+    "@tanstack/react-router": "1.170.46",
+    "@tanstack/react-table": "9.3.1",
+    "lucide-react": "1.77.0",
+    "maplibre-gl": "6.19.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "react-hook-form": "7.92.0",
+    "sonner": "2.0.8",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.65.1",
+    "@tailwindcss/vite": "4.3.5",
+    "@testing-library/react": "16.3.3",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.3.0",
+    "jsdom": "31.0.1",
+    "tailwindcss": "4.3.5",
+    "vite": "8.3.8"
   }
 }
