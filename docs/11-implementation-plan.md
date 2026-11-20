@@ -12,7 +12,7 @@
 | 브랜치         | `main` 보호. WP 마다 `feat/<m>-<wp>-<slug>` 브랜치 → PR → CI 통과 후 병합. 큰 WP 는 여러 PR.                                                                                                                                                                                        |
 | 완료 정의(DoD) | ① 타입 검사·lint·단위·통합 시험 통과 ② 설계 문서와 어긋나면 문서를 먼저 고침 ③ 새 코드값·테이블은 03 문서 반영 ④ 공개 API·계약 변경은 OpenAPI 스냅샷 갱신                                                                                                                           |
 | 문서           | 구현 중 결정이 필요한 선택은 `docs/review/notes.md` 에 적고 다음 라운드 질문으로. 결정이 아닌 것은 바로 처리.                                                                                                                                                                       |
-| 시험 데이터    | `packages/db/fixtures/`(노선 3·역 20·노선별 역 25·계획 5·출처 10 수준의 일관된 소규모 데이터) — 통합 시험·E2E 공용. 실제 이관 데이터는 리허설 DB 에서만.                                                                                                                            |
+| 시험 데이터    | `packages/domain/src/fixtures.ts`(도메인 적용기로 넣는 일관된 소규모 데이터 — db 패키지가 domain 에 의존하면 순환이라 domain 에 둠) — 통합 시험·E2E 공용. 실제 이관 데이터는 리허설 DB 에서만.                                                                                      |
 | 버전           | 착수 시점 최신 안정판을 `package.json` 에 정확한 버전으로 고정. 주 버전 기준: Node 24 LTS, pnpm 12, TypeScript 6.0(typescript-eslint 지원 범위), React 19, Next.js 16, NestJS 12(기존 시스템과 같음), Vite 7, Tailwind 4, zod 4, Drizzle ORM, pg-boss, PostgreSQL 17 + PostGIS 3.5. |
 
 ## 1. 의존 관계
