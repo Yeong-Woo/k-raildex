@@ -5,6 +5,9 @@
   "description": "NestJS API(M4)",
   "type": "module",
   "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "build": "tsup",
+    "start": "node dist/main.js",
     "check": "tsc -p tsconfig.json"
   },
   "dependencies": {

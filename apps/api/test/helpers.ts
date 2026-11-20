@@ -1,0 +1,55 @@
+import type { NestFastifyApplication } from '@nestjs/platform-fastify';
+import { freshDb, type FreshDb } from '@k-raildex/db/testing';
+import { applyChangeset, ensureServiceUser, fixtureOps } from '@k-raildex/domain';
+import type { JWTVerifyGetKey } from 'jose';
+import pg from 'pg';
+import { createApp } from '../src/app';
+import { envSchema, type AppConfig } from '../src/config';
+
+export interface TestApp {
+  app: NestFastifyApplication;
+  fx: FreshDb;
+  pool: pg.Pool;
+  close: () => Promise<void>;
+}
+
+export function testConfig(url: string, env: Record<string, string> = {}): AppConfig {
+  return envSchema.parse({
+    DATABASE_URL: url,
+    NODE_ENV: 'test',
+    AUTH_DEV_BYPASS: '1',
+    ADMIN_EMAIL: 'admin@example.com',
+    ...env,
+  });
+}
+
+/** 새 DB + 픽스처 + Nest 앱(Fastify inject 용) */
+export async function startApp(
+  opts: { env?: Record<string, string>; accessKeys?: JWTVerifyGetKey | null; fixtures?: boolean } = {},
+): Promise<TestApp> {
+  const fx = await freshDb();
+  if (opts.fixtures !== false) {
+    const author = await ensureServiceUser(fx.client, 'system', 'test');
+    await applyChangeset(fx.client, {
+      title: '픽스처',
+      origin: 'legacy_migration',
+      author_id: author,
+      ops: fixtureOps(),
+    });
+  }
+  const pool = new pg.Pool({ connectionString: fx.url, max: 4 });
+  const app = await createApp(
+    { config: testConfig(fx.url, opts.env), pool, accessKeys: opts.accessKeys },
+    { logger: false },
+  );
+  return {
+    app,
+    fx,
+    pool,
+    close: async () => {
+      await app.close();
+      await pool.end();
+      await fx.close();
+    },
+  };
+}
