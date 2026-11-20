@@ -19,7 +19,9 @@
     "test:watch": "vitest",
     "dev:infra": "docker compose -f docker/compose.dev.yml up -d --wait",
     "dev:infra:down": "docker compose -f docker/compose.dev.yml down",
-    "prepare": "simple-git-hooks"
+    "prepare": "simple-git-hooks",
+    "db:migrate": "pnpm -F @k-raildex/db run db:migrate",
+    "db:reset": "pnpm -F @k-raildex/db run db:reset"
   },
   "simple-git-hooks": {
     "pre-commit": "pnpm exec lint-staged && sh scripts/gitleaks-staged.sh"

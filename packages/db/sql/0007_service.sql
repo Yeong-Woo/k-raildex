@@ -1,0 +1,122 @@
+-- 0007 열차 등급·운행 계통·정차 패턴 (docs/03-data-model.md 4-8·4-9절)
+
+CREATE TABLE train_class (
+  id text PRIMARY KEY REFERENCES entity(id) ON UPDATE CASCADE,
+  name_ko text NOT NULL,
+  name_en text,
+  name_hanja text,
+  name_full text,
+  tier text NOT NULL,
+  status text NOT NULL DEFAULT 'active',
+  successor_id text REFERENCES train_class(id) ON UPDATE CASCADE,
+  max_speed_kmh integer CHECK (max_speed_kmh > 0),
+  started_value text,
+  started_precision text,
+  started_from date GENERATED ALWAYS AS (fuzzy_from(started_value, started_precision)) STORED,
+  started_to date GENERATED ALWAYS AS (fuzzy_to(started_value, started_precision)) STORED,
+  ended_value text,
+  ended_precision text,
+  ended_from date GENERATED ALWAYS AS (fuzzy_from(ended_value, ended_precision)) STORED,
+  ended_to date GENERATED ALWAYS AS (fuzzy_to(ended_value, ended_precision)) STORED,
+  description text,
+  checked_at date NOT NULL,
+  provenance_note text,
+  review_status text NOT NULL DEFAULT 'unverified',
+  reviewed_at timestamptz,
+  editor_note text,
+  extra jsonb NOT NULL DEFAULT '{}'::jsonb,
+  version integer NOT NULL DEFAULT 1,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  created_by uuid REFERENCES app_user(id),
+  updated_by uuid REFERENCES app_user(id),
+  last_changeset_id text REFERENCES changeset(id) ON UPDATE CASCADE,
+  deleted_at timestamptz,
+  deleted_by uuid REFERENCES app_user(id),
+  delete_reason text,
+  CONSTRAINT train_class_id_chk CHECK (id ~ '^tc-[a-z0-9]+(-{1,2}[a-z0-9]+)*$'),
+  CONSTRAINT train_class_name_ko_chk CHECK (name_ko <> ''),
+  CONSTRAINT train_class_tier_chk CHECK (tier IN ('high_speed', 'semi_high_speed', 'express', 'local', 'commuter')),
+  CONSTRAINT train_class_status_chk CHECK (status IN ('active', 'retired')),
+  CONSTRAINT train_class_started_fuzzy_chk CHECK (fuzzy_valid(started_value, started_precision)),
+  CONSTRAINT train_class_started_precision_chk CHECK (started_precision IN ('day', 'month', 'half', 'year', 'unknown')),
+  CONSTRAINT train_class_ended_fuzzy_chk CHECK (fuzzy_valid(ended_value, ended_precision)),
+  CONSTRAINT train_class_ended_precision_chk CHECK (ended_precision IN ('day', 'month', 'half', 'year', 'unknown')),
+  CONSTRAINT train_class_review_status_chk CHECK (review_status IN ('verified', 'unverified', 'flagged'))
+);
+
+CREATE TABLE service (
+  id text PRIMARY KEY REFERENCES entity(id) ON UPDATE CASCADE,
+  name_ko text NOT NULL,
+  name_en text,
+  name_hanja text,
+  name_full text,
+  kind text NOT NULL,
+  train_class_id text REFERENCES train_class(id) ON UPDATE CASCADE,
+  status text NOT NULL,
+  color text CHECK (color ~ '^#[0-9A-Fa-f]{6}$'),
+  opened_value text,
+  opened_precision text,
+  opened_from date GENERATED ALWAYS AS (fuzzy_from(opened_value, opened_precision)) STORED,
+  opened_to date GENERATED ALWAYS AS (fuzzy_to(opened_value, opened_precision)) STORED,
+  closed_value text,
+  closed_precision text,
+  closed_from date GENERATED ALWAYS AS (fuzzy_from(closed_value, closed_precision)) STORED,
+  closed_to date GENERATED ALWAYS AS (fuzzy_to(closed_value, closed_precision)) STORED,
+  successor_id text REFERENCES service(id) ON UPDATE CASCADE,
+  description text,
+  checked_at date NOT NULL,
+  provenance_note text,
+  review_status text NOT NULL DEFAULT 'unverified',
+  reviewed_at timestamptz,
+  editor_note text,
+  extra jsonb NOT NULL DEFAULT '{}'::jsonb,
+  version integer NOT NULL DEFAULT 1,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  created_by uuid REFERENCES app_user(id),
+  updated_by uuid REFERENCES app_user(id),
+  last_changeset_id text REFERENCES changeset(id) ON UPDATE CASCADE,
+  deleted_at timestamptz,
+  deleted_by uuid REFERENCES app_user(id),
+  delete_reason text,
+  CONSTRAINT service_id_chk CHECK (id ~ '^svc-[a-z0-9]+(-{1,2}[a-z0-9]+)*$'),
+  CONSTRAINT service_name_ko_chk CHECK (name_ko <> ''),
+  CONSTRAINT service_kind_chk CHECK (kind IN ('high_speed', 'intercity', 'wide_area', 'metro', 'tourist')),
+  CONSTRAINT service_status_chk CHECK (status IN ('operating', 'suspended', 'under_construction', 'planned', 'abandoned', 'closed')),
+  CONSTRAINT service_opened_fuzzy_chk CHECK (fuzzy_valid(opened_value, opened_precision)),
+  CONSTRAINT service_opened_precision_chk CHECK (opened_precision IN ('day', 'month', 'half', 'year', 'unknown')),
+  CONSTRAINT service_closed_fuzzy_chk CHECK (fuzzy_valid(closed_value, closed_precision)),
+  CONSTRAINT service_closed_precision_chk CHECK (closed_precision IN ('day', 'month', 'half', 'year', 'unknown')),
+  CONSTRAINT service_review_status_chk CHECK (review_status IN ('verified', 'unverified', 'flagged'))
+);
+
+CREATE TABLE service_line (
+  service_id text REFERENCES service(id) ON DELETE CASCADE ON UPDATE CASCADE,
+  line_id text REFERENCES line(id) ON UPDATE CASCADE,
+  seq integer NOT NULL CHECK (seq >= 1),
+  PRIMARY KEY (service_id, line_id),
+  CONSTRAINT service_line_seq_uniq UNIQUE (service_id, seq) DEFERRABLE INITIALLY DEFERRED
+);
+
+CREATE TABLE stop_pattern (
+  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  service_id text NOT NULL REFERENCES service(id) ON DELETE CASCADE ON UPDATE CASCADE,
+  code text NOT NULL,
+  name_ko text NOT NULL,
+  name_en text,
+  type text NOT NULL,
+  seq integer NOT NULL,
+  note text,
+  CONSTRAINT stop_pattern_type_chk CHECK (type IN ('local', 'express', 'rapid', 'limited')),
+  UNIQUE (service_id, code)
+);
+
+CREATE TABLE stop_pattern_stop (
+  pattern_id bigint REFERENCES stop_pattern(id) ON DELETE CASCADE,
+  seq integer NOT NULL CHECK (seq >= 1),
+  line_station_id text NOT NULL REFERENCES line_station(id) ON UPDATE CASCADE,
+  PRIMARY KEY (pattern_id, seq)
+);
+
+CREATE INDEX stop_pattern_stop_ls_idx ON stop_pattern_stop (line_station_id);

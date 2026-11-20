@@ -8,6 +8,19 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "check": "tsc -p tsconfig.json"
+    "check": "tsc -p tsconfig.json",
+    "db:migrate": "tsx src/cli.ts migrate",
+    "db:reset": "tsx src/cli.ts reset"
+  },
+  "dependencies": {
+    "@k-raildex/contracts": "workspace:*",
+    "drizzle-orm": "0.45.4",
+    "pg": "8.23.1"
+  },
+  "devDependencies": {
+    "@testcontainers/postgresql": "12.2.2",
+    "@types/pg": "8.23.1",
+    "testcontainers": "12.2.2",
+    "tsx": "4.23.15"
   }
 }

@@ -4,5 +4,12 @@ packages:
 
 # 설치 스크립트 실행을 허용하는 의존성(pnpm 은 기본 차단)
 allowBuilds:
+  cpu-features: false
   esbuild: true
+  protobufjs: false
   simple-git-hooks: true
+  ssh2: false
+
+minimumReleaseAgeExclude:
+  - '@testcontainers/postgresql@12.2.2'
+  - testcontainers@12.2.2
