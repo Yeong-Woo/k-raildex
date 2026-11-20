@@ -1,0 +1,11 @@
+name: nightly
+
+# 이관 리허설(M3 WP 3.11 에서 채움): 기존 저장소 체크아웃 → 이관 → 대조 리포트.
+on:
+  workflow_dispatch:
+
+jobs:
+  placeholder:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "M3 에서 이관 리허설을 추가한다"

@@ -1,0 +1,13 @@
+{
+  "name": "@k-raildex/db",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Drizzle 스키마·SQL 마이그레이션·시드·픽스처",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "check": "tsc -p tsconfig.json"
+  }
+}

@@ -1,0 +1,40 @@
+# 로컬 개발 인프라 (docs/02-architecture.md 5절). 127.0.0.1 에만 묶는다.
+# 문서 저장소는 S3 호환 SeaweedFS(MinIO 공식 이미지를 받을 수 없어 대체, docs/decisions.md 구현 판단).
+name: k-raildex-dev
+
+services:
+  db:
+    image: postgis/postgis:17-3.5
+    environment:
+      POSTGRES_DB: raildex
+      POSTGRES_USER: raildex
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-raildex-dev}
+    ports:
+      - '127.0.0.1:${DB_PORT:-5440}:5432'
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U raildex -d raildex']
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  s3:
+    image: chrislusf/seaweedfs:4.54
+    command: >
+      server -dir=/data -ip.bind=0.0.0.0 -master.volumeSizeLimitMB=1024
+      -s3 -s3.port=8333 -s3.config=/etc/seaweedfs/s3.json
+    ports:
+      - '127.0.0.1:${S3_PORT:-8333}:8333'
+    volumes:
+      - s3-data:/data
+      - ./seaweedfs/s3.json:/etc/seaweedfs/s3.json:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -q -O /dev/null http://127.0.0.1:8333/status || exit 1']
+      interval: 3s
+      timeout: 3s
+      retries: 40
+
+volumes:
+  db-data:
+  s3-data:

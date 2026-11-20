@@ -4,14 +4,14 @@
 
 ## 1. 문서가 기준이다
 
-| 문서 | 역할 |
-| --- | --- |
-| `docs/01~10-*.md` | 확정 설계(개요·구조·**데이터 모델**·API·관리 앱·공개 사이트·이관·수집·비기능·로드맵) |
-| `docs/11-implementation-plan.md` | 작업 패키지(WP) 단위 구현 계획과 완료 기준 |
-| `docs/decisions.md` | 확정 결정 표(Q1~). 결정과 어긋나는 구현을 하지 않는다 |
-| `docs/03-data-model.md` | DB 스키마의 기준. Drizzle 스키마·zod 계약·SQL 은 이 문서와 일치해야 한다 |
-| `docs/review/` | 결정 질문 라운드(README.md 규칙) |
-| `docs/legacy/` | 기존 시스템 문서 사본(읽기 전용 참고) |
+| 문서                             | 역할                                                                                 |
+| -------------------------------- | ------------------------------------------------------------------------------------ |
+| `docs/01~10-*.md`                | 확정 설계(개요·구조·**데이터 모델**·API·관리 앱·공개 사이트·이관·수집·비기능·로드맵) |
+| `docs/11-implementation-plan.md` | 작업 패키지(WP) 단위 구현 계획과 완료 기준                                           |
+| `docs/decisions.md`              | 확정 결정 표(Q1~). 결정과 어긋나는 구현을 하지 않는다                                |
+| `docs/03-data-model.md`          | DB 스키마의 기준. Drizzle 스키마·zod 계약·SQL 은 이 문서와 일치해야 한다             |
+| `docs/review/`                   | 결정 질문 라운드(README.md 규칙)                                                     |
+| `docs/legacy/`                   | 기존 시스템 문서 사본(읽기 전용 참고)                                                |
 
 - 설계와 다르게 구현해야 하면 **문서를 먼저 고친다**. 사용자 판단이 필요한 선택이면 멈추지 말고 `docs/review/notes.md` 에 적고 임시 가정으로 진행한 뒤 라운드가 끝날 때 `docs/review/round-NN.md` 질문으로 올린다(형식은 docs/review/README.md). 결정이 아닌 것(버그·정리·검수)은 질문하지 않고 처리한다.
 - 이미 결정된 사항을 다시 묻지 않는다.
@@ -60,7 +60,7 @@
 
 ```bash
 pnpm install
-pnpm dev:infra          # 로컬 PostgreSQL(PostGIS, 127.0.0.1:5433) + MinIO(127.0.0.1:9000)
+pnpm dev:infra          # 로컬 PostgreSQL(PostGIS, 127.0.0.1:5440) + SeaweedFS S3(127.0.0.1:8333)
 pnpm dev:infra:down
 pnpm check              # 전체 타입 검사
 pnpm lint               # ESLint

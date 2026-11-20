@@ -1,0 +1,10 @@
+{
+  "name": "@k-raildex/web",
+  "version": "0.0.0",
+  "private": true,
+  "description": "공개 사이트 Next.js(M7)",
+  "type": "module",
+  "scripts": {
+    "check": "tsc -p tsconfig.json"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "name": "@k-raildex/admin",
+  "version": "0.0.0",
+  "private": true,
+  "description": "관리 앱 Vite React SPA(M5)",
+  "type": "module",
+  "scripts": {
+    "check": "tsc -p tsconfig.json"
+  }
+}

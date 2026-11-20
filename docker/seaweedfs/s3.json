@@ -1,0 +1,9 @@
+{
+  "identities": [
+    {
+      "name": "raildex-dev",
+      "credentials": [{ "accessKey": "raildex-dev", "secretKey": "raildex-dev-secret" }],
+      "actions": ["Admin", "Read", "Write", "List", "Tagging"]
+    }
+  ]
+}

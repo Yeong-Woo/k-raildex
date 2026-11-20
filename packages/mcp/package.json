@@ -1,0 +1,13 @@
+{
+  "name": "@k-raildex/mcp",
+  "version": "0.0.0",
+  "private": true,
+  "description": "에이전트용 MCP 서버(M9)",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "check": "tsc -p tsconfig.json"
+  }
+}

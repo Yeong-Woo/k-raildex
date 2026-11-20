@@ -1,0 +1,49 @@
+{
+  "name": "k-raildex",
+  "version": "0.0.0",
+  "private": true,
+  "description": "한국철도도감 (K-Raildex) — 대한민국 철도 노선·역·운행 계통·계획 정보 (DB 원천 재구축)",
+  "type": "module",
+  "license": "MIT",
+  "packageManager": "pnpm@12.10.1",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "check": "turbo run check",
+    "build": "turbo run build",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "dev:infra": "docker compose -f docker/compose.dev.yml up -d --wait",
+    "dev:infra:down": "docker compose -f docker/compose.dev.yml down",
+    "prepare": "simple-git-hooks"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "pnpm exec lint-staged && sh scripts/gitleaks-staged.sh"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,mjs,cjs}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,yml,yaml,css}": [
+      "prettier --write"
+    ]
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/node": "24.9.2",
+    "eslint": "10.15.0",
+    "globals": "17.14.0",
+    "lint-staged": "^17.6.1",
+    "prettier": "3.10.1",
+    "simple-git-hooks": "^2.14.0",
+    "turbo": "2.11.13",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.73.0",
+    "vitest": "5.1.1"
+  }
+}

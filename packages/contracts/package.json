@@ -1,0 +1,13 @@
+{
+  "name": "@k-raildex/contracts",
+  "version": "0.0.0",
+  "private": true,
+  "description": "zod 계약·코드값·라벨 — 개체 규격의 단일 정의(docs/03-data-model.md)",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "check": "tsc -p tsconfig.json"
+  }
+}

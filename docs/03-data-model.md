@@ -5,17 +5,17 @@
 
 ## 1. 설계 원칙
 
-| ID        | 원칙 |
-| --------- | ---- |
-| FR-DM-001 | **정규화 관계형.** 조회·필터·관계에 쓰는 모든 값은 열 또는 관계 테이블로 둔다. `jsonb` 는 부가 정보(`extra`)·외부 원본 스냅샷·감사 전/후 값에만 쓴다. (Q15) |
-| FR-DM-002 | **DB 가 무결성을 보장한다.** 참조는 FK, 값 범위는 CHECK, 유일성은 UNIQUE. 앱 검증은 DB 가 표현할 수 없는 규칙(8절)만. |
+| ID        | 원칙                                                                                                                                                                                                                                                   |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| FR-DM-001 | **정규화 관계형.** 조회·필터·관계에 쓰는 모든 값은 열 또는 관계 테이블로 둔다. `jsonb` 는 부가 정보(`extra`)·외부 원본 스냅샷·감사 전/후 값에만 쓴다. (Q15)                                                                                            |
+| FR-DM-002 | **DB 가 무결성을 보장한다.** 참조는 FK, 값 범위는 CHECK, 유일성은 UNIQUE. 앱 검증은 DB 가 표현할 수 없는 규칙(8절)만.                                                                                                                                  |
 | FR-DM-003 | **원천 데이터만 저장, 파생 값은 뷰.** 역의 권역·소속 노선·정차 계통 종류·상태·개통일(노선별 역에서 계산), 노선의 권역, 상속 검수 상태, 개체 필드에서 나오는 연표 이벤트, 계획 현재 단계·개통 목표, 시점별 지도는 뷰로 계산한다(6절). (Q26·Q27·Q28·Q71) |
-| FR-DM-004 | **보정(override) 계층 없음.** 공공데이터에서 온 값도 이관 후에는 개체 행의 값이다. 외부 데이터셋과의 대응은 `external_ref` 로만. (Q20·Q21) |
-| FR-DM-005 | **모든 큐레이션 개체는 출처 ≥ 1, `checked_at` 필수**(C-1). |
-| FR-DM-006 | **전역 ID 레지스트리** `entity` 로 개체 간 다형 참조(출처 연결, 별칭, 외부 코드, 첨부, 이벤트 대상, 감사)에도 FK 를 건다. 삭제된 id 도 레지스트리에 남아 **영구 예약**된다. |
-| FR-DM-007 | 모든 쓰기 가능한 개체 테이블은 `version`(낙관적 잠금)·생성·수정·**소프트 삭제** 메타를 가진다. (Q37·Q38·Q74) |
-| FR-DM-008 | OSM(ODbL) 데이터는 스키마 `osm` 에만 둔다. `public` 스키마의 자체 데이터 테이블은 `osm` 을 FK 로 참조하지 않는다(매핑 표는 OSM id 숫자만 보관)(C-6, Q31). |
-| FR-DM-009 | **역은 2단계**: `station` = 역(환승역이면 환승 그룹, 아니어도 반드시 존재, 공개 역 페이지 단위) / `line_station` = 노선별 역(노선마다의 이름·운영기관·상태·개통일·역번호·외부 코드). (Q25 B → Q70~Q72) |
+| FR-DM-004 | **보정(override) 계층 없음.** 공공데이터에서 온 값도 이관 후에는 개체 행의 값이다. 외부 데이터셋과의 대응은 `external_ref` 로만. (Q20·Q21)                                                                                                             |
+| FR-DM-005 | **모든 큐레이션 개체는 출처 ≥ 1, `checked_at` 필수**(C-1).                                                                                                                                                                                             |
+| FR-DM-006 | **전역 ID 레지스트리** `entity` 로 개체 간 다형 참조(출처 연결, 별칭, 외부 코드, 첨부, 이벤트 대상, 감사)에도 FK 를 건다. 삭제된 id 도 레지스트리에 남아 **영구 예약**된다.                                                                            |
+| FR-DM-007 | 모든 쓰기 가능한 개체 테이블은 `version`(낙관적 잠금)·생성·수정·**소프트 삭제** 메타를 가진다. (Q37·Q38·Q74)                                                                                                                                           |
+| FR-DM-008 | OSM(ODbL) 데이터는 스키마 `osm` 에만 둔다. `public` 스키마의 자체 데이터 테이블은 `osm` 을 FK 로 참조하지 않는다(매핑 표는 OSM id 숫자만 보관)(C-6, Q31).                                                                                              |
+| FR-DM-009 | **역은 2단계**: `station` = 역(환승역이면 환승 그룹, 아니어도 반드시 존재, 공개 역 페이지 단위) / `line_station` = 노선별 역(노선마다의 이름·운영기관·상태·개통일·역번호·외부 코드). (Q25 B → Q70~Q72)                                                 |
 
 ## 2. 공통 규약
 
@@ -23,23 +23,23 @@
 
 - 개체 PK 는 `id text`. 형식 `<접두사>-<슬러그>`(소문자·숫자·하이픈). 기존 ID 승계(C-9) — 단 아래 두 종류만 바꾸고 `id_redirect` 에 남긴다.
 
-| 개체        | 접두사  | 예 / 비고 |
-| ----------- | ------- | --------- |
-| 출처        | `src-`  | `src-molit-nrp4-notice` |
-| 운영기관    | `op-`   | `op-korail` (신설) |
-| 역          | `stn-`  | `stn-seoul` |
-| 노선별 역   | `ls-`   | `ls-gyeongbu--seoul` (`ls-<노선 id 꼬리>--<역 id 꼬리>`, 같은 노선에 같은 역이 두 번이면 `-2`). **내부 id — 공개 URL 없음** |
-| 노선        | `line-` | `line-gyeongbu` |
-| 열차 등급   | `tc-`   | `tc-ktx` |
-| 운행 계통   | `svc-`  | `svc-sudogwon-1` |
-| 상위 계획   | `pp-`   | **변경**: `national_rail_4` → `pp-national-rail-4`, `metro_seoul_2` → `pp-metro-seoul-2` (밑줄 → 하이픈 + 접두사) |
-| 계획 사업   | `plan-` | `plan-honam-hsr-gomagwon-imseongri` |
-| 이벤트      | `evt-`  | `evt-opened-gtx-a-2024-03-30` |
-| 열차번호대  | `tnr-`  | |
-| 차량번호대  | `rsn-`  | |
-| 환승센터    | `xc-`   | **변경**: `tc-daegok` → `xc-daegok` (열차 등급 `tc-` 와 구분. 실제 충돌은 0건이었음) |
-| 노선도      | `map-`  | |
-| 용어        | `term-` | |
+| 개체       | 접두사  | 예 / 비고                                                                                                                   |
+| ---------- | ------- | --------------------------------------------------------------------------------------------------------------------------- |
+| 출처       | `src-`  | `src-molit-nrp4-notice`                                                                                                     |
+| 운영기관   | `op-`   | `op-korail` (신설)                                                                                                          |
+| 역         | `stn-`  | `stn-seoul`                                                                                                                 |
+| 노선별 역  | `ls-`   | `ls-gyeongbu--seoul` (`ls-<노선 id 꼬리>--<역 id 꼬리>`, 같은 노선에 같은 역이 두 번이면 `-2`). **내부 id — 공개 URL 없음** |
+| 노선       | `line-` | `line-gyeongbu`                                                                                                             |
+| 열차 등급  | `tc-`   | `tc-ktx`                                                                                                                    |
+| 운행 계통  | `svc-`  | `svc-sudogwon-1`                                                                                                            |
+| 상위 계획  | `pp-`   | **변경**: `national_rail_4` → `pp-national-rail-4`, `metro_seoul_2` → `pp-metro-seoul-2` (밑줄 → 하이픈 + 접두사)           |
+| 계획 사업  | `plan-` | `plan-honam-hsr-gomagwon-imseongri`                                                                                         |
+| 이벤트     | `evt-`  | `evt-opened-gtx-a-2024-03-30`                                                                                               |
+| 열차번호대 | `tnr-`  |                                                                                                                             |
+| 차량번호대 | `rsn-`  |                                                                                                                             |
+| 환승센터   | `xc-`   | **변경**: `tc-daegok` → `xc-daegok` (열차 등급 `tc-` 와 구분. 실제 충돌은 0건이었음)                                        |
+| 노선도     | `map-`  |                                                                                                                             |
+| 용어       | `term-` |                                                                                                                             |
 
 - 관계 테이블(정차 패턴 역, 계획 반영 내역 등)은 `id bigint generated always as identity` 대리키.
 - ID 변경은 `id_redirect(old_id, new_id, changed_at, reason)` 에 남기고 공개 사이트는 경로·쿼리 값은 301, 앵커(`#national_rail_4`)는 페이지 스크립트로 새 앵커에 연결한다(06 문서 FR-WEB-004).
@@ -836,67 +836,67 @@ CREATE TABLE app_setting (key text PRIMARY KEY, value jsonb NOT NULL, updated_at
 
 ## 5. 코드값 목록
 
-| 도메인 | 값 (라벨) |
-| --- | --- |
-| `entity_type` | source, operator, station, line_station, line, train_class, service, plan_program, plan, event, train_number_range, rolling_stock_range, transfer_center, route_map, glossary_term |
-| `status`(역 단독·노선별 역·노선·운행 계통) | operating 운영 중 / suspended 휴업 / under_construction 공사 중 / planned 계획 / abandoned 계획 폐기 / closed 폐선·폐역·운행 종료 |
-| `station.kind` | station 여객역 / signal_box 신호장·신호소 / junction 분기점·연결선 / yard 조차장 / depot 차량기지 / freight 화물역 |
-| `coord_source` / `coord_basis` | official, manual, derived / parcel, district, township, existing_station |
-| `line.category` | high_speed, conventional, metro, light_rail, tram, monorail, maglev |
-| `rail_class` | high_speed 고속철도 / conventional 일반철도 / urban 도시철도 |
-| `line_role` | depot_line 기지선 / connecting_line 연결선 / wye 삼각선 |
-| `track` | single, double, quadruple, sextuple, single_parallel, partial_double |
-| `service.kind` | high_speed 고속열차 / intercity 일반열차 / wide_area 광역전철 / metro 도시철도 / tourist 관광열차 |
-| `stop_pattern.type` | local 완행 / express 급행 / rapid 쾌속 / limited 특정 정차 |
-| `train_class.tier` | high_speed, semi_high_speed, express, local, commuter |
-| `plan_program.kind` / `status` | territorial, national_rail, metro_network, wide_area_transport, wide_area_improvement, transfer_center, other / current, superseded, draft |
-| `notice.kind` | approval, amendment, correction, submission, other |
-| `plan.scope` | line 노선 / station 역 / facility 기타 시설 |
-| `plan_ref.class` / `category` | new, review, continued / high_speed, conventional, wide_area, urban |
-| `plan_stage` | concept 구상 → plan_listed 상위계획 반영 → prefeasibility 사전타당성 → feasibility 예비타당성 → strategic_eia 전략환경영향평가 → basic_plan 기본계획 → basic_design 기본설계 → eia 환경영향평가 → detail_design 실시설계 → construction 착공·시공 → trial_run 시운전 → opened 개통 ; abandoned 폐기 ; dormant 휴면 |
-| `plan_stage_event.kind` | reached 도달 / withdrawn 철회·보류 / dormant 휴면 |
-| `plan_milestone.basis` | official 공식 / press 보도 / (estimate 는 Q94 A 로 사용하지 않음) |
-| `plan_line.role` | new 신설 / extends 연장 / upgrades 개량 / replaces 대체(개통 시 사라짐) |
-| `plan_station.role` | new 신설 / existing 기존(환승) / closes 폐역 예정 / subject 사업 대상 역 |
-| `plan_relation.relation` | succeeded_by, part_of, same_corridor, related |
-| `plan_geometry.kind` | schematic 개략 / traced 도면 추출 / official 공식 좌표 |
-| `event.type` | opened, closed, suspended, resumed, renamed, transfer_opened, service_started, service_ended, stage_changed, plan_listed, other |
-| `tnr.group` / `parity_rule` | high_speed, intercity, wide_area, metro, freight, non_revenue, other / odd_down_even_up, odd_up_even_down, none |
-| `rsr.group` / `rsr.status` | high_speed, intercity, wide_area, metro, locomotive, coach, freight, other / operating, planned, closed |
-| `transfer_center.kind/status` | complex, transfer / planned, design, construction, completed, withdrawn, unknown |
-| `tc_plan_ref.class` | pilot, candidate, new, continued, review |
-| `source.type` | dataset_file, dataset_api, notice, law, press_release, official_page, news, map_image, manual, wiki |
-| `license_class` | public_work 저작권법 제7조 / kogl_1~kogl_4 공공누리 / open 공개 라이선스 / restricted 권리 제한 / unknown 미상 |
-| `document.kind` | original, text_extract, snapshot, page_image, figure_crop, upload |
-| `attachment.kind` | quote 원문 발췌 / link 링크 / image 이미지 / document 문서 |
-| `route_map.mode` | embed, link |
-| `day_type` / `direction` | weekday, saturday, holiday / up, down, inner, outer, unknown |
-| `review_status` | verified 검수 완료 / unverified 검수 전 / flagged 이의 있음 |
-| `entity_name.kind` | alias, former, sub, internal, abbr, legal, source_raw |
-| `app_user.kind` | admin, system, agent, web |
-| `area` | capital 수도권, southeast 동남권, daegyeong 대경권, chungcheong 충청권, honam 호남권, gangwon 강원권, jeju 제주권, national 전국 |
+| 도메인                                     | 값 (라벨)                                                                                                                                                                                                                                                                                                          |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `entity_type`                              | source, operator, station, line_station, line, train_class, service, plan_program, plan, event, train_number_range, rolling_stock_range, transfer_center, route_map, glossary_term                                                                                                                                 |
+| `status`(역 단독·노선별 역·노선·운행 계통) | operating 운영 중 / suspended 휴업 / under_construction 공사 중 / planned 계획 / abandoned 계획 폐기 / closed 폐선·폐역·운행 종료                                                                                                                                                                                  |
+| `station.kind`                             | station 여객역 / signal_box 신호장·신호소 / junction 분기점·연결선 / yard 조차장 / depot 차량기지 / freight 화물역                                                                                                                                                                                                 |
+| `coord_source` / `coord_basis`             | official, manual, derived / parcel, district, township, existing_station                                                                                                                                                                                                                                           |
+| `line.category`                            | high_speed, conventional, metro, light_rail, tram, monorail, maglev                                                                                                                                                                                                                                                |
+| `rail_class`                               | high_speed 고속철도 / conventional 일반철도 / urban 도시철도                                                                                                                                                                                                                                                       |
+| `line_role`                                | depot_line 기지선 / connecting_line 연결선 / wye 삼각선                                                                                                                                                                                                                                                            |
+| `track`                                    | single, double, quadruple, sextuple, single_parallel, partial_double                                                                                                                                                                                                                                               |
+| `service.kind`                             | high_speed 고속열차 / intercity 일반열차 / wide_area 광역전철 / metro 도시철도 / tourist 관광열차                                                                                                                                                                                                                  |
+| `stop_pattern.type`                        | local 완행 / express 급행 / rapid 쾌속 / limited 특정 정차                                                                                                                                                                                                                                                         |
+| `train_class.tier`                         | high_speed, semi_high_speed, express, local, commuter                                                                                                                                                                                                                                                              |
+| `plan_program.kind` / `status`             | territorial, national_rail, metro_network, wide_area_transport, wide_area_improvement, transfer_center, other / current, superseded, draft                                                                                                                                                                         |
+| `notice.kind`                              | approval, amendment, correction, submission, other                                                                                                                                                                                                                                                                 |
+| `plan.scope`                               | line 노선 / station 역 / facility 기타 시설                                                                                                                                                                                                                                                                        |
+| `plan_ref.class` / `category`              | new, review, continued / high_speed, conventional, wide_area, urban                                                                                                                                                                                                                                                |
+| `plan_stage`                               | concept 구상 → plan_listed 상위계획 반영 → prefeasibility 사전타당성 → feasibility 예비타당성 → strategic_eia 전략환경영향평가 → basic_plan 기본계획 → basic_design 기본설계 → eia 환경영향평가 → detail_design 실시설계 → construction 착공·시공 → trial_run 시운전 → opened 개통 ; abandoned 폐기 ; dormant 휴면 |
+| `plan_stage_event.kind`                    | reached 도달 / withdrawn 철회·보류 / dormant 휴면                                                                                                                                                                                                                                                                  |
+| `plan_milestone.basis`                     | official 공식 / press 보도 / (estimate 는 Q94 A 로 사용하지 않음)                                                                                                                                                                                                                                                  |
+| `plan_line.role`                           | new 신설 / extends 연장 / upgrades 개량 / replaces 대체(개통 시 사라짐)                                                                                                                                                                                                                                            |
+| `plan_station.role`                        | new 신설 / existing 기존(환승) / closes 폐역 예정 / subject 사업 대상 역                                                                                                                                                                                                                                           |
+| `plan_relation.relation`                   | succeeded_by, part_of, same_corridor, related                                                                                                                                                                                                                                                                      |
+| `plan_geometry.kind`                       | schematic 개략 / traced 도면 추출 / official 공식 좌표                                                                                                                                                                                                                                                             |
+| `event.type`                               | opened, closed, suspended, resumed, renamed, transfer_opened, service_started, service_ended, stage_changed, plan_listed, other                                                                                                                                                                                    |
+| `tnr.group` / `parity_rule`                | high_speed, intercity, wide_area, metro, freight, non_revenue, other / odd_down_even_up, odd_up_even_down, none                                                                                                                                                                                                    |
+| `rsr.group` / `rsr.status`                 | high_speed, intercity, wide_area, metro, locomotive, coach, freight, other / operating, planned, closed                                                                                                                                                                                                            |
+| `transfer_center.kind/status`              | complex, transfer / planned, design, construction, completed, withdrawn, unknown                                                                                                                                                                                                                                   |
+| `tc_plan_ref.class`                        | pilot, candidate, new, continued, review                                                                                                                                                                                                                                                                           |
+| `source.type`                              | dataset_file, dataset_api, notice, law, press_release, official_page, news, map_image, manual, wiki                                                                                                                                                                                                                |
+| `license_class`                            | public_work 저작권법 제7조 / kogl_1~kogl_4 공공누리 / open 공개 라이선스 / restricted 권리 제한 / unknown 미상                                                                                                                                                                                                     |
+| `document.kind`                            | original, text_extract, snapshot, page_image, figure_crop, upload                                                                                                                                                                                                                                                  |
+| `attachment.kind`                          | quote 원문 발췌 / link 링크 / image 이미지 / document 문서                                                                                                                                                                                                                                                         |
+| `route_map.mode`                           | embed, link                                                                                                                                                                                                                                                                                                        |
+| `day_type` / `direction`                   | weekday, saturday, holiday / up, down, inner, outer, unknown                                                                                                                                                                                                                                                       |
+| `review_status`                            | verified 검수 완료 / unverified 검수 전 / flagged 이의 있음                                                                                                                                                                                                                                                        |
+| `entity_name.kind`                         | alias, former, sub, internal, abbr, legal, source_raw                                                                                                                                                                                                                                                              |
+| `app_user.kind`                            | admin, system, agent, web                                                                                                                                                                                                                                                                                          |
+| `area`                                     | capital 수도권, southeast 동남권, daegyeong 대경권, chungcheong 충청권, honam 호남권, gangwon 강원권, jeju 제주권, national 전국                                                                                                                                                                                   |
 
 ## 6. 파생 뷰 (저장하지 않는 값)
 
 모든 뷰는 소프트 삭제된 행(`deleted_at IS NOT NULL`)과 삭제된 부모의 하위 행을 제외한다.
 
-| 뷰 | 정의 | 기존 대응 |
-| --- | --- | --- |
-| `v_station_status` | 역 상태·개통·폐지 = 노선별 역에서 계산(4-5절), 없으면 `own_*` | `Station.status/opened_at` |
-| `v_station_line` | 역 ↔ 노선(노선별 역의 seq·km·역번호·상태·이름) | `Station.line_ids` |
-| `v_station_line_class` | 소속 노선 rail_class 합집합(없으면 conventional) | `line_classes` |
-| `v_station_service` | 정차 계통: 정차 패턴의 노선별 역 → 역, 패턴 없으면 소속 노선 모든 역(`assumed`) | `service_kinds` |
-| `v_station_area` · `v_line_area` · `v_service_area` · `v_plan_area` | 권역(기존 build.ts 규칙 이식) | `areas` |
-| `v_station_review` | 소속 노선 중 하나라도 verified 면 verified | 상속 review |
-| `v_plan_stage` | stage_override ?? 단계 이력 규칙(아래) | `Plan.stage` |
-| `v_plan_target_open` | 유효한 `plan_milestone(stage=opened)`(as_of 최신) | `Plan.target_open` |
-| `v_unopened_target` | 미개통 역·노선의 개통 목표 = 연결 계획 개통 예정 중 가장 이른 것 ?? 개체 opened | `unopenedTargetDate()` |
-| `v_plan_shape` | 계획별 표시 선형과 품질 등급(osm_construction > traced/official > schematic) | plans.geojson |
-| `v_map_at(year)` | **시점별 지도**(미래 지도, 6-1절) | (신설) |
-| `v_event_all` | event ∪ 파생 이벤트 | events.json |
-| `v_timetable_summary` | 세트별 첫차·막차·편수·by_hour[24] | timetable-summaries.json |
-| `mv_search` (물리화) | 이름·별칭·정식 명칭·역번호·초성·용어 | search-index.json |
-| `mv_map_station`, `mv_map_line` (물리화) | 현재 지도 재료(시설 제외, 근사 좌표 스냅) | map/*.geojson |
+| 뷰                                                                  | 정의                                                                            | 기존 대응                  |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------------------- | -------------------------- |
+| `v_station_status`                                                  | 역 상태·개통·폐지 = 노선별 역에서 계산(4-5절), 없으면 `own_*`                   | `Station.status/opened_at` |
+| `v_station_line`                                                    | 역 ↔ 노선(노선별 역의 seq·km·역번호·상태·이름)                                  | `Station.line_ids`         |
+| `v_station_line_class`                                              | 소속 노선 rail_class 합집합(없으면 conventional)                                | `line_classes`             |
+| `v_station_service`                                                 | 정차 계통: 정차 패턴의 노선별 역 → 역, 패턴 없으면 소속 노선 모든 역(`assumed`) | `service_kinds`            |
+| `v_station_area` · `v_line_area` · `v_service_area` · `v_plan_area` | 권역(기존 build.ts 규칙 이식)                                                   | `areas`                    |
+| `v_station_review`                                                  | 소속 노선 중 하나라도 verified 면 verified                                      | 상속 review                |
+| `v_plan_stage`                                                      | stage_override ?? 단계 이력 규칙(아래)                                          | `Plan.stage`               |
+| `v_plan_target_open`                                                | 유효한 `plan_milestone(stage=opened)`(as_of 최신)                               | `Plan.target_open`         |
+| `v_unopened_target`                                                 | 미개통 역·노선의 개통 목표 = 연결 계획 개통 예정 중 가장 이른 것 ?? 개체 opened | `unopenedTargetDate()`     |
+| `v_plan_shape`                                                      | 계획별 표시 선형과 품질 등급(osm_construction > traced/official > schematic)    | plans.geojson              |
+| `v_map_at(year)`                                                    | **시점별 지도**(미래 지도, 6-1절)                                               | (신설)                     |
+| `v_event_all`                                                       | event ∪ 파생 이벤트                                                             | events.json                |
+| `v_timetable_summary`                                               | 세트별 첫차·막차·편수·by_hour[24]                                               | timetable-summaries.json   |
+| `mv_search` (물리화)                                                | 이름·별칭·정식 명칭·역번호·초성·용어                                            | search-index.json          |
+| `mv_map_station`, `mv_map_line` (물리화)                            | 현재 지도 재료(시설 제외, 근사 좌표 스냅)                                       | map/*.geojson              |
 
 **현재 단계 규칙**: 단계 이력을 날짜순으로 훑어 `reached` 는 진행도 최댓값 갱신, `withdrawn` 은 그 단계 직전으로 되돌림, `dormant` 는 휴면 표시(이후 reached 가 오면 해제), `abandoned`·`opened` 는 종결.
 
@@ -927,43 +927,43 @@ FK 전부, CHECK(코드값·좌표 범위·퍼지 날짜·범위·자기 참조 
 
 ### 8-2. Hard (위반 = 적용 거부)
 
-| ID | 규칙 |
-| --- | --- |
-| V-H01 | 큐레이션 개체는 `record_source`(field NULL) ≥ 1 (노선별 역은 노선 출처로 충족) |
+| ID    | 규칙                                                                                                                      |
+| ----- | ------------------------------------------------------------------------------------------------------------------------- |
+| V-H01 | 큐레이션 개체는 `record_source`(field NULL) ≥ 1 (노선별 역은 노선 출처로 충족)                                            |
 | V-H02 | `merge_into_id` 대상은 자신이 `merge_into_id` 를 갖지 않음, 대상 역은 미개통 노선별 역만 가진 역이 아님(운영 중 역이어야) |
-| V-H03 | 환승센터 반영 내역의 상위 계획은 kind transfer_center |
-| V-H04 | scope `line` 계획은 `plan_ref` ≥ 1 (station·facility 는 0 허용) |
-| V-H05 | 정차 패턴 역 ≥ 2, 정차역(노선별 역)의 노선은 그 운행 계통 노선이어야 함(예외 플래그 허용) |
-| V-H06 | `line.start/end_station_id` 는 그 노선의 노선별 역에 있어야 함 |
-| V-H07 | `plan_geometry.via_station_ids` 역 존재·좌표 보유 |
-| V-H08 | `coord_same_as_id` 대상 좌표 보유, 자기 자신 아님 |
-| V-H09 | `successor_id` 순환 금지 |
-| V-H10 | 퍼지 날짜 `closed ≥ opened` |
-| V-H11 | operating 이면 `closed` 없음 |
-| V-H12 | 삭제(소프트) 시 활성 행이 참조하면 거부하고 참조 목록 반환 |
-| V-H13 | 노선별 역이 있는 역은 `own_status/own_opened/own_closed` 가 NULL |
-| V-H14 | `merge_into_id` 가 있는 역은 노선별 역이 모두 미개통(under_construction·planned) |
-| V-H15 | 공개 첨부(`is_public`)의 문서는 `publishable` |
-| V-H16 | `plan_milestone` basis official·press 는 출처 필수 |
+| V-H03 | 환승센터 반영 내역의 상위 계획은 kind transfer_center                                                                     |
+| V-H04 | scope `line` 계획은 `plan_ref` ≥ 1 (station·facility 는 0 허용)                                                           |
+| V-H05 | 정차 패턴 역 ≥ 2, 정차역(노선별 역)의 노선은 그 운행 계통 노선이어야 함(예외 플래그 허용)                                 |
+| V-H06 | `line.start/end_station_id` 는 그 노선의 노선별 역에 있어야 함                                                            |
+| V-H07 | `plan_geometry.via_station_ids` 역 존재·좌표 보유                                                                         |
+| V-H08 | `coord_same_as_id` 대상 좌표 보유, 자기 자신 아님                                                                         |
+| V-H09 | `successor_id` 순환 금지                                                                                                  |
+| V-H10 | 퍼지 날짜 `closed ≥ opened`                                                                                               |
+| V-H11 | operating 이면 `closed` 없음                                                                                              |
+| V-H12 | 삭제(소프트) 시 활성 행이 참조하면 거부하고 참조 목록 반환                                                                |
+| V-H13 | 노선별 역이 있는 역은 `own_status/own_opened/own_closed` 가 NULL                                                          |
+| V-H14 | `merge_into_id` 가 있는 역은 노선별 역이 모두 미개통(under_construction·planned)                                          |
+| V-H15 | 공개 첨부(`is_public`)의 문서는 `publishable`                                                                             |
+| V-H16 | `plan_milestone` basis official·press 는 출처 필수                                                                        |
 
 ### 8-3. Soft (경고, 품질 대시보드)
 
-| ID | 규칙 |
-| --- | --- |
-| V-S01 | 출처가 `wiki` 뿐 |
-| V-S02 | 운영 중 여객역인데 좌표 없음 / 시·도 미상 |
-| V-S03 | 좌표가 시·도 경계 밖(경계 데이터 확보 시) |
-| V-S04 | 같은 노선 인접 역 거리 > 30km 또는 km 역행 |
-| V-S05 | `order_confirmed=false` |
-| V-S06 | 동명 역 1km 이내 별개 역(병합 후보) |
-| V-S07 | `checked_at` 1년 이상 |
-| V-S08 | 단계 이력이 plan_listed 뿐인데 verified |
-| V-S09 | 열차번호대 범위 겹침 |
-| V-S10 | 노선·계획 `color` 에 field 출처 없음 |
+| ID    | 규칙                                                                        |
+| ----- | --------------------------------------------------------------------------- |
+| V-S01 | 출처가 `wiki` 뿐                                                            |
+| V-S02 | 운영 중 여객역인데 좌표 없음 / 시·도 미상                                   |
+| V-S03 | 좌표가 시·도 경계 밖(경계 데이터 확보 시)                                   |
+| V-S04 | 같은 노선 인접 역 거리 > 30km 또는 km 역행                                  |
+| V-S05 | `order_confirmed=false`                                                     |
+| V-S06 | 동명 역 1km 이내 별개 역(병합 후보)                                         |
+| V-S07 | `checked_at` 1년 이상                                                       |
+| V-S08 | 단계 이력이 plan_listed 뿐인데 verified                                     |
+| V-S09 | 열차번호대 범위 겹침                                                        |
+| V-S10 | 노선·계획 `color` 에 field 출처 없음                                        |
 | V-S11 | 미개통 계획(scope line)인데 기대 일정(개통 예정) 없음 — 미래 지도에 안 나옴 |
-| V-S12 | 미래 지도 대상인데 선형이 schematic 뿐 |
-| V-S13 | 개통 예정이 지났는데 미개통(지연) |
-| V-S14 | 시간표 세트의 노선별 역 미해석 |
+| V-S12 | 미래 지도 대상인데 선형이 schematic 뿐                                      |
+| V-S13 | 개통 예정이 지났는데 미개통(지연)                                           |
+| V-S14 | 시간표 세트의 노선별 역 미해석                                              |
 
 ## 9. 삭제·복구·병합 (Q37 B → Q74 A)
 
@@ -979,31 +979,31 @@ FK 전부, CHECK(코드값·좌표 범위·퍼지 날짜·범위·자기 참조 
 
 상세는 07 문서.
 
-| 기존 | 새 |
-| --- | --- |
-| `provenance.*` | `record_source` · `checked_at` · `provenance_note` |
-| `*_source` | `record_source.field` |
-| `aliases[]` | `entity_name` |
-| `codes{}` · 보정 키 | `external_ref`(역 또는 노선별 역) |
-| `Station`(병합된 역 하나) | `station`(대표 정보) + 노선별 역마다 `line_station`(상태·개통일·역번호·코드) |
-| `Station.status/opened_at/closed_at` | 노선별 역으로(노선 없는 역은 `own_*`) — 다중 노선 역의 노선별 개통일은 Q95 A |
-| `Station.transfer_group` | 폐지(역 = 그룹) |
-| `Line.region[]` · `operator_name` | `line_region` · `line_operator` |
-| `LineStation` | `line_station`(id `ls-…`) |
-| `Service.stop_patterns[].station_ids` | `stop_pattern_stop.line_station_id` |
-| `Plan.plan_refs` · `stage_history` · `related_plans` · `regions` | `plan_ref` · `plan_stage_event` · `plan_relation` · `plan_region` |
-| `Plan.line_ids` · `station_ids` | `plan_line(role)` · `plan_station(role)` — 이관 기본 role: 노선 status operating → upgrades/extends 판단 목록, 그 밖 new / 역 operating → existing, 그 밖 new (07 문서) |
-| `Plan.target_open` | `plan_milestone(stage=opened)` |
-| `Plan.stage` · `areas` | 뷰 |
-| `PlanProgram`(id `national_rail_4`) | `plan_program`(id `pp-national-rail-4`) |
-| `TransferCenter`(id `tc-…`) | `transfer_center`(id `xc-…`) |
-| `Event.*_ids` · `areas` | `event_target` · `event_area` |
-| `TrainNumberRange.operator` · `RollingStock.operator` | `operator_id` |
-| `RouteMap.file` | `document` |
-| `TimetableSummary` + 상세 JSON | `timetable_set`(+ line_station_id) + `timetable_entry` |
-| `geometry/plan-routes.yaml` | `plan_geometry` |
-| `overrides/osm-line-map.yaml` | `line_osm_map` |
-| `overrides/*` | 개체 열에 실체화 |
-| 수집기용 보정 파일 | `ingest` 설정 |
-| `docs/TERMINOLOGY.md` | `glossary_term` |
-| `own_record`·`own_file`·`build_artifact`·`load_meta` | 폐지 |
+| 기존                                                             | 새                                                                                                                                                                      |
+| ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `provenance.*`                                                   | `record_source` · `checked_at` · `provenance_note`                                                                                                                      |
+| `*_source`                                                       | `record_source.field`                                                                                                                                                   |
+| `aliases[]`                                                      | `entity_name`                                                                                                                                                           |
+| `codes{}` · 보정 키                                              | `external_ref`(역 또는 노선별 역)                                                                                                                                       |
+| `Station`(병합된 역 하나)                                        | `station`(대표 정보) + 노선별 역마다 `line_station`(상태·개통일·역번호·코드)                                                                                            |
+| `Station.status/opened_at/closed_at`                             | 노선별 역으로(노선 없는 역은 `own_*`) — 다중 노선 역의 노선별 개통일은 Q95 A                                                                                            |
+| `Station.transfer_group`                                         | 폐지(역 = 그룹)                                                                                                                                                         |
+| `Line.region[]` · `operator_name`                                | `line_region` · `line_operator`                                                                                                                                         |
+| `LineStation`                                                    | `line_station`(id `ls-…`)                                                                                                                                               |
+| `Service.stop_patterns[].station_ids`                            | `stop_pattern_stop.line_station_id`                                                                                                                                     |
+| `Plan.plan_refs` · `stage_history` · `related_plans` · `regions` | `plan_ref` · `plan_stage_event` · `plan_relation` · `plan_region`                                                                                                       |
+| `Plan.line_ids` · `station_ids`                                  | `plan_line(role)` · `plan_station(role)` — 이관 기본 role: 노선 status operating → upgrades/extends 판단 목록, 그 밖 new / 역 operating → existing, 그 밖 new (07 문서) |
+| `Plan.target_open`                                               | `plan_milestone(stage=opened)`                                                                                                                                          |
+| `Plan.stage` · `areas`                                           | 뷰                                                                                                                                                                      |
+| `PlanProgram`(id `national_rail_4`)                              | `plan_program`(id `pp-national-rail-4`)                                                                                                                                 |
+| `TransferCenter`(id `tc-…`)                                      | `transfer_center`(id `xc-…`)                                                                                                                                            |
+| `Event.*_ids` · `areas`                                          | `event_target` · `event_area`                                                                                                                                           |
+| `TrainNumberRange.operator` · `RollingStock.operator`            | `operator_id`                                                                                                                                                           |
+| `RouteMap.file`                                                  | `document`                                                                                                                                                              |
+| `TimetableSummary` + 상세 JSON                                   | `timetable_set`(+ line_station_id) + `timetable_entry`                                                                                                                  |
+| `geometry/plan-routes.yaml`                                      | `plan_geometry`                                                                                                                                                         |
+| `overrides/osm-line-map.yaml`                                    | `line_osm_map`                                                                                                                                                          |
+| `overrides/*`                                                    | 개체 열에 실체화                                                                                                                                                        |
+| 수집기용 보정 파일                                               | `ingest` 설정                                                                                                                                                           |
+| `docs/TERMINOLOGY.md`                                            | `glossary_term`                                                                                                                                                         |
+| `own_record`·`own_file`·`build_artifact`·`load_meta`             | 폐지                                                                                                                                                                    |

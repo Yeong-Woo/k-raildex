@@ -1,0 +1,13 @@
+{
+  "name": "@k-raildex/map",
+  "version": "0.0.0",
+  "private": true,
+  "description": "MapLibre 공용 스타일·레이어(M5)",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "check": "tsc -p tsconfig.json"
+  }
+}
