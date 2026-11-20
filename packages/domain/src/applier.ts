@@ -21,7 +21,15 @@ export type Op =
   | { op: 'delete'; entity_type: EntityType; id: string; reason?: string; expected_version?: number }
   | { op: 'restore'; entity_type: EntityType; id: string }
   | { op: 'purge'; entity_type: EntityType; id: string }
-  | { op: 'rename_id'; entity_type: EntityType; id: string; new_id: string; reason?: string }
+  | {
+      op: 'rename_id';
+      entity_type: EntityType;
+      id: string;
+      new_id: string;
+      reason?: string;
+      /** 되돌리기 전용: 리다이렉트로 예약된 옛 id(new_id)를 되찾는다 */
+      reclaim?: boolean;
+    }
   | { op: 'merge_station'; entity_type: 'station'; id: string; into_id: string; reason?: string };
 
 export interface ChangesetInput {
@@ -34,6 +42,23 @@ export interface ChangesetInput {
   ops: Op[];
   meta?: AnyObject;
   body?: unknown;
+  /** origin revert: 되돌리는 변경 묶음 */
+  reverts_changeset_id?: string;
+  /** draft 제출 시점의 data_version(없으면 현재 최댓값) — 승인 때 충돌 검사 기준 */
+  base_data_version?: number | null;
+}
+
+export interface ApproveOptions {
+  comment?: string;
+  /** 일부만 승인(op seq). 나머지는 새 draft 로(meta.split_from = 원래 id) */
+  op_seqs?: number[];
+  /** base_data_version 이후 변경 충돌 검사를 건너뛴다 */
+  force?: boolean;
+}
+
+export interface ApproveResult extends ApplyResult {
+  /** 일부 승인 때 나머지 op 로 만든 새 draft */
+  remainder_changeset_id: string | null;
 }
 
 export interface OpResult {
@@ -71,8 +96,8 @@ export async function applyChangeset(
   await db.query('BEGIN');
   try {
     await db.query(
-      `INSERT INTO changeset (id, title, rationale, origin, status, author_id, body, meta)
-       VALUES ($1, $2, $3, $4, 'applying', $5, $6, $7)`,
+      `INSERT INTO changeset (id, title, rationale, origin, status, author_id, body, meta, reverts_changeset_id)
+       VALUES ($1, $2, $3, $4, 'applying', $5, $6, $7, $8)`,
       [
         id,
         input.title,
@@ -81,6 +106,7 @@ export async function applyChangeset(
         input.author_id,
         input.body === undefined ? null : JSON.stringify(input.body),
         input.meta ?? {},
+        input.reverts_changeset_id ?? null,
       ],
     );
     const result = await executeOps(db, id, input.author_id, input.ops);
@@ -104,9 +130,11 @@ export async function submitDraft(db: Queryable, input: ChangesetInput): Promise
   if (violations.length) throw new DomainError('validation', '제안 형식 오류', { violations });
   await db.query('BEGIN');
   try {
+    // 제출 시점의 data_version — 승인 때 그 뒤에 같은 개체가 바뀌었는지 본다
     await db.query(
-      `INSERT INTO changeset (id, title, rationale, origin, status, author_id, body, meta)
-       VALUES ($1, $2, $3, $4, 'draft', $5, $6, $7)`,
+      `INSERT INTO changeset (id, title, rationale, origin, status, author_id, body, meta, base_data_version)
+       VALUES ($1, $2, $3, $4, 'draft', $5, $6, $7,
+               coalesce($8::bigint, (SELECT coalesce(max(version), 0) FROM data_version)))`,
       [
         id,
         input.title,
@@ -115,6 +143,7 @@ export async function submitDraft(db: Queryable, input: ChangesetInput): Promise
         input.author_id,
         input.body === undefined ? null : JSON.stringify(input.body),
         input.meta ?? {},
+        input.base_data_version ?? null,
       ],
     );
     for (const [i, op] of input.ops.entries()) {
@@ -131,31 +160,108 @@ export async function submitDraft(db: Queryable, input: ChangesetInput): Promise
   }
 }
 
-/** draft 승인 = 반영. 실패하면 changeset 은 failed(오류 기록), 원천은 그대로 */
+/**
+ * draft 승인 = 반영. 실패하면 changeset 은 failed(오류 기록), 원천은 그대로.
+ * - base_data_version 이후 대상 개체가 다른 변경 묶음으로 바뀌었으면 409(version_conflict, draft 유지). force 면 건너뛴다.
+ * - op_seqs: 그 op 만 승인하고 나머지는 새 draft(meta.split_from)로 옮긴다(근거 change_evidence 도 함께). 원래 묶음은 applied.
+ */
 export async function approveDraft(
   db: Queryable,
   changesetId: string,
   reviewerId: string,
-  comment?: string,
-): Promise<ApplyResult> {
-  const { rows } = await db.query<{ status: string }>(`SELECT status FROM changeset WHERE id = $1`, [changesetId]);
-  if (!rows[0]) throw new DomainError('not_found', `변경 묶음 ${changesetId} 가 없음`);
-  if (rows[0].status !== 'draft') throw new DomainError('invalid_state', `검수 대기가 아님(${rows[0].status})`);
-  const opsRes = await db.query<{ payload: Op }>(`SELECT payload FROM change_op WHERE changeset_id = $1 ORDER BY seq`, [
+  commentOrOpts: string | ApproveOptions = {},
+): Promise<ApproveResult> {
+  const opts: ApproveOptions = typeof commentOrOpts === 'string' ? { comment: commentOrOpts } : commentOrOpts;
+  const { rows } = await db.query<{
+    status: string;
+    title: string;
+    rationale: string | null;
+    origin: string;
+    author_id: string;
+    base_data_version: string | null;
+    meta: AnyObject;
+  }>(`SELECT status, title, rationale, origin, author_id, base_data_version, meta FROM changeset WHERE id = $1`, [
     changesetId,
   ]);
-  const ops = opsRes.rows.map((r) => r.payload);
+  const cs = rows[0];
+  if (!cs) throw new DomainError('not_found', `변경 묶음 ${changesetId} 가 없음`);
+  if (cs.status !== 'draft') throw new DomainError('invalid_state', `검수 대기가 아님(${cs.status})`);
+  const opsRes = await db.query<{ seq: number; payload: Op }>(
+    `SELECT seq, payload FROM change_op WHERE changeset_id = $1 ORDER BY seq`,
+    [changesetId],
+  );
+  const all = opsRes.rows;
+  let selected = all;
+  let rest: typeof all = [];
+  if (opts.op_seqs) {
+    const want = new Set(opts.op_seqs);
+    const known = new Set(all.map((o) => o.seq));
+    const bad = [...want].filter((s) => !known.has(s));
+    if (!want.size || bad.length || want.size !== opts.op_seqs.length)
+      throw new DomainError('validation', 'op_seqs 오류', {
+        violations: [
+          {
+            rule: 'schema',
+            path: 'op_seqs',
+            message: bad.length ? `없는 seq: ${bad.join(', ')}` : '비었거나 중복된 seq',
+          },
+        ],
+      });
+    selected = all.filter((o) => want.has(o.seq));
+    rest = all.filter((o) => !want.has(o.seq));
+  }
+  const ops = selected.map((r) => r.payload);
+  if (!opts.force && cs.base_data_version != null) await checkBaseConflicts(db, Number(cs.base_data_version), ops);
   await db.query('BEGIN');
   try {
     await db.query(`UPDATE changeset SET status = 'applying' WHERE id = $1`, [changesetId]);
+    let remainderId: string | null = null;
+    if (rest.length) {
+      remainderId = newChangesetId();
+      await db.query(
+        `INSERT INTO changeset (id, title, rationale, origin, status, author_id, body, meta, base_data_version)
+         VALUES ($1, $2, $3, $4, 'draft', $5, NULL, $6, $7)`,
+        [
+          remainderId,
+          `${cs.title} (나머지)`,
+          cs.rationale,
+          cs.origin,
+          cs.author_id,
+          { ...(cs.meta ?? {}), split_from: changesetId, split_seqs: rest.map((o) => o.seq) },
+          cs.base_data_version,
+        ],
+      );
+      for (const [i, o] of rest.entries()) {
+        await db.query(
+          `INSERT INTO change_op (changeset_id, seq, op, entity_type, entity_id, payload) VALUES ($1, $2, $3, $4, $5, $6)`,
+          [remainderId, i + 1, o.payload.op, o.payload.entity_type, opTargetId(o.payload), JSON.stringify(o.payload)],
+        );
+      }
+      // 근거: 나머지 op 의 것은 새 draft 로, 승인 op 의 것은 새 seq 로
+      await db.query(
+        `UPDATE change_evidence e SET changeset_id = $2, op_seq = m.n
+           FROM unnest($3::int[], $4::int[]) AS m(o, n) WHERE e.changeset_id = $1 AND e.op_seq = m.o`,
+        [changesetId, remainderId, rest.map((o) => o.seq), rest.map((_, i) => i + 1)],
+      );
+      await db.query(
+        `UPDATE change_evidence e SET op_seq = m.n
+           FROM unnest($2::int[], $3::int[]) AS m(o, n) WHERE e.changeset_id = $1 AND e.op_seq = m.o`,
+        [changesetId, selected.map((o) => o.seq), selected.map((_, i) => i + 1)],
+      );
+      await db.query(
+        `UPDATE changeset SET meta = meta || jsonb_build_object('approved_seqs', $2::jsonb, 'remainder_changeset_id', $3::text)
+          WHERE id = $1`,
+        [changesetId, JSON.stringify(selected.map((o) => o.seq)), remainderId],
+      );
+    }
     await db.query(`DELETE FROM change_op WHERE changeset_id = $1`, [changesetId]);
     const result = await executeOps(db, changesetId, reviewerId, ops);
     await db.query(
       `UPDATE changeset SET status = 'applied', applied_at = now(), reviewed_at = now(), review_comment = $2 WHERE id = $1`,
-      [changesetId, comment ?? null],
+      [changesetId, opts.comment ?? null],
     );
     await commit(db);
-    return result;
+    return { ...result, remainder_changeset_id: remainderId };
   } catch (e) {
     await db.query('ROLLBACK').catch(() => {});
     const message = e instanceof Error ? e.message : String(e);
@@ -168,6 +274,37 @@ export async function approveDraft(
     ]);
     throw e;
   }
+}
+
+/** draft 의 대상 개체가 base_data_version 이후에 바뀌었으면 409 */
+async function checkBaseConflicts(db: Queryable, base: number, ops: Op[]): Promise<void> {
+  const targets = new Set<string>();
+  for (const op of ops) {
+    const id = opTargetId(op);
+    if (id) targets.add(id);
+    if (op.op === 'merge_station') targets.add(op.into_id);
+  }
+  if (!targets.size) return;
+  const { rows } = await db.query<{ version: string; changeset_id: string | null; ids: string[] }>(
+    `SELECT version, changeset_id, ARRAY(SELECT unnest(entity_ids) INTERSECT SELECT unnest($2::text[])) AS ids
+       FROM data_version WHERE version > $1 AND entity_ids && $2::text[] ORDER BY version`,
+    [base, [...targets]],
+  );
+  if (!rows.length) return;
+  throw new DomainError(
+    'version_conflict',
+    `제출(data_version ${base}) 뒤에 대상 개체가 바뀜 — 다시 검토하거나 force`,
+    {
+      violations: rows.flatMap((r) =>
+        r.ids.map((id) => ({
+          rule: 'base_data_version',
+          path: '',
+          entity_id: id,
+          message: `data_version ${r.version}(${r.changeset_id ?? '?'})에서 바뀜`,
+        })),
+      ),
+    },
+  );
 }
 
 export async function rejectDraft(db: Queryable, changesetId: string, comment: string): Promise<void> {
@@ -303,7 +440,7 @@ async function runOp(ctx: Ctx, op: Op): Promise<Omit<OpResult, 'seq' | 'op'>> {
     case 'purge':
       return purge(ctx, op.entity_type, op.id);
     case 'rename_id':
-      return renameId(ctx, op.entity_type, op.id, op.new_id, op.reason);
+      return renameId(ctx, op.entity_type, op.id, op.new_id, op.reason, op.reclaim);
     case 'merge_station':
       return mergeStation(ctx, op.id, op.into_id, op.reason);
   }
@@ -439,6 +576,7 @@ async function renameId(
   id: string,
   newId: string,
   reason?: string,
+  reclaim = false,
 ): Promise<Omit<OpResult, 'seq' | 'op'>> {
   if (!isEntityId(type, newId))
     throw new DomainError('validation', `새 id 형식 오류: ${newId}`, {
@@ -447,6 +585,15 @@ async function renameId(
   const before = await requireEntity(ctx.db, type, id, { forUpdate: true });
   const taken = await ctx.db.query(`SELECT 1 FROM entity WHERE id = $1`, [newId]);
   if (taken.rowCount) throw new DomainError('id_taken', `${newId} 가 이미 있음(삭제된 id 포함)`);
+  // 옛 id(리다이렉트로 예약됨)는 되돌리기에서만 되찾는다
+  const redirected = await ctx.db.query<{ new_id: string }>(`SELECT new_id FROM id_redirect WHERE old_id = $1`, [
+    newId,
+  ]);
+  if (redirected.rows[0]) {
+    if (!reclaim || redirected.rows[0].new_id !== id)
+      throw new DomainError('id_taken', `${newId} 는 예약된 옛 id(→ ${redirected.rows[0].new_id})`);
+    await ctx.db.query(`DELETE FROM id_redirect WHERE old_id = $1`, [newId]);
+  }
   // 모든 FK 가 ON UPDATE CASCADE 라 entity.id 한 행만 바꾸면 참조 전체로 전파된다
   await ctx.db.query(`UPDATE entity SET id = $2 WHERE id = $1`, [id, newId]);
   await ctx.db.query(`UPDATE id_redirect SET new_id = $2 WHERE new_id = $1`, [id, newId]);

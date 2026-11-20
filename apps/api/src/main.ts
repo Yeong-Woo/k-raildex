@@ -2,15 +2,21 @@
 import pg from 'pg';
 import { createApp } from './app';
 import { loadConfig } from './config';
+import { PgBossJobQueue } from './jobs/job-queue';
+import { S3ObjectStore } from './storage/s3-store';
 
 async function main(): Promise<void> {
   const config = loadConfig();
   const pool = new pg.Pool({ connectionString: config.databaseUrl, max: 10 });
-  const app = await createApp({ config, pool });
+  const store = config.s3 ? new S3ObjectStore(config.s3) : undefined;
+  if (!store) console.warn('S3_ENDPOINT·S3_ACCESS_KEY·S3_SECRET_KEY 가 없음 — 문서 기능은 503');
+  const jobs = new PgBossJobQueue(config.databaseUrl);
+  const app = await createApp({ config, pool, store, jobs });
   app
     .getHttpAdapter()
     .getInstance()
     .addHook('onClose', async () => {
+      await jobs.stop();
       await pool.end();
     });
   await app.listen({ port: config.port, host: config.host });

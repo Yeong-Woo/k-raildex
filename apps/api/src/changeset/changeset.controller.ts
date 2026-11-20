@@ -1,14 +1,22 @@
 /**
- * 변경 묶음(docs/04-api.md 4-2절): 목록·상세·draft 제출·미리 보기·승인·반려.
- * 승인 일부(op_seqs)·되돌리기(revert)·base_data_version 충돌 검사는 다음 단계(도메인 지원 필요).
+ * 변경 묶음(docs/04-api.md 4-2절): 목록·상세·draft 제출·미리 보기·승인(일부 op_seqs, base_data_version 충돌 409)·반려·되돌리기.
  */
 import { Body, Controller, Get, HttpCode, Inject, Param, Post, Query } from '@nestjs/common';
 import { codes, type EntityType } from '@k-raildex/contracts';
-import { applyChangeset, approveDraft, DomainError, rejectDraft, submitDraft, type Op } from '@k-raildex/domain';
+import {
+  applyChangeset,
+  approveDraft,
+  DomainError,
+  rejectDraft,
+  revertChangeset,
+  submitDraft,
+  type Op,
+  type RevertResult,
+} from '@k-raildex/domain';
 import { z } from 'zod';
 import { CurrentPrincipal, hasScope, RequireScope, type Principal } from '../auth/principal';
 import { ApiError, domainErrorBody } from '../common/errors';
-import { limitParam, offsetParam } from '../common/http';
+import { limitParam, offsetParam, writeOptionsSchema } from '../common/http';
 import { DbService } from '../db/db.service';
 
 type Q = Record<string, string | undefined>;
@@ -174,16 +182,23 @@ export class ChangesetController {
   @RequireScope('admin:write')
   async approve(@Param('id') id: string, @Body() body: unknown, @CurrentPrincipal() p: Principal) {
     const input = z
-      .object({ comment: z.string().optional() })
+      .object({
+        comment: z.string().optional(),
+        op_seqs: z.array(z.number().int().min(1)).min(1).optional(),
+        force: z.boolean().optional(),
+      })
       .strict()
       .nullish()
       .parse(body ?? null);
-    const r = await this.dbs.withClient((c) => approveDraft(c, id, p.userId, input?.comment));
+    const r = await this.dbs.withClient((c) =>
+      approveDraft(c, id, p.userId, { comment: input?.comment, op_seqs: input?.op_seqs, force: input?.force }),
+    );
     return {
       id,
       status: 'applied',
       changeset_id: r.changeset_id,
       data_version: r.data_version,
+      remainder_changeset_id: r.remainder_changeset_id,
       results: r.results.map((x) => ({
         seq: x.seq,
         op: x.op,
@@ -207,6 +222,27 @@ export class ChangesetController {
     return { id, status: 'rejected' };
   }
 
+  /** 되돌림 묶음 생성·적용(origin revert). dry_run 이면 결과만 */
+  @Post(':id/revert')
+  @HttpCode(200)
+  @RequireScope('admin:write')
+  async revert(@Param('id') id: string, @Body() body: unknown, @Query() query: Q, @CurrentPrincipal() p: Principal) {
+    const opts = writeOptionsSchema.parse(query);
+    const input = z
+      .object({ rationale: z.string().optional(), title: z.string().min(1).optional() })
+      .strict()
+      .nullish()
+      .parse(body ?? null);
+    const r = await this.dbs.withClient((c) =>
+      revertChangeset(c, id, p.userId, {
+        title: input?.title ?? opts.changeset_title,
+        rationale: input?.rationale ?? opts.rationale,
+        dryRun: opts.dry_run,
+      }),
+    );
+    return revertResponse(r, opts.dry_run);
+  }
+
   private async draftOps(id: string): Promise<{ title: string; ops: Op[] }> {
     const cs = await this.dbs.db.query<{ status: string; title: string }>(
       `SELECT status, title FROM changeset WHERE id = $1`,
@@ -221,4 +257,29 @@ export class ChangesetController {
     );
     return { title: cs.rows[0].title, ops: ops.rows.map((r) => r.payload) };
   }
+}
+
+export function revertResponse(r: RevertResult, dryRun: boolean) {
+  if (r.kind === 'attachment')
+    return {
+      reverts_changeset_id: r.reverts_changeset_id,
+      changeset_id: r.changeset_id,
+      data_version: r.data_version,
+      dry_run: false,
+      results: [{ seq: 1, op: 'update', attachment: r.item }],
+    };
+  return {
+    reverts_changeset_id: r.reverts_changeset_id,
+    changeset_id: r.changeset_id,
+    data_version: r.data_version,
+    dry_run: dryRun,
+    results: r.results.map((x) => ({
+      seq: x.seq,
+      op: x.op,
+      entity_type: x.entity_type,
+      entity_id: x.entity_id,
+      changed: x.changed,
+      version: (x.after as { version?: number } | null)?.version ?? null,
+    })),
+  };
 }

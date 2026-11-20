@@ -3,7 +3,7 @@
  * DomainError → 404/409/422, zod → 400, ApiError → 지정 상태.
  */
 import { Catch, HttpException, Logger, type ArgumentsHost, type ExceptionFilter } from '@nestjs/common';
-import { DomainError, type DomainErrorCode } from '@k-raildex/domain';
+import { DomainError, StorageUnavailableError, type DomainErrorCode } from '@k-raildex/domain';
 import type { FastifyReply } from 'fastify';
 import { z } from 'zod';
 
@@ -57,6 +57,7 @@ const HTTP_CODE: Record<number, string> = {
   422: 'validation',
   428: 'precondition_required',
   429: 'too_many_requests',
+  503: 'service_unavailable',
 };
 
 export function zodDetails(err: z.ZodError, prefix = ''): ErrorDetail[] {
@@ -83,6 +84,8 @@ export function toErrorResponse(e: unknown): { status: number; body: ErrorBody }
   if (e instanceof DomainError) return { status: DOMAIN_STATUS[e.code], body: domainErrorBody(e) };
   if (e instanceof z.ZodError)
     return { status: 400, body: { error: { code: 'bad_request', message: '요청 형식 오류', details: zodDetails(e) } } };
+  if (e instanceof StorageUnavailableError)
+    return { status: 503, body: { error: { code: 'storage_unavailable', message: e.message } } };
   if (e instanceof ApiError)
     return { status: e.status, body: { error: { code: e.code, message: e.message, ...e.extra } } };
   if (e instanceof HttpException) {

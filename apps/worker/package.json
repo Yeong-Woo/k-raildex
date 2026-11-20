@@ -2,9 +2,12 @@
   "name": "@k-raildex/worker",
   "version": "0.0.0",
   "private": true,
-  "description": "pg-boss 작업 처리기(M4)",
+  "description": "pg-boss 작업 처리기: 파생 갱신·문서 처리·정리(M4)",
   "type": "module",
   "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "start": "node dist/main.js",
+    "build": "tsup",
     "check": "tsc -p tsconfig.json"
   },
   "dependencies": {

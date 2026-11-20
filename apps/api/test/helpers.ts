@@ -1,15 +1,18 @@
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { freshDb, type FreshDb } from '@k-raildex/db/testing';
-import { applyChangeset, ensureServiceUser, fixtureOps } from '@k-raildex/domain';
+import { applyChangeset, ensureServiceUser, fixtureOps, MemoryObjectStore } from '@k-raildex/domain';
 import type { JWTVerifyGetKey } from 'jose';
 import pg from 'pg';
 import { createApp } from '../src/app';
 import { envSchema, type AppConfig } from '../src/config';
+import { RecordingJobQueue } from '../src/jobs/job-queue';
 
 export interface TestApp {
   app: NestFastifyApplication;
   fx: FreshDb;
   pool: pg.Pool;
+  store: MemoryObjectStore;
+  jobs: RecordingJobQueue;
   close: () => Promise<void>;
 }
 
@@ -38,14 +41,18 @@ export async function startApp(
     });
   }
   const pool = new pg.Pool({ connectionString: fx.url, max: 4 });
+  const store = new MemoryObjectStore();
+  const jobs = new RecordingJobQueue();
   const app = await createApp(
-    { config: testConfig(fx.url, opts.env), pool, accessKeys: opts.accessKeys },
+    { config: testConfig(fx.url, opts.env), pool, accessKeys: opts.accessKeys, store, jobs },
     { logger: false },
   );
   return {
     app,
     fx,
     pool,
+    store,
+    jobs,
     close: async () => {
       await app.close();
       await pool.end();

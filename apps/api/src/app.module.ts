@@ -5,22 +5,32 @@
  */
 import { Global, Module, type DynamicModule } from '@nestjs/common';
 import { APP_FILTER } from '@nestjs/core';
+import { RecordingJobQueue } from './jobs/job-queue';
+import { UnconfiguredObjectStore, type JobQueue, type ObjectStore } from '@k-raildex/domain';
 import { createRemoteJWKSet, type JWTVerifyGetKey } from 'jose';
 import type pg from 'pg';
+import { AttachmentModule } from './attachment/attachment.module';
 import { AuthModule } from './auth/auth.module';
 import { ChangesetModule } from './changeset/changeset.module';
 import { AllExceptionsFilter } from './common/errors';
 import type { AppConfig } from './config';
 import { DbService } from './db/db.service';
+import { DocumentModule } from './document/document.module';
 import { EntityModule } from './entity/entity.module';
 import { HealthModule } from './health/health.module';
-import { ACCESS_KEYS, CONFIG, PG_POOL } from './tokens';
+import { MapModule } from './map/map.module';
+import { QualityModule } from './quality/quality.module';
+import { ACCESS_KEYS, CONFIG, JOB_QUEUE, OBJECT_STORE, PG_POOL } from './tokens';
 
 export interface AppModuleOptions {
   config: AppConfig;
   pool: pg.Pool;
   /** 시험용: Access 공개키 해석기 교체 */
   accessKeys?: JWTVerifyGetKey | null;
+  /** 문서 저장소(없으면 모든 문서 기능 503) */
+  store?: ObjectStore;
+  /** 작업 큐(없으면 보낸 작업을 기록만 함) */
+  jobs?: JobQueue;
 }
 
 @Global()
@@ -40,9 +50,11 @@ class CoreModule {
         { provide: CONFIG, useValue: opts.config },
         { provide: PG_POOL, useValue: opts.pool },
         { provide: ACCESS_KEYS, useValue: keys },
+        { provide: OBJECT_STORE, useValue: opts.store ?? new UnconfiguredObjectStore() },
+        { provide: JOB_QUEUE, useValue: opts.jobs ?? new RecordingJobQueue() },
         DbService,
       ],
-      exports: [CONFIG, PG_POOL, ACCESS_KEYS, DbService],
+      exports: [CONFIG, PG_POOL, ACCESS_KEYS, OBJECT_STORE, JOB_QUEUE, DbService],
     };
   }
 }
@@ -52,7 +64,17 @@ export class AppModule {
   static forRoot(opts: AppModuleOptions): DynamicModule {
     return {
       module: AppModule,
-      imports: [CoreModule.forRoot(opts), AuthModule, EntityModule, ChangesetModule, HealthModule],
+      imports: [
+        CoreModule.forRoot(opts),
+        AuthModule,
+        DocumentModule,
+        AttachmentModule,
+        QualityModule,
+        MapModule,
+        EntityModule,
+        ChangesetModule,
+        HealthModule,
+      ],
       providers: [{ provide: APP_FILTER, useClass: AllExceptionsFilter }],
     };
   }

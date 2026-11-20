@@ -1,0 +1,380 @@
+/** M4 도메인: 문서·첨부·품질·지도·되돌리기·일부 승인 */
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import type pg from 'pg';
+import { freshDb, type FreshDb } from '@k-raildex/db/testing';
+import {
+  applyChangeset,
+  approveDraft,
+  createAttachment,
+  cropFigure,
+  deleteAttachment,
+  DomainError,
+  ensureServiceUser,
+  extractDocumentText,
+  fixtureOps,
+  getDocument,
+  listAttachments,
+  listDocuments,
+  listPageImages,
+  mapAtLines,
+  mapAtStations,
+  mapTimeline,
+  MemoryObjectStore,
+  qualityItems,
+  qualitySummary,
+  readEntity,
+  renderPageImages,
+  revertChangeset,
+  submitDraft,
+  updateAttachment,
+  updateDocument,
+  uploadDocument,
+  type ImageCropper,
+  type Op,
+} from '../src';
+import { makePdf } from './pdf';
+
+let fx: FreshDb;
+let db: pg.Client;
+let author: string;
+const store = new MemoryObjectStore();
+const SRC = [{ source_id: 'src-fixture-notice' }];
+
+const apply = (ops: Op[], title = '시험') =>
+  applyChangeset(db, { title, origin: 'admin_edit', author_id: author, ops });
+
+async function domainError(p: Promise<unknown>, code: string): Promise<DomainError> {
+  try {
+    await p;
+  } catch (e) {
+    expect(e).toBeInstanceOf(DomainError);
+    expect((e as DomainError).code).toBe(code);
+    return e as DomainError;
+  }
+  throw new Error(`DomainError(${code}) 를 기대했으나 성공함`);
+}
+
+beforeAll(async () => {
+  fx = await freshDb();
+  db = fx.client;
+  author = await ensureServiceUser(db, 'system', 'test');
+  await applyChangeset(db, { title: '픽스처', origin: 'legacy_migration', author_id: author, ops: fixtureOps() });
+});
+afterAll(async () => fx?.close());
+
+describe('문서', () => {
+  let docId: string;
+
+  it('업로드·중복·출처 연결·목록', async () => {
+    const pdf = makePdf(['Hello page one', 'Second page']);
+    const r = await uploadDocument(db, store, {
+      buffer: pdf,
+      filename: '시험 고시.pdf',
+      mime: 'application/octet-stream',
+      license_class: 'public_work',
+      source_id: 'src-fixture-notice',
+      title: '시험 고시문',
+      author_id: author,
+    });
+    expect(r.created).toBe(true);
+    expect(r.document).toMatchObject({ mime: 'application/pdf', kind: 'upload', title: '시험 고시문' });
+    expect(r.document.storage_key).toBe(`docs/${r.document.sha256.slice(0, 2)}/${r.document.sha256}/시험 고시.pdf`);
+    expect(r.document.source_ids).toEqual(['src-fixture-notice']);
+    expect(store.objects.has(r.document.storage_key)).toBe(true);
+    docId = r.document.id;
+    const again = await uploadDocument(db, store, {
+      buffer: pdf,
+      filename: 'other.pdf',
+      license_class: 'unknown',
+      author_id: author,
+    });
+    expect(again).toMatchObject({ created: false, document: { id: docId } });
+    expect((await listDocuments(db, { q: '고시문', limit: 10, offset: 0 })).total).toBe(1);
+    expect((await listDocuments(db, { source_id: 'src-fixture-notice', limit: 10, offset: 0 })).total).toBe(1);
+  });
+
+  it('공개 규칙: restricted 는 publishable 불가(422)', async () => {
+    await updateDocument(db, docId, { publishable: true });
+    const e = await domainError(updateDocument(db, docId, { license_class: 'restricted' }), 'validation');
+    expect(e.details.violations?.[0]?.rule).toBe('document_publishable_chk');
+    expect((await updateDocument(db, docId, { publishable: false, title: '바꾼 제목' })).title).toBe('바꾼 제목');
+  });
+
+  it('텍스트 추출·쪽 이미지·잘라 내기', async () => {
+    const t = await extractDocumentText(db, store, docId);
+    expect(t.pages).toBe(2);
+    const doc = await getDocument(db, docId, { includeText: true });
+    expect(doc.text_content).toContain('Hello page one');
+    expect(doc.has_text).toBe(true);
+
+    const r = await renderPageImages(db, store, docId);
+    expect(r).toMatchObject({ pages: 2, created: [1, 2] });
+    const pages = await listPageImages(db, docId);
+    expect(pages.map((p) => [p.page, p.kind, p.mime, p.license_class])).toEqual([
+      [1, 'page_image', 'image/png', 'public_work'],
+      [2, 'page_image', 'image/png', 'public_work'],
+    ]);
+    expect((await renderPageImages(db, store, docId)).created).toEqual([]);
+
+    const fake: ImageCropper = async (png) => ({ data: png.subarray(0, 100), width: 10, height: 10 });
+    const c = await cropFigure(db, store, fake, {
+      document_id: docId,
+      page: 2,
+      bbox: [0.1, 0.1, 0.5, 0.5],
+      title: '그림',
+      author_id: author,
+    });
+    expect(c.created).toBe(true);
+    expect(c.document).toMatchObject({
+      kind: 'figure_crop',
+      page: 2,
+      bbox: [0.1, 0.1, 0.5, 0.5],
+      parent_document_id: docId,
+    });
+    const dup = await cropFigure(db, store, fake, {
+      document_id: docId,
+      page: 2,
+      bbox: [0.1, 0.1, 0.5, 0.5],
+      author_id: author,
+    });
+    expect(dup).toMatchObject({ created: false, document: { id: c.document.id } });
+    await domainError(
+      cropFigure(db, store, fake, { document_id: docId, page: 1, bbox: [0.5, 0.1, 0.2, 0.5], author_id: author }),
+      'validation',
+    );
+  });
+});
+
+describe('첨부', () => {
+  it('추가·수정(version)·삭제 → 변경 묶음·되돌리기', async () => {
+    const c = await createAttachment(
+      db,
+      'stn-fx-a',
+      { kind: 'quote', quote: '역 신설', source_id: 'src-fixture-notice' },
+      author,
+    );
+    expect(c.item).toMatchObject({ kind: 'quote', quote: '역 신설', version: 1, ord: 0 });
+    const op = await db.query(
+      `SELECT op, entity_type, entity_id, before, after FROM change_op WHERE changeset_id = $1`,
+      [c.changeset_id],
+    );
+    expect(op.rows[0]).toMatchObject({ op: 'update', entity_type: 'station', entity_id: 'stn-fx-a' });
+    expect(op.rows[0].before.attachments).toEqual([]);
+    expect(op.rows[0].after.attachments).toHaveLength(1);
+    expect(c.data_version).toBeGreaterThan(0);
+
+    const id = c.item!.id;
+    await domainError(updateAttachment(db, id, { title: 'x' }, 99, author), 'version_conflict');
+    await domainError(updateAttachment(db, id, { kind: 'link' }, 1, author), 'validation');
+    const u = await updateAttachment(db, id, { title: '발췌' }, 1, author);
+    expect(u.item).toMatchObject({ title: '발췌', version: 2 });
+
+    // 되돌리기: 수정 전으로
+    const rv = await revertChangeset(db, u.changeset_id, author);
+    expect(rv.kind).toBe('attachment');
+    expect((await listAttachments(db, 'stn-fx-a'))[0]).toMatchObject({ title: null });
+
+    const d = await deleteAttachment(db, id, author);
+    expect(d.item).toBeNull();
+    expect(await listAttachments(db, 'stn-fx-a')).toEqual([]);
+    expect(await listAttachments(db, 'stn-fx-a', { includeDeleted: true })).toHaveLength(1);
+    await revertChangeset(db, d.changeset_id, author);
+    expect(await listAttachments(db, 'stn-fx-a')).toHaveLength(1);
+  });
+
+  it('공개 첨부는 publishable 문서만(V-H15)', async () => {
+    const up = await uploadDocument(db, store, {
+      buffer: Buffer.from('image-ish'),
+      filename: 'a.png',
+      license_class: 'restricted',
+      author_id: author,
+    });
+    const e = await domainError(
+      createAttachment(db, 'plan-fx-ext', { kind: 'image', document_id: up.document.id, is_public: true }, author),
+      'validation',
+    );
+    expect(e.details.violations?.[0]?.rule).toBe('V-H15');
+    await domainError(createAttachment(db, 'stn-none', { kind: 'link', url: 'https://x' }, author), 'not_found');
+  });
+});
+
+describe('되돌리기', () => {
+  it('생성·수정·삭제·ID 변경 되돌리기, 병합은 409', async () => {
+    const created = await apply([
+      {
+        op: 'create',
+        entity_type: 'station',
+        data: { id: 'stn-rv-1', name_ko: '되', checked_at: '2026-11-20', sources: SRC },
+      },
+    ]);
+    await revertChangeset(db, created.changeset_id, author);
+    expect(await readEntity(db, 'station', 'stn-rv-1')).toBeNull();
+    await domainError(revertChangeset(db, created.changeset_id, author), 'invalid_state');
+
+    const upd = await apply([{ op: 'update', entity_type: 'station', id: 'stn-fx-b', data: { address: '주소1' } }]);
+    const r = await revertChangeset(db, upd.changeset_id, author);
+    expect(r.kind).toBe('entity');
+    expect((await readEntity(db, 'station', 'stn-fx-b'))!.address).toBeNull();
+    const cs = await db.query(`SELECT origin, reverts_changeset_id FROM changeset WHERE id = $1`, [r.changeset_id]);
+    expect(cs.rows[0]).toEqual({ origin: 'revert', reverts_changeset_id: upd.changeset_id });
+
+    // 같은 필드가 그 뒤에 다시 바뀌면 409
+    const u1 = await apply([{ op: 'update', entity_type: 'station', id: 'stn-fx-b', data: { address: 'A' } }]);
+    await apply([{ op: 'update', entity_type: 'station', id: 'stn-fx-b', data: { address: 'B' } }]);
+    await domainError(revertChangeset(db, u1.changeset_id, author), 'version_conflict');
+
+    const ren = await apply([{ op: 'rename_id', entity_type: 'station', id: 'stn-fx-c', new_id: 'stn-fx-c2' }]);
+    await revertChangeset(db, ren.changeset_id, author);
+    expect(await readEntity(db, 'station', 'stn-fx-c')).not.toBeNull();
+    expect((await db.query(`SELECT * FROM id_redirect WHERE old_id = 'stn-fx-c'`)).rowCount).toBe(0);
+
+    await apply([
+      {
+        op: 'create',
+        entity_type: 'station',
+        data: { id: 'stn-rv-2', name_ko: '병', checked_at: '2026-11-20', sources: SRC },
+      },
+    ]);
+    const merged = await apply([{ op: 'merge_station', entity_type: 'station', id: 'stn-rv-2', into_id: 'stn-fx-e' }]);
+    await domainError(revertChangeset(db, merged.changeset_id, author), 'invalid_state');
+  });
+
+  it('op 하나만(seq)', async () => {
+    const two = await apply([
+      { op: 'update', entity_type: 'station', id: 'stn-fx-a', data: { address: '가주소' } },
+      { op: 'update', entity_type: 'station', id: 'stn-fx-e', data: { address: '마주소' } },
+    ]);
+    await domainError(revertChangeset(db, two.changeset_id, author, { seq: 2, entity_id: 'stn-fx-a' }), 'validation');
+    await revertChangeset(db, two.changeset_id, author, { seq: 2, entity_id: 'stn-fx-e' });
+    expect((await readEntity(db, 'station', 'stn-fx-e'))!.address).toBeNull();
+    expect((await readEntity(db, 'station', 'stn-fx-a'))!.address).toBe('가주소');
+    await domainError(revertChangeset(db, two.changeset_id, author, { seq: 2 }), 'invalid_state');
+  });
+});
+
+describe('승인: 일부·충돌', () => {
+  const st = (id: string): Op => ({
+    op: 'create',
+    entity_type: 'station',
+    data: { id, name_ko: id, checked_at: '2026-11-20', sources: SRC },
+  });
+
+  it('op_seqs 일부 승인 → 나머지는 새 draft', async () => {
+    const id = await submitDraft(db, {
+      title: '둘',
+      origin: 'agent',
+      author_id: author,
+      ops: [st('stn-pa-1'), st('stn-pa-2')],
+    });
+    await db.query(
+      `INSERT INTO change_evidence (changeset_id, op_seq, quote) VALUES ($1, 2, '근거2'), ($1, 1, '근거1')`,
+      [id],
+    );
+    const r = await approveDraft(db, id, author, { op_seqs: [2] });
+    expect(r.remainder_changeset_id).toBeTruthy();
+    expect(await readEntity(db, 'station', 'stn-pa-2')).not.toBeNull();
+    expect(await readEntity(db, 'station', 'stn-pa-1')).toBeNull();
+    const rest = await db.query(`SELECT status, meta, base_data_version FROM changeset WHERE id = $1`, [
+      r.remainder_changeset_id,
+    ]);
+    expect(rest.rows[0]).toMatchObject({ status: 'draft', meta: { split_from: id, split_seqs: [1] } });
+    expect(rest.rows[0].base_data_version).not.toBeNull();
+    const ev = await db.query(`SELECT changeset_id, op_seq, quote FROM change_evidence ORDER BY quote`);
+    expect(ev.rows).toEqual([
+      { changeset_id: r.remainder_changeset_id, op_seq: 1, quote: '근거1' },
+      { changeset_id: id, op_seq: 1, quote: '근거2' },
+    ]);
+    await domainError(approveDraft(db, r.remainder_changeset_id!, author, { op_seqs: [5] }), 'validation');
+    await approveDraft(db, r.remainder_changeset_id!, author);
+    expect(await readEntity(db, 'station', 'stn-pa-1')).not.toBeNull();
+  });
+
+  it('제출 뒤 대상이 바뀌면 409, force 면 적용', async () => {
+    const id = await submitDraft(db, {
+      title: '수정 제안',
+      origin: 'agent',
+      author_id: author,
+      ops: [{ op: 'update', entity_type: 'station', id: 'stn-fx-d', data: { address: '제안' } }],
+    });
+    await apply([{ op: 'update', entity_type: 'station', id: 'stn-fx-d', data: { address: '직접' } }]);
+    const e = await domainError(approveDraft(db, id, author), 'version_conflict');
+    expect(e.details.violations?.[0]).toMatchObject({ rule: 'base_data_version', entity_id: 'stn-fx-d' });
+    expect((await db.query(`SELECT status FROM changeset WHERE id = $1`, [id])).rows[0].status).toBe('draft');
+    await approveDraft(db, id, author, { force: true });
+    expect((await readEntity(db, 'station', 'stn-fx-d'))!.address).toBe('제안');
+  });
+});
+
+describe('품질·지도(픽스처)', () => {
+  it('품질 규칙 집계·목록', async () => {
+    const s = await qualitySummary(db);
+    const count = (id: string) => s.rules.find((r) => r.id === id)!.count;
+    expect(s.rules.find((r) => r.id === 'V-S03')).toMatchObject({ count: 0, note: expect.any(String) });
+    expect(count('V-S10')).toBe(2);
+    expect(count('V-S11')).toBe(1);
+    expect(count('V-S12')).toBe(1);
+    expect(count('V-S13')).toBe(0);
+    const s11 = await qualityItems(db, 'V-S11', { limit: 10, offset: 0 });
+    expect(s11.items).toEqual([
+      { entity_type: 'plan', entity_id: 'plan-fx-withdrawn', label: '시험 철회 사업', detail: expect.any(String) },
+    ]);
+    const s12 = await qualityItems(db, 'V-S12', { limit: 10, offset: 0 });
+    expect(s12.items[0]).toMatchObject({ entity_id: 'plan-fx-ext', detail: '개략 선형뿐' });
+    await domainError(qualityItems(db, 'V-S99', { limit: 1, offset: 0 }), 'not_found');
+
+    // 자료를 더해 다른 규칙도 확인
+    await apply([
+      {
+        op: 'create',
+        entity_type: 'station',
+        data: {
+          id: 'stn-q-dup',
+          name_ko: '나',
+          geom: { lat: 37.4801, lng: 127.0501 },
+          coord_source: 'official',
+          checked_at: '2020-01-01',
+          sources: SRC,
+        },
+      },
+      { op: 'update', entity_type: 'line_station', id: 'ls-fx-two--fx-e', data: { order_confirmed: false } },
+    ]);
+    const s2 = await qualitySummary(db);
+    expect(s2.rules.find((r) => r.id === 'V-S06')!.count).toBe(1);
+    expect(s2.rules.find((r) => r.id === 'V-S05')!.count).toBe(1);
+    expect((await qualityItems(db, 'V-S07', { limit: 10, offset: 0 })).items.map((i) => i.entity_id)).toEqual([
+      'stn-q-dup',
+    ]);
+  });
+
+  it('시점별 지도·연표', async () => {
+    const ids = (fc: { features: { id?: string }[] }) => fc.features.map((f) => f.id).sort();
+    const now = await mapAtLines(db, { year: 2026, stage_min: 'basic_plan', include_undated: false });
+    expect(ids(now)).toEqual(['line:line-fx-one', 'line:line-fx-two']);
+    const y2030 = await mapAtLines(db, { year: 2030, stage_min: 'basic_plan', include_undated: false });
+    expect(ids(y2030)).toEqual(['line:line-fx-one', 'line:line-fx-two', 'plan:plan-fx-ext']);
+    const fut = await mapAtLines(db, { year: null, stage_min: 'basic_plan', include_undated: false });
+    expect(ids(fut)).toEqual(['line:line-fx-one', 'plan:plan-fx-ext', 'plan:plan-fx-replace']);
+    const ext = fut.features.find((f) => f.id === 'plan:plan-fx-ext')!;
+    expect(ext.properties).toMatchObject({
+      color: '#0052A4',
+      color_basis: 'extends_line',
+      quality: 'schematic',
+      stage: 'construction',
+    });
+    expect(ext.geometry).toMatchObject({ type: 'MultiLineString' });
+    const st = await mapAtStations(db, { year: 2030, stage_min: 'basic_plan', include_undated: false });
+    expect(st.features.find((f) => f.id === 'stn-fx-d')?.properties).toMatchObject({
+      future: true,
+      plan_ids: ['plan-fx-ext'],
+    });
+    expect(await mapTimeline(db, 'basic_plan')).toEqual({
+      stage_min: 'basic_plan',
+      years: [
+        { year: 2029, count: 1 },
+        { year: 2032, count: 1 },
+      ],
+      undated: 0,
+    });
+    expect((await mapTimeline(db, 'concept')).undated).toBe(1);
+  });
+});

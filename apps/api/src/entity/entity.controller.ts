@@ -16,7 +16,7 @@ import {
   Query,
   Res,
 } from '@nestjs/common';
-import { listEntities, type Op } from '@k-raildex/domain';
+import { listEntities, revertChangeset, type Op } from '@k-raildex/domain';
 import type { FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { CurrentPrincipal, RequireScope, type Principal } from '../auth/principal';
@@ -29,6 +29,8 @@ import {
   parseIfMatch,
   writeOptionsSchema,
 } from '../common/http';
+import { revertResponse } from '../changeset/changeset.controller';
+import { DbService } from '../db/db.service';
 import { EntityService } from './entity.service';
 
 const LIST_KEYS = [
@@ -65,7 +67,10 @@ type Q = Record<string, string | undefined>;
 
 @Controller('v1/admin')
 export class EntityController {
-  constructor(@Inject(EntityService) private readonly svc: EntityService) {}
+  constructor(
+    @Inject(EntityService) private readonly svc: EntityService,
+    @Inject(DbService) private readonly dbs: DbService,
+  ) {}
 
   @Get(':type')
   @RequireScope('admin:read')
@@ -199,6 +204,35 @@ export class EntityController {
     const opts = writeOptionsSchema.parse(query);
     const r = await this.svc.apply(p, [{ op: 'restore', entity_type: type, id }], opts, `${type} ${id} 복구`);
     return this.svc.toWriteResponse(r, opts.dry_run);
+  }
+
+  /** 이 개체에 대한 op 하나 되돌리기: { changeset_id, seq } */
+  @Post(':type/:id/revert')
+  @HttpCode(200)
+  @RequireScope('admin:write')
+  async revert(
+    @Param('type') rawType: string,
+    @Param('id') id: string,
+    @Body() body: unknown,
+    @Query() query: Q,
+    @CurrentPrincipal() p: Principal,
+  ) {
+    entityTypeParam(rawType);
+    const opts = writeOptionsSchema.parse(query);
+    const input = z
+      .object({ changeset_id: z.string().min(1), seq: z.number().int().min(1), rationale: z.string().optional() })
+      .strict()
+      .parse(body ?? {});
+    const r = await this.dbs.withClient((c) =>
+      revertChangeset(c, input.changeset_id, p.userId, {
+        seq: input.seq,
+        entity_id: id,
+        title: opts.changeset_title,
+        rationale: input.rationale ?? opts.rationale,
+        dryRun: opts.dry_run,
+      }),
+    );
+    return revertResponse(r, opts.dry_run);
   }
 
   @Get(':type/:id/history')

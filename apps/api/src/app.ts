@@ -1,5 +1,6 @@
 /** Nest 앱 생성(main·시험 공용) */
 import 'reflect-metadata';
+import multipart from '@fastify/multipart';
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { AppModule, type AppModuleOptions } from './app.module';
@@ -14,6 +15,8 @@ export async function createApp(
     logger: nest.logger ?? ['log', 'error', 'warn'],
   });
   app.enableShutdownHooks();
+  // 문서 업로드(multipart). 파일 하나 200MB 까지
+  await app.register(multipart, { limits: { fileSize: 200 * 1024 * 1024, files: 1, fields: 20 } });
   await app.init();
   await app.getHttpAdapter().getInstance().ready();
   return app;

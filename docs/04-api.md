@@ -58,7 +58,7 @@
 | `POST /v1/admin/{type}/:id/restore`      | 휴지통 복구(하위 행 함께)                                                                                                                     |
 | `DELETE /v1/admin/{type}/:id?purge=true` | 영구 삭제(휴지통에 있는 것만)                                                                                                                 |
 | `GET /v1/admin/{type}/:id/history`       | 변경 이력                                                                                                                                     |
-| `POST /v1/admin/{type}/:id/revert`       | 특정 시점으로 되돌리기(미리 보기 → 적용)                                                                                                      |
+| `POST /v1/admin/{type}/:id/revert`       | 이 개체의 op 하나 되돌리기. 본문 `{ changeset_id, seq }` → 역 op 를 새 변경 묶음(origin revert)으로 적용. `dry_run=true` 면 미리 보기         |
 | `POST /v1/admin/{type}/validate`         | 저장 없이 검증만                                                                                                                              |
 | `GET /v1/admin/trash?type=`              | 휴지통                                                                                                                                        |
 
@@ -66,37 +66,38 @@
 
 ### 4-1. 하위 자원
 
-| 경로                                                       | 내용                                                                                                       |
-| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `GET/PUT /v1/admin/lines/:id/stations`                     | 노선별 역 목록 전체 교체(순서·지선·km·역번호·노선별 상태·개통일·이름·운영기관). 새 행은 `ls-` id 자동 부여 |
-| `POST /v1/admin/lines/:id/stations:insert`                 | 하나 끼워 넣기                                                                                             |
-| `POST /v1/admin/lines/:id/stations:set-status`             | 구간(from~to) 상태·개통일 일괄 변경                                                                        |
-| `POST /v1/admin/lines/:id/regions:recompute`               | 시·도 재계산                                                                                               |
-| `GET /v1/admin/stations/:id/line-stations`                 | 역의 노선별 역 목록                                                                                        |
-| `GET/PUT /v1/admin/services/:id/patterns`                  | 정차 패턴 전체 교체(정차역 = 노선별 역 id)                                                                 |
-| `GET/PUT /v1/admin/plans/:id/stages`                       | 단계 이력 교체 → 계산된 현재 단계                                                                          |
-| `GET/PUT /v1/admin/plans/:id/milestones`                   | 기대 일정 교체 → 계산된 개통 목표                                                                          |
-| `GET/PUT /v1/admin/plans/:id/lines` · `/stations`          | 역할 포함 연결 교체                                                                                        |
-| `PUT /v1/admin/plans/:id/geometry`                         | 선형 교체                                                                                                  |
-| `GET /v1/admin/plans/:id/preview-map?at=`                  | 이 계획을 반영한 시점별 지도(미리 보기)                                                                    |
-| `POST /v1/admin/stations/:id/merge`                        | 역 병합(dry_run 지원)                                                                                      |
-| `POST /v1/admin/plans/:id/open`                            | 개통 처리 마법사(노선 상태·개통일·병합·단계·이벤트 한 묶음)                                                |
-| `POST /v1/admin/entities/:id/rename`                       | ID 변경 → id_redirect                                                                                      |
-| `GET /v1/admin/entities/:id/references`                    | 참조 행 전부                                                                                               |
-| `GET/POST/PATCH/DELETE /v1/admin/entities/:id/attachments` | 첨부                                                                                                       |
-| `GET /v1/admin/timetable-sets?station=`                    | 시간표 조회, 세트 삭제                                                                                     |
+| 경로                                              | 내용                                                                                                                                                                                                                    |
+| ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET/PUT /v1/admin/lines/:id/stations`            | 노선별 역 목록 전체 교체(순서·지선·km·역번호·노선별 상태·개통일·이름·운영기관). 새 행은 `ls-` id 자동 부여                                                                                                              |
+| `POST /v1/admin/lines/:id/stations:insert`        | 하나 끼워 넣기                                                                                                                                                                                                          |
+| `POST /v1/admin/lines/:id/stations:set-status`    | 구간(from~to) 상태·개통일 일괄 변경                                                                                                                                                                                     |
+| `POST /v1/admin/lines/:id/regions:recompute`      | 시·도 재계산                                                                                                                                                                                                            |
+| `GET /v1/admin/stations/:id/line-stations`        | 역의 노선별 역 목록                                                                                                                                                                                                     |
+| `GET/PUT /v1/admin/services/:id/patterns`         | 정차 패턴 전체 교체(정차역 = 노선별 역 id)                                                                                                                                                                              |
+| `GET/PUT /v1/admin/plans/:id/stages`              | 단계 이력 교체 → 계산된 현재 단계                                                                                                                                                                                       |
+| `GET/PUT /v1/admin/plans/:id/milestones`          | 기대 일정 교체 → 계산된 개통 목표                                                                                                                                                                                       |
+| `GET/PUT /v1/admin/plans/:id/lines` · `/stations` | 역할 포함 연결 교체                                                                                                                                                                                                     |
+| `PUT /v1/admin/plans/:id/geometry`                | 선형 교체                                                                                                                                                                                                               |
+| `GET /v1/admin/plans/:id/preview-map?at=`         | 이 계획을 반영한 시점별 지도(미리 보기)                                                                                                                                                                                 |
+| `POST /v1/admin/stations/:id/merge`               | 역 병합(dry_run 지원)                                                                                                                                                                                                   |
+| `POST /v1/admin/plans/:id/open`                   | 개통 처리 마법사(노선 상태·개통일·병합·단계·이벤트 한 묶음)                                                                                                                                                             |
+| `POST /v1/admin/entities/:id/rename`              | ID 변경 → id_redirect                                                                                                                                                                                                   |
+| `GET /v1/admin/entities/:id/references`           | 참조 행 전부                                                                                                                                                                                                            |
+| `GET/POST /v1/admin/entities/:id/attachments`     | 첨부 목록(`include_deleted`)·추가(본문 = contracts `attachmentSchema` + 선택 `ord`). 응답 항목 `{ id, version, kind, title, quote, url, document_id, page, source_id, is_public, origin, ord, created_at, updated_at }` |
+| `PATCH/DELETE /v1/admin/attachments/:aid`         | 첨부 수정(`If-Match` 필수)·소프트 삭제(`If-Match` 선택). 쓰기마다 변경 묶음 1개: change_op `update`(부모 개체), before/after = 첨부 목록 스냅샷                                                                         |
+| `GET /v1/admin/timetable-sets?station=`           | 시간표 조회, 세트 삭제                                                                                                                                                                                                  |
 
 ### 4-2. 변경 묶음·여러 건 입력
 
-| 경로                                                | 내용                                                                              |
-| --------------------------------------------------- | --------------------------------------------------------------------------------- |
-| `GET /v1/admin/changesets?status=&origin=` · `/:id` | 목록·상세(op 전/후·근거·오류)                                                     |
-| `POST /v1/admin/changesets/:id/preview`             | 현재 DB 에 적용했을 때 diff·검증(롤백)                                            |
-| `POST /v1/admin/changesets/:id/approve`             | 적용(전체 또는 `op_seqs` 일부). base_data_version 이후 같은 개체가 바뀌었으면 409 |
-| `POST /v1/admin/changesets/:id/reject`              | 반려(사유)                                                                        |
-| `POST /v1/admin/changesets/:id/revert`              | 되돌림 묶음 생성                                                                  |
-| `POST /v1/admin/bulk/parse`                         | 여러 건 입력: 붙여 넣은 표(TSV)·CSV + 대상 개체 → 열 대응 추정·역 이름 해석 결과  |
-| `POST /v1/admin/bulk/submit`                        | 대응 확정 → draft 변경 묶음 생성(미리 보기 후 승인)                               |
+| 경로                                                | 내용                                                                                                                                                                                                                                                                                                            |
+| --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /v1/admin/changesets?status=&origin=` · `/:id` | 목록·상세(op 전/후·근거·오류)                                                                                                                                                                                                                                                                                   |
+| `POST /v1/admin/changesets/:id/preview`             | 현재 DB 에 적용했을 때 diff·검증(롤백)                                                                                                                                                                                                                                                                          |
+| `POST /v1/admin/changesets/:id/approve`             | 본문 `{ comment?, op_seqs?, force? }`. 전체 또는 `op_seqs` 일부 적용 — 나머지 op 는 새 draft(`meta.split_from`, 응답 `remainder_changeset_id`, 근거도 함께 이동). 제출 때 기록한 `base_data_version` 이후 대상 개체가 바뀌었으면 409(`details[].rule = base_data_version`, draft 유지), `force: true` 면 건너뜀 |
+| `POST /v1/admin/changesets/:id/reject`              | 반려(사유)                                                                                                                                                                                                                                                                                                      |
+| `POST /v1/admin/changesets/:id/revert`              | 되돌림 묶음 생성·적용(origin revert, `reverts_changeset_id`). create→삭제, update→그 op 가 바꾼 필드만 이전 값(그 뒤 같은 필드가 바뀌었으면 409), delete↔restore, rename_id→옛 id 로, 첨부 변경→그 첨부를 이전 상태로. merge_station·purge 는 409. 두 번 되돌리기 409. `dry_run=true` 지원(첨부 제외)           |
+| `POST /v1/admin/bulk/parse`                         | (미구현) 여러 건 입력: 붙여 넣은 표(TSV)·CSV + 대상 개체 → 열 대응 추정·역 이름 해석 결과                                                                                                                                                                                                                       |
+| `POST /v1/admin/bulk/submit`                        | (미구현) 대응 확정 → draft 변경 묶음 생성(미리 보기 후 승인)                                                                                                                                                                                                                                                    |
 
 기존 시스템의 변경 묶음 YAML 형식은 받지 않는다(이관 도구만 읽음, Q82).
 
@@ -114,19 +115,40 @@
 
 ### 4-3. 품질·참조·문서·작업
 
-| 경로                                           | 내용                                                                                                 |
-| ---------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `GET /v1/admin/quality` · `/quality/:rule`     | Soft 규칙 집계·목록                                                                                  |
-| `POST /v1/admin/validate-all`                  | 전체 검증 job                                                                                        |
-| `GET /v1/admin/reference` · `/lookup?type=&q=` | 코드값·참조 선택기                                                                                   |
-| `POST /v1/admin/documents` (multipart)         | 업로드(sha256 중복 검사, 라이선스 구분)                                                              |
-| `POST /v1/admin/documents/:id/refetch`         | 출처 URL 로 원본 재다운로드(Q76)                                                                     |
-| `POST /v1/admin/documents/:id/pages`           | 쪽 이미지 생성                                                                                       |
-| `POST /v1/admin/documents/:id/crop`            | 쪽·영역 → 파생 문서(figure_crop)                                                                     |
-| `GET /v1/admin/documents/:id/download`         | 서명 URL                                                                                             |
-| `GET/POST /v1/admin/jobs`                      | 작업(refresh-derived, backup, export-dump, regenerate-terminology-md, importer:<name>, agent:<task>) |
-| `GET/POST /v1/admin/tokens`                    | 서비스 토큰                                                                                          |
-| `GET/PUT /v1/admin/settings/agent-budget`      | 월 예산(기본 30달러)·이번 달 사용액                                                                  |
+| 경로                                           | 내용                                                                                                                                                                                                                                                                                                |
+| ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /v1/admin/quality`                        | Soft 규칙 집계 `{ rules: [{ id, title, count, note? }] }` — V-S01~V-S14(03 문서 8-3절, V-S03 은 경계 데이터가 없어 항상 0 + note) + 이관 검수 목록 `X-milestone-auto`(기대 일정 출처 자동 선택), `X-stage-override`, `X-source-license-unknown`                                                     |
+| `GET /v1/admin/quality/:rule?limit=&offset=`   | 규칙 대상 `{ rule, items: [{ entity_type, entity_id, label, detail }], total, limit, offset }`. V-S14(시간표 세트)는 역(station)으로, detail 에 세트 id                                                                                                                                             |
+| `POST /v1/admin/validate-all`                  | (미구현) 전체 검증 job                                                                                                                                                                                                                                                                              |
+| `GET /v1/admin/reference` · `/lookup?type=&q=` | 코드값·참조 선택기                                                                                                                                                                                                                                                                                  |
+| `POST /v1/admin/documents` (multipart)         | 필드 `file`(필수), `license_class`(필수), `kind`(upload\|original, 기본 upload), `source_id`(→ source_document role original), `origin_url`, `title`(meta.title). sha256 이 같은 원본·업로드가 있으면 그것을 200 + `deduplicated: true`, 새것은 201. 저장 키 `docs/<sha256[0:2]>/<sha256>/<파일명>` |
+| `GET /v1/admin/documents`                      | 목록 `q`(파일명·제목), `source_id`, `kind`, `parent`(uuid = 파생 문서, `none` = 최상위), `include_deleted`, `limit`, `offset`                                                                                                                                                                       |
+| `GET/PATCH /v1/admin/documents/:id`            | 상세(`include_text=true` 면 text_content)·수정(`license_class`, `publishable`, `title`, `origin_url`). 공개 규칙 위반(DB CHECK·트리거)은 422. 라이선스를 바꾸면 파생 문서도 따라감                                                                                                                  |
+| `GET /v1/admin/documents/:id/download`         | 원문 스트림(Content-Type = mime, Content-Disposition 한글 파일명, `disposition=inline` 가능). 서명 URL 은 쓰지 않음(저장소를 외부에 노출하지 않음)                                                                                                                                                  |
+| `POST /v1/admin/documents/:id/extract-text`    | 202 + 작업 `doc.text-extract`(pdftotext -layout → text_content·text_tsv·pages). PDF 만(HWP·HWPX·xlsx 후순위), 아니면 422                                                                                                                                                                            |
+| `POST /v1/admin/documents/:id/pages`           | 202 + 작업 `doc.page-images`(pdftoppm -r 110 → 쪽마다 파생 문서 page_image, 키 `derived/<원본 id>/page-NNNN.png`). 본문 `{ force? }`                                                                                                                                                                |
+| `GET /v1/admin/documents/:id/pages`            | 만든 쪽 이미지 목록 `{ document_id, pages, items, total }`                                                                                                                                                                                                                                          |
+| `GET /v1/admin/documents/:id/pages/:n/image`   | 쪽 이미지 PNG 스트림. 아직 없으면 404                                                                                                                                                                                                                                                               |
+| `POST /v1/admin/documents/:id/crop`            | 본문 `{ page, bbox: [x0,y0,x1,y1](0~1), title? }` → 파생 문서 figure_crop(동기, sharp). 쪽 이미지가 없으면 그 쪽만 먼저 만든다. 같은 원본·쪽·bbox 는 기존 것을 200                                                                                                                                  |
+| `POST /v1/admin/documents/:id/refetch`         | (미구현) 출처 URL 로 원본 재다운로드(Q76)                                                                                                                                                                                                                                                           |
+| `GET/POST /v1/admin/jobs`                      | (미구현) 작업 목록·실행. 작업 이름은 `packages/domain/src/jobs.ts`(pg-boss 큐 이름은 `:` 를 쓸 수 없어 `doc.text-extract` 처럼 `.`)                                                                                                                                                                 |
+| `GET/POST /v1/admin/tokens`                    | 서비스 토큰                                                                                                                                                                                                                                                                                         |
+| `GET/PUT /v1/admin/settings/agent-budget`      | (미구현) 월 예산(기본 30달러)·이번 달 사용액                                                                                                                                                                                                                                                        |
+
+- 문서 행은 개체가 아니라 파일 메타데이터라 변경 묶음을 남기지 않고 도메인 `documents.ts` 의 트랜잭션 SQL 로 쓴다(작성자 `created_by` = 요청 주체). 공개 규칙은 DB 가 강제한다.
+- 첨부는 개체의 근거 자료라 쓰기마다 변경 묶음을 남긴다(도메인 `attachments.ts`).
+
+### 4-4. 지도(관리 앱 미리 보기)
+
+| 경로                                    | 내용                                                                                                                                                                                                                                                                                                                    |
+| --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /v1/admin/map/lines`               | 시점별 노선 GeoJSON(`map_at_lines`). `at`(연도, `future` = 모든 예정, 없으면 올해), `stage_min`(기본 basic_plan), `include_undated`. 속성 feature_id, line_id, plan_id, name_ko, status, stage, line_style, color, color_basis, quality, odbl, delayed, target_value, target_precision. OSM 선형이 있으면 `attribution` |
+| `GET /v1/admin/map/stations`            | 시점별 역 GeoJSON(`map_at_stations`). 속성 station_id, name_ko, status, future, plan_ids, approximate                                                                                                                                                                                                                   |
+| `GET /v1/admin/map/current-stations`    | 현재 역(`mv_map_station`). 속성 station_id, name_ko, status, coord_basis, snapped, line_ids                                                                                                                                                                                                                             |
+| `GET /v1/admin/map/current-lines`       | 현재 노선 OSM 선형(`mv_map_line`). 속성 line_id, name_ko, status, rail_class, color, is_construction. `attribution: "© OpenStreetMap contributors, ODbL"`                                                                                                                                                               |
+| `GET /v1/admin/map/timeline?stage_min=` | 연도 슬라이더 `{ stage_min, years: [{ year, count }], undated }` — `map_at_plans(NULL, stage_min, true)` 의 개통 예정 연도별 계획 수                                                                                                                                                                                    |
+
+공개 API(5절 `/v1/public/map/*`)는 같은 도메인 함수(`packages/domain/src/map.ts`)로 만들 예정.
 
 ## 5. 공개 API (공개 사이트 SSR 전용)
 
@@ -171,7 +193,7 @@
 5. before 스냅샷 → op 적용(행·관계·entity 레지스트리) → after 스냅샷
 6. Hard 검증(영향 개체 범위) — 실패 시 ROLLBACK, 422
 7. changeset(applied)·change_op·data_version 기록
-8. COMMIT → NOTIFY → worker: 물리화 뷰 갱신(디바운스), 용어 변경이면 TERMINOLOGY.md 재생성 job
+8. COMMIT → NOTIFY data_changed → worker(apps/worker): 2초 디바운스 → pg-boss 작업 refresh-derived(`SELECT refresh_derived()`, 큐 정책 stately = 실행 1 + 대기 1). 용어 변경이면 TERMINOLOGY.md 재생성 job(미구현)
 9. 응답: 새 상태 + version + Soft 경고
 ```
 
