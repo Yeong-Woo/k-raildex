@@ -13,7 +13,7 @@
 | 완료 정의(DoD) | ① 타입 검사·lint·단위·통합 시험 통과 ② 설계 문서와 어긋나면 문서를 먼저 고침 ③ 새 코드값·테이블은 03 문서 반영 ④ 공개 API·계약 변경은 OpenAPI 스냅샷 갱신                                                                                              |
 | 문서           | 구현 중 결정이 필요한 선택은 `docs/review/notes.md` 에 적고 다음 라운드 질문으로. 결정이 아닌 것은 바로 처리.                                                                                                                                          |
 | 시험 데이터    | `packages/db/fixtures/`(노선 3·역 20·노선별 역 25·계획 5·출처 10 수준의 일관된 소규모 데이터) — 통합 시험·E2E 공용. 실제 이관 데이터는 리허설 DB 에서만.                                                                                               |
-| 버전           | 착수 시점 최신 안정판을 `package.json` 에 정확한 버전으로 고정. 주 버전 기준: Node 24 LTS, pnpm 10, TypeScript 5.x, React 19, Next.js 16, NestJS 12(기존 시스템과 같음), Vite 7, Tailwind 4, zod 4, Drizzle ORM, pg-boss, PostgreSQL 17 + PostGIS 3.5. |
+| 버전           | 착수 시점 최신 안정판을 `package.json` 에 정확한 버전으로 고정. 주 버전 기준: Node 24 LTS, pnpm 12, TypeScript 6.0(typescript-eslint 지원 범위), React 19, Next.js 16, NestJS 12(기존 시스템과 같음), Vite 7, Tailwind 4, zod 4, Drizzle ORM, pg-boss, PostgreSQL 17 + PostGIS 3.5. |
 
 ## 1. 의존 관계
 
@@ -79,7 +79,7 @@ M3(이관)과 M4(관리 API)는 M2 이후 **병행 가능**하다. 관리 앱 �
 | 0008 | `plan.sql`                 | plan_program(+3), plan(+ref·stage_event·milestone·line·station·region·relation·geometry·watch_keyword)                                                                                                        | L    |
 | 0009 | `misc.sql`                 | event(+target·area), train_number_range(+2), rolling_stock_range(+2), transfer_center(+4), route_map, glossary_term                                                                                           | M    |
 | 0010 | `timetable.sql`            | timetable_set, timetable_entry                                                                                                                                                                                | S    |
-| 0011 | `osm_ingest.sql`           | 스키마 osm(extract·way·relation·relation_member), ingest(run·config·match_rule·snapshot·watch)                                                                                                                | M    |
+| 0011 | `osm_ingest.sql`           | 스키마 osm(extract·way·relation·relation_member), ingest(run·config·match_rule·snapshot·watch·api_endpoint·api_call·api_preset)                                                                                                                | M    |
 | 0012 | `triggers.sql`             | entity_type_guard, 출처 ≥1 지연 제약 트리거, 소프트 삭제 시 entity.deleted_at 동기·노선 삭제 시 노선별 역 표시, 첨부 공개 ↔ 문서 publishable(V-H15), plan_geometry via 역 존재                                | L    |
 | 0013 | `views.sql`                | v_station_status, v_station_line, v_station_line_class, v_station_service, 권역 뷰 4종, v_station_review, v_plan_stage, v_plan_target_open, v_unopened_target, v_plan_shape, v_event_all, v_timetable_summary | L    |
 | 0014 | `map_views.sql`            | `map_at(year, opts)` SQL 함수(03 문서 6-1절 규칙) + `osm.v_line_geometry`                                                                                                                                     | L    |
@@ -137,6 +137,7 @@ M3(이관)과 M4(관리 API)는 M2 이후 **병행 가능**하다. 관리 앱 �
 | 4.9 worker         | M    | pg-boss 소비자: refresh-derived(디바운스 2초, CONCURRENTLY), backup(pg_dump → 로컬 + R2), export-dump(`data/dump/` 생성, Q96 A 커밋은 수동), regenerate-terminology-md, document 처리 job. `pnpm worker`                                  |
 | 4.10 api-client    | S    | `openapi-typescript` + `openapi-fetch` 로 `packages/api-client` 생성, 생성물 커밋·CI 에서 최신 여부 검사                                                                                                                                  |
 | 4.11 설정          | S    | 서비스 토큰 관리, agent-budget 설정(월 30달러 기본)                                                                                                                                                                                       |
+| 4.12 외부 API 탐색기 | M | ExternalApiModule: 카탈로그 CRUD·시드(05 문서 FR-ADM-106), 서버 측 호출(키 주입·가림·허용 호스트·시간·크기 제한), XML→JSON·반복 행 감지, 결과 코드 해석, 일일 한도, 호출 기록(7일 정리 job), 스냅샷 → document, external_ref 비교 |
 
 **M4 완료 기준**: 04 문서 전 경로 통합 시험(Testcontainers + MinIO 컨테이너), 인증 거부 시험, 리허설 DB 대상 목록·상세 p95 목표(NFR-OPS-002) 확인.
 
@@ -153,6 +154,7 @@ M3(이관)과 M4(관리 API)는 M2 이후 **병행 가능**하다. 관리 앱 �
 | 5.7 이력·휴지통·병합  | M    | 이력 diff·되돌리기, 휴지통·복구·영구 삭제, 역 병합, 개통 처리 마법사, ID 변경                                                                                                                                                                                                         |
 | 5.8 첨부·문서·여러 건 | L    | 첨부 편집기, 원문 문서 목록·업로드·PDF 뷰어(pdf.js, 쪽 이동·영역 선택 → crop job), 여러 건 입력(붙여넣기 → 열 대응 → 미리 보기 → draft → 승인)                                                                                                                                        |
 | 5.9 지도              | L    | packages/map(MapLibre + VWorld 스타일, 레이어 정의 공용), 지도 편집(역 끌기·좌표 없는 역 패널·선형 그리기/경유역 클릭·OSM 매핑 점검), 미래 지도 미리 보기(연도 슬라이더 = 공개 API 함수 `map_at` 를 관리 API 로 노출), 위성 비교(Google Maps JS API + 데이터 레이어, 관리 앱 전용 키) |
+| 5.12 외부 API 탐색기 | M | 카탈로그 편집, 매개변수 폼(역 선택기로 코드 채우기), 결과(원문·표·CSV·다음 쪽), 스냅샷 저장, DB 비교 표, 호출 기록·즐겨찾기·한도 표시 |
 | 5.10 검수·대시보드    | M    | 제안 대기열(근거 패널·부분 승인·수정 후 승인·반려), 품질 대시보드, 대시보드(실패 배너, 이번 달 LLM 비용), 작업 화면                                                                                                                                                                   |
 | 5.11 E2E              | M    | Playwright: NFR-ADM-004 흐름 + 여러 건 입력 + 첨부 업로드                                                                                                                                                                                                                             |
 

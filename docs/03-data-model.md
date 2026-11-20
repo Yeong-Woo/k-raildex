@@ -734,6 +734,44 @@ CREATE INDEX ON osm.way USING gist (geom);
 - 노선 선형 = `line_osm_map` 배정 결과(`osm.v_line_geometry`, 공사 중 way 는 `is_construction`). 응답에 ODbL 표기.
 - 근사 좌표 역의 선형 스냅(parcel 1km·district 3km·township 10km)은 지도 API 가 질의 시 계산.
 
+### 4-19-1. 외부 API 카탈로그·호출 기록 (`ingest` 스키마, 2026-11-20 추가)
+
+```sql
+CREATE TABLE ingest.api_endpoint (
+  id            text PRIMARY KEY,          -- 예: tago-subway-station-list
+  provider      text NOT NULL,             -- data_go_kr | kric | tago | vworld | seoul_open | law_go_kr | other
+  name_ko       text NOT NULL,
+  method        text NOT NULL DEFAULT 'GET',
+  base_url      text NOT NULL,             -- 호출 허용 호스트는 이 URL 의 호스트뿐
+  params        jsonb NOT NULL,            -- [{name, label, required, default, example, kind(text|int|date|station_ref), ref_system}]
+  key_param     text,                      -- 키를 넣을 매개변수 이름(serviceKey 등)
+  key_env       text,                      -- 키 환경 변수 이름(서비스별 → 공통 순서로 조회)
+  response_format text NOT NULL,           -- xml | json
+  rows_path     text,                      -- 반복 항목 경로(자동 감지 실패 시)
+  paging        jsonb,                     -- {page_param, size_param, total_path}
+  daily_limit   integer,
+  external_system text REFERENCES ref_external_system(code),  -- DB 비교용
+  source_id     text REFERENCES source(id),
+  doc_url       text, note text,
+  META
+);
+CREATE TABLE ingest.api_call (
+  id            bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  endpoint_id   text NOT NULL REFERENCES ingest.api_endpoint(id),
+  params        jsonb NOT NULL,            -- 키 제외
+  called_at     timestamptz NOT NULL DEFAULT now(),
+  origin        text NOT NULL,             -- admin | importer | agent
+  status        integer, elapsed_ms integer, result_code text, result_message text,
+  response_body bytea,                     -- 7일 보관 후 NULL
+  response_sha256 text,
+  snapshot_document_id uuid REFERENCES document(id)
+);
+CREATE INDEX ON ingest.api_call (endpoint_id, called_at);
+CREATE TABLE ingest.api_preset (id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY, endpoint_id text REFERENCES ingest.api_endpoint(id), name text NOT NULL, params jsonb NOT NULL);
+```
+
+- 수집기(08 문서)도 같은 카탈로그·호출 기록·한도 계산을 쓴다(한도는 엔드포인트별 오늘 호출 수 합).
+
 ### 4-20. 시스템 테이블 (Q42 A·Q43 → Q80 A: 관리자 1인)
 
 ```sql

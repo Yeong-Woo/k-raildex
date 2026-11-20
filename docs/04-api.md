@@ -27,6 +27,7 @@
 | `AttachmentModule` | 첨부 CRUD |
 | `ReferenceModule` | 코드값·라벨·권역·시·도·외부 시스템 |
 | `JobModule` | 작업 큐(파생 갱신·백업·덤프·수집기·에이전트 실행) |
+| `ExternalApiModule` | 외부 API 카탈로그·서버 측 호출(키 주입·가림)·호출 기록·일일 한도·스냅샷 저장·DB 비교 (05 문서 6-1절) |
 | `AgentModule` | 에이전트 제안 제출·근거 첨부·조회, 월 예산 확인 |
 | `HealthModule` | `/health`, `/v1/meta` |
 
@@ -98,6 +99,18 @@
 | `POST /v1/admin/bulk/submit` | 대응 확정 → draft 변경 묶음 생성(미리 보기 후 승인) |
 
 기존 시스템의 변경 묶음 YAML 형식은 받지 않는다(이관 도구만 읽음, Q82).
+
+### 4-2-1. 외부 API 탐색기
+
+| 경로 | 내용 |
+| --- | --- |
+| `GET/POST/PATCH/DELETE /v1/admin/external/endpoints` | 엔드포인트 카탈로그 관리 |
+| `POST /v1/admin/external/endpoints/:id/call` | 호출. 본문 = 매개변수(카탈로그 정의로 검증). 서버가 키 주입, 허용 호스트만(카탈로그 기본 URL 의 호스트), 시간 제한 30초, 응답 크기 상한 20MB. 응답 = `{ status, elapsed_ms, result_code, result_message, content_type, raw(키 가림), parsed(JSON 변환), rows(자동 감지 배열), page_info }` |
+| `POST /v1/admin/external/endpoints/:id/call-all-pages` | 페이지 전부(쪽 수 상한·한도 확인) |
+| `POST /v1/admin/external/calls/:id/snapshot` | 결과를 document(snapshot)로 저장, 출처 연결 |
+| `POST /v1/admin/external/calls/:id/compare` | 응답 행 ↔ external_ref 개체 비교 결과 |
+| `GET /v1/admin/external/calls` · `/calls/:id` | 호출 기록(결과 본문은 7일 보관 후 삭제, 스냅샷만 영구) |
+| `GET /v1/admin/external/keys` | 키 상태(변수 유무·최근 성공 시각, 값 없음) |
 
 ### 4-3. 품질·참조·문서·작업
 
