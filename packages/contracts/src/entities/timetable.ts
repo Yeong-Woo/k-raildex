@@ -6,7 +6,7 @@
 import { z } from 'zod';
 import { codes } from '../codes';
 import { idSchema } from '../ids';
-import { checkUnique, keyBy, nullish, optInt, optText } from './common';
+import { nullish, optInt, optText } from './common';
 
 /** 시간표 세트 id: tt-<역>-<route_code>-<day>-<dir> */
 export const timetableSetIdSchema = z.string().regex(/^tt-[a-z0-9-]+$/, {
@@ -41,6 +41,6 @@ export const TimetableSetSchema = z
     import_run_id: optInt(),
     entries: z.array(TimetableEntrySchema).default([]),
   })
-  .strict()
-  .superRefine((s, ctx) => checkUnique(s, ctx, 'entries', keyBy('minute', 'train_no')));
+  .strict();
+// 행 순서 = 배열 순서(DB ord). 같은 분·다른 종착 행이 있을 수 있어 분·열차번호 중복을 막지 않는다(0016)
 export type TimetableSet = z.infer<typeof TimetableSetSchema>;

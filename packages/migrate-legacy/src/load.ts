@@ -109,17 +109,17 @@ export async function writeMechanical(db: Queryable, sets: TimetableSet[], redir
           s.import_run_id,
         ],
       );
-      // 행은 묶어서(파라미터 6개 × 최대 1000행)
+      // 행은 묶어서(파라미터 7개 × 최대 1000행). ord = 세트 안 순서
       for (let i = 0; i < s.entries.length; i += 1000) {
         const chunk = s.entries.slice(i, i + 1000);
         const params: unknown[] = [];
-        const values = chunk.map((e) => {
-          params.push(s.id, e.minute, e.dest_name, e.dest_station_id, e.train_no, e.note);
-          const b = params.length - 6;
-          return `($${b + 1}, $${b + 2}, $${b + 3}, $${b + 4}, $${b + 5}, $${b + 6})`;
+        const values = chunk.map((e, j) => {
+          params.push(s.id, i + j + 1, e.minute, e.dest_name, e.dest_station_id, e.train_no, e.note);
+          const b = params.length - 7;
+          return `($${b + 1}, $${b + 2}, $${b + 3}, $${b + 4}, $${b + 5}, $${b + 6}, $${b + 7})`;
         });
         await db.query(
-          `INSERT INTO timetable_entry (set_id, minute, dest_name, dest_station_id, train_no, note) VALUES ${values.join(', ')}`,
+          `INSERT INTO timetable_entry (set_id, ord, minute, dest_name, dest_station_id, train_no, note) VALUES ${values.join(', ')}`,
           params,
         );
       }

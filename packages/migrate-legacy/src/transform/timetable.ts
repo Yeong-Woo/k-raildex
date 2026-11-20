@@ -127,19 +127,8 @@ export function transformTimetables(
     if (s.route_code.startsWith('MTR')) {
       const rows = tago.rows.get(s.id);
       if (!rows) report.add('시간표 시각 행 재구성 실패(TAGO raw 없음)', s.id);
-      const seen = new Set<number>();
-      let dropped = 0;
       for (const r of rows ?? []) {
-        if (seen.has(r.minute)) {
-          dropped++;
-          continue;
-        }
-        seen.add(r.minute);
         entries.push({ minute: r.minute, dest_name: r.to, dest_station_id: null, train_no: '', note: null });
-      }
-      if (dropped) {
-        report.count('시간표.같은 분 다른 종착 행(열차번호 없음, 첫 행만)', dropped);
-        report.add('시간표 같은 분 다른 종착 행 제외(PK 분·열차번호)', `${s.id}: ${dropped}행`);
       }
       if (rows && rows.length !== s.count)
         report.add('시간표 행 수 ≠ 기존 요약 count', `${s.id}: ${rows.length} vs ${s.count}`);

@@ -56,7 +56,7 @@ export const line = pgTable('line', {
   owner: text('owner'),
   startStationId: text('start_station_id').references(() => station.id, { onUpdate: 'cascade' }),
   endStationId: text('end_station_id').references(() => station.id, { onUpdate: 'cascade' }),
-  lengthKm: numeric('length_km', { precision: 7, scale: 2, mode: 'number' }),
+  lengthKm: numeric('length_km', { mode: 'number' }),
   ...fuzzy('opened'),
   ...fuzzy('closed'),
   track: text('track'),

@@ -5,10 +5,10 @@
 ## 요약
 
 - Hard 위반: **0**
-- 미설명 차이(필드·누락·추가): **17**
+- 미설명 차이(필드·누락·추가): **0**
 - 계산 단계 ≠ 기존 stage: 4
 - 이벤트: 테이블 989 + 파생 뷰 1135, 기존 id 중 새 DB(테이블∪뷰)에 없는 것 0
-- 시간표: 세트 4249, 행 428418
+- 시간표: 세트 4249, 행 430909
 - FK 위반: 0 (DB 외래 키가 적재 때 강제)
 
 ## 1. 개체 수
@@ -31,7 +31,7 @@
 | rolling_stock_range | 61 | 61 |  |
 | glossary_term | 54 | 54 | TERMINOLOGY.md 파싱 항목 수 |
 | timetable_set | 4249 | 4249 |  |
-| timetable_entry | 617209 | 428418 | 기존 = 요약 count 합(운행정보 보강 세트 포함) |
+| timetable_entry | 617209 | 430909 | 기존 = 요약 count 합(운행정보 보강 세트 포함) |
 
 ## 2. 의도된 차이(D-1~D-7)
 
@@ -55,7 +55,6 @@
 | 필드 | 차이 수 | 분류 | 예(id: 기존 → 새) |
 | --- | ---: | --- | --- |
 | service_kinds [정차역 노선별 역 미해석으로 제외(이관 리포트)] | 27 | 정차역 노선별 역 미해석으로 제외(이관 리포트) | stn-changwon: ["high_speed","intercity"] → ["intercity"]<br>stn-changwonjungang: ["high_speed","intercity","tourist"] → ["intercity","tourist"] |
-| areas | 2 | **미설명** | stn-heukseok-ri: ["capital","chungcheong","honam"] → ["capital","chungcheong","honam","national"]<br>stn-sinam: ["capital","southeast","daegyeong","chungcheong"] → ["capital","southeast","daegyeong","chungcheong","national"] |
 
 ### line_station
 
@@ -70,10 +69,7 @@
 
 기존 103 / 역변환 103
 
-
-| 필드 | 차이 수 | 분류 | 예(id: 기존 → 새) |
-| --- | ---: | --- | --- |
-| length_km | 15 | **미설명** | line-bujeon-masan: 32.7001 → 32.7<br>line-busan-gimhae-lrt: 22.361 → 22.36 |
+- 필드 차이 없음
 
 ### plan
 
@@ -108,8 +104,6 @@
 | last [운행정보 보강 세트 시각 행 미재구성] | 1323 | 운행정보 보강 세트 시각 행 미재구성 | tt-achasan-s1105-saturday-down: "24:00" → null<br>tt-achasan-s1105-saturday-up: "23:48" → null |
 | count [운행정보 보강 세트 시각 행 미재구성] | 1323 | 운행정보 보강 세트 시각 행 미재구성 | tt-achasan-s1105-saturday-down: 164 → 0<br>tt-achasan-s1105-saturday-up: 162 → 0 |
 | by_hour [운행정보 보강 세트 시각 행 미재구성] | 1323 | 운행정보 보강 세트 시각 행 미재구성 | tt-achasan-s1105-saturday-down: [1,0,0,0,0,2,7,8,9,9,10,9,9,9,10,9,9,9,10,9,9,9,9,8] → [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]<br>tt-achasan-s1105-saturday-up: [0,0,0,0,0,3,9,9,9,9,10,9,9,9,9,10,9,9,9,10,9,9,7,5] → [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0] |
-| count [같은 분 다른 종착 행 제외(PK)] | 182 | 같은 분 다른 종착 행 제외(PK) | tt-asiad-stadium-mtrici2-holiday-down: 184 → 183<br>tt-asiad-stadium-mtrici2-holiday-up: 185 → 183 |
-| by_hour [같은 분 다른 종착 행 제외(PK)] | 182 | 같은 분 다른 종착 행 제외(PK) | tt-asiad-stadium-mtrici2-holiday-down: [5,0,0,0,0,3,8,10,10,10,10,11,10,10,10,11,10,10,10,10,10,11,9,6] → [4,0,0,0,0,3,8,10,10,10,10,11,10,10,10,11,10,10,10,10,10,11,9,6]<br>tt-asiad-stadium-mtrici2-holiday-up: [5,0,0,0,0,2,9,10,10,10,11,10,10,10,10,10,11,10,10,10,11,10,10,6] → [5,0,0,0,0,2,8,10,10,10,11,10,10,10,10,10,11,10,10,10,11,10,10,5] |
 
 ## 6. 계획
 
@@ -124,8 +118,8 @@
 
 - plan_line.upgrades: 165
 - plan_line.new: 23
-- plan_station.new: 159
 - plan_station.existing: 190
+- plan_station.new: 159
 
 ## 7. Hard 위반
 
@@ -232,50 +226,6 @@
 
 - map-korail-national file korail-national-20250101.jpg
 - map-seoul-city file seoul-subway-202603.jpg
-
-### 시간표 같은 분 다른 종착 행 제외(PK 분·열차번호) (182)
-
-- tt-asiad-stadium-mtrici2-holiday-down: 1행
-- tt-asiad-stadium-mtrici2-holiday-up: 2행
-- tt-asiad-stadium-mtrici2-weekday-down: 2행
-- tt-asiad-stadium-mtrici2-weekday-up: 3행
-- tt-boramae-medical-center-mtrsll1-holiday-down: 1행
-- tt-boramae-medical-center-mtrsll1-weekday-down: 1행
-- tt-boramae-medical-center-mtrsll1-weekday-up: 1행
-- tt-boramae-mtrsll1-holiday-down: 56행
-- tt-boramae-mtrsll1-holiday-up: 55행
-- tt-boramae-mtrsll1-weekday-down: 4행
-- tt-boramae-mtrsll1-weekday-up: 1행
-- tt-boramae-park-mtrsll1-weekday-down: 39행
-- tt-boramae-park-mtrsll1-weekday-up: 36행
-- tt-bucheon-mtrkr1-holiday-down: 8행
-- tt-bucheon-mtrkr1-holiday-up: 10행
-- tt-bucheon-mtrkr1-weekday-down: 8행
-- tt-bucheon-mtrkr1-weekday-up: 14행
-- tt-bupyeong-mtrkr1-holiday-down: 7행
-- tt-bupyeong-mtrkr1-holiday-up: 13행
-- tt-bupyeong-mtrkr1-weekday-down: 11행
-- tt-bupyeong-mtrkr1-weekday-up: 9행
-- tt-byeongjeom-mtrkr1-holiday-down: 1행
-- tt-byeongjeom-mtrkr1-weekday-down: 1행
-- tt-citizens-park-mtrici2-holiday-down: 38행
-- tt-citizens-park-mtrici2-holiday-up: 27행
-- tt-citizens-park-mtrici2-weekday-down: 11행
-- tt-citizens-park-mtrici2-weekday-up: 11행
-- tt-daebang-mtrkr1-holiday-down: 16행
-- tt-daebang-mtrkr1-holiday-up: 16행
-- tt-daebang-mtrkr1-weekday-down: 26행
-- tt-daebang-mtrkr1-weekday-up: 26행
-- tt-daebang-mtrsll1-holiday-up: 1행
-- tt-daebang-mtrsll1-weekday-down: 1행
-- tt-danggok-mtrsll1-holiday-down: 1행
-- tt-danggok-mtrsll1-holiday-up: 1행
-- tt-danggok-mtrsll1-weekday-up: 2행
-- tt-digital-media-city-mtrkrk4-weekday-down: 3행
-- tt-dokjeong-mtrici2-holiday-up: 1행
-- tt-dokjeong-mtrici2-weekday-up: 2행
-- tt-dongam-mtrkr1-holiday-down: 8행
-- … 외 142건(JSON 참고)
 
 ### 시간표 노선별 역 미해석 (124)
 
@@ -428,7 +378,6 @@
 - 노선별 역.상태가 역 상태와 다름(배분): 32
 - 단계 이력.gazette_auto: 70
 - 번호대.operator other → id 접두사로 운영기관: 16
-- 시간표.같은 분 다른 종착 행(열차번호 없음, 첫 행만): 2491
 - 시간표.노선별 역 해석: 4125
 - 시간표.운행정보 보강 세트(시각 행 미재구성): 1323
 - 역.노선 없음(own_*): 71

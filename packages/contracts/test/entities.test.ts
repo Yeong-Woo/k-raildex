@@ -649,6 +649,15 @@ describe('other entities', () => {
     };
     expect(TimetableSetSchema.parse({ ...tt, entries: [{ minute: 300 }] }).entries[0]?.train_no).toBe('');
     expectFail(TimetableSetSchema, { ...tt, entries: [{ minute: 1680 }] }, 'entries.0.minute');
-    expectFail(TimetableSetSchema, { ...tt, entries: [{ minute: 300 }, { minute: 300 }] }, 'entries.1');
+    // 같은 분·다른 종착 행 허용(0016: 행 순서가 PK)
+    expect(
+      TimetableSetSchema.parse({
+        ...tt,
+        entries: [
+          { minute: 300, dest_name: 'A' },
+          { minute: 300, dest_name: 'B' },
+        ],
+      }).entries,
+    ).toHaveLength(2);
   });
 });
