@@ -218,15 +218,30 @@ export class EntityService {
 
   async lineStations(lineId: string): Promise<AnyObject[]> {
     await requireEntity(this.db, 'line', lineId);
-    const { rows } = await this.db.query<{ id: string; station_name_ko: string | null }>(
-      `SELECT x.id, s.name_ko AS station_name_ko FROM line_station x LEFT JOIN station s ON s.id = x.station_id
+    // 역 쪽 종류·좌표도 함께(지도 역 점 mv_map_station 은 여객역만이라 화물역·신호장 좌표를 지도 편집기가 못 찾았다)
+    const { rows } = await this.db.query<{
+      id: string;
+      station_name_ko: string | null;
+      station_kind: string | null;
+      lng: number | null;
+      lat: number | null;
+    }>(
+      `SELECT x.id, s.name_ko AS station_name_ko, s.kind AS station_kind,
+              ST_X(s.geom::geometry) AS lng, ST_Y(s.geom::geometry) AS lat
+         FROM line_station x LEFT JOIN station s ON s.id = x.station_id
         WHERE x.line_id = $1 AND x.deleted_at IS NULL ORDER BY x.seq`,
       [lineId],
     );
     const out: AnyObject[] = [];
     for (const r of rows) {
       const ls = await readEntity(this.db, 'line_station', r.id);
-      if (ls) out.push({ ...ls, station_name_ko: r.station_name_ko });
+      if (ls)
+        out.push({
+          ...ls,
+          station_name_ko: r.station_name_ko,
+          station_kind: r.station_kind,
+          station_geom: r.lng != null && r.lat != null ? { lng: r.lng, lat: r.lat } : null,
+        });
     }
     return out;
   }

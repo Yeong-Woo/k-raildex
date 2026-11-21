@@ -7,6 +7,9 @@ export interface LsRow {
   version?: number;
   station_id: string;
   station_name_ko?: string | null;
+  /** 역 쪽 종류·좌표(읽기 전용, 서버가 붙임) */
+  station_kind?: string | null;
+  station_geom?: { lng: number; lat: number } | null;
   branch: string | null;
   km: number | null;
   station_code: string | null;
@@ -29,6 +32,8 @@ const SERVER_FIELDS = new Set([
   'deleted_at',
   'last_changeset_id',
   'station_name_ko',
+  'station_kind',
+  'station_geom',
 ]);
 
 /**

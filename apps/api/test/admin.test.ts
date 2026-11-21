@@ -229,6 +229,9 @@ describe('노선별 역 목록', () => {
       'ls-fx-one--fx-d',
     ]);
     expect(r.items[0].station_name_ko).toBe('가');
+    // 역 쪽 종류·좌표(지도 편집기가 화물역·신호장 좌표도 찾게)
+    expect(r.items[0].station_kind).toBe('station');
+    expect(r.items[0].station_geom).toEqual({ lng: expect.any(Number), lat: expect.any(Number) });
   });
 
   it('PUT: 순서 뒤집기(seq 맞바꿈은 지연 유일 제약이 받아 준다)', async () => {

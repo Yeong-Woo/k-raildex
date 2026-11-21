@@ -138,7 +138,9 @@ export function LineMapEditor({
     }
     return m;
   }, [stations.data]);
-  const coordOf = (r: LsRow) => stationInfo.get(r.station_id)?.coord ?? null;
+  /** 지도 역 점(여객역) → 없으면 역 자체 좌표(화물역·신호장·조차장은 지도 역 점에 없다) */
+  const coordOf = (r: LsRow): Coord | null =>
+    stationInfo.get(r.station_id)?.coord ?? (r.station_geom ? [r.station_geom.lng, r.station_geom.lat] : null);
 
   const selFc = useMemo<FeatureCollection>(
     () =>
@@ -153,7 +155,7 @@ export function LineMapEditor({
   const pathFc = useMemo<FeatureCollection>(() => {
     const groups = new Map<string, Coord[]>();
     for (const r of rows) {
-      const c = stationInfo.get(r.station_id)?.coord;
+      const c = coordOf(r);
       if (!c) continue;
       const k = r.branch ?? '';
       if (!groups.has(k)) groups.set(k, []);
@@ -389,8 +391,14 @@ export function LineMapEditor({
                             </Link>
                             {!r.id ? <Badge tone="good">새 행</Badge> : null}
                             {r.branch ? <Badge>지선 {r.branch}</Badge> : null}
+                            {r.station_kind && r.station_kind !== 'station' && isCode('stationKind', r.station_kind) ? (
+                              <Badge>{codeLabel('stationKind', r.station_kind)}</Badge>
+                            ) : null}
                             {!coordOf(r) ? (
-                              <span className="text-[10px] text-warn" title="지도 역 점 없음(좌표 없음)">
+                              <span
+                                className="text-[10px] text-warn"
+                                title="역에 좌표가 없습니다 — 지도 편집에서 좌표를 찍을 수 있습니다"
+                              >
                                 좌표 없음
                               </span>
                             ) : null}
