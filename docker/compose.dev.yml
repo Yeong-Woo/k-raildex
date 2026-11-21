@@ -35,6 +35,7 @@ services:
       timeout: 3s
       retries: 40
 
+  # 키 값은 저장소 루트 .env 에서 읽는다(pnpm stack:* 스크립트가 --env-file .env 를 넘김). 지도 키는 관리 앱 빌드 때 들어간다.
   # ---- 앱(프로필 app): pnpm stack:up — api·worker·관리 앱을 컨테이너로 -----------------------------
   # 개발용: 인증은 AUTH_DEV_BYPASS(NODE_ENV=development 에서만 동작). 운영 구성은 compose.prod.yml(전환 A).
   migrate:
@@ -51,6 +52,10 @@ services:
       S3_SECRET_KEY: raildex-dev-secret
       VWORLD_API_KEY: ${VWORLD_API_KEY:-}
       DATA_GO_KR_KEY: ${DATA_GO_KR_KEY:-}
+      DATA_GO_KR_KEY_TAGO_SUBWAY: ${DATA_GO_KR_KEY_TAGO_SUBWAY:-}
+      DATA_GO_KR_KEY_TAGO_TRAIN: ${DATA_GO_KR_KEY_TAGO_TRAIN:-}
+      DATA_GO_KR_KEY_KORAIL: ${DATA_GO_KR_KEY_KORAIL:-}
+      GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY:-}
       KRIC_KEY: ${KRIC_KEY:-}
       SEOUL_OPEN_KEY: ${SEOUL_OPEN_KEY:-}
       LAW_GO_KR_OC: ${LAW_GO_KR_OC:-}
@@ -101,8 +106,8 @@ services:
       context: ..
       dockerfile: docker/admin.Dockerfile
       args:
-        VITE_VWORLD_API_KEY: ${VITE_VWORLD_API_KEY:-}
-        VITE_GOOGLE_MAPS_API_KEY: ${VITE_GOOGLE_MAPS_API_KEY:-}
+        VITE_VWORLD_API_KEY: ${VITE_VWORLD_API_KEY:-${VWORLD_API_KEY:-}}
+        VITE_GOOGLE_MAPS_API_KEY: ${VITE_GOOGLE_MAPS_API_KEY:-${GOOGLE_MAPS_API_KEY:-}}
     image: k-raildex-admin:dev
     ports:
       - '127.0.0.1:${ADMIN_PORT:-5202}:80'

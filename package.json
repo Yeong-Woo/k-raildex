@@ -22,9 +22,9 @@
     "prepare": "simple-git-hooks",
     "db:migrate": "pnpm -F @k-raildex/db run db:migrate",
     "db:reset": "pnpm -F @k-raildex/db run db:reset",
-    "stack:up": "docker compose -f docker/compose.dev.yml --profile app up -d --build --wait",
-    "stack:down": "docker compose -f docker/compose.dev.yml --profile app down",
-    "stack:logs": "docker compose -f docker/compose.dev.yml --profile app logs -f --tail=100"
+    "stack:up": "docker compose -f docker/compose.dev.yml $( [ -f .env ] && echo --env-file .env ) --profile app up -d --build --wait",
+    "stack:down": "docker compose -f docker/compose.dev.yml $( [ -f .env ] && echo --env-file .env ) --profile app down",
+    "stack:logs": "docker compose -f docker/compose.dev.yml $( [ -f .env ] && echo --env-file .env ) --profile app logs -f --tail=100"
   },
   "simple-git-hooks": {
     "pre-commit": "pnpm exec lint-staged && sh scripts/gitleaks-staged.sh"
