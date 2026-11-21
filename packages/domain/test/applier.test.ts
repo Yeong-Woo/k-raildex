@@ -338,6 +338,39 @@ describe('제안(draft)', () => {
 });
 
 describe('계산 규칙 TS = SQL', () => {
+  it('같은 날짜의 폐기는 반영 뒤(0018)', async () => {
+    const src = 'src-fixture-notice';
+    const events = [
+      { stage: 'plan_listed', kind: 'reached', date: { value: '2018-12', precision: 'month' }, source_id: src },
+      { stage: 'abandoned', kind: 'reached', date: { value: '2022-01-21', precision: 'day' }, source_id: src },
+      { stage: 'plan_listed', kind: 'reached', date: { value: '2022-01-21', precision: 'day' }, source_id: src },
+    ] as const;
+    await apply([
+      {
+        op: 'create',
+        entity_type: 'plan',
+        data: {
+          id: 'plan-fx-same-day-abandon',
+          name_ko: '같은 날 폐기',
+          refs: [{ program_id: 'pp-fx-national-rail-4', class: 'new', source_id: src }],
+          stage_events: [...events],
+          checked_at: '2026-11-21',
+          sources: [{ source_id: src }],
+        },
+      },
+    ]);
+    const { rows } = await db.query(`SELECT stage FROM v_plan_stage WHERE plan_id = 'plan-fx-same-day-abandon'`);
+    expect(rows[0].stage).toBe('abandoned');
+    expect(currentStage(events as never)).toBe('abandoned');
+    // 뒤 날짜의 reached 는 되살린다
+    expect(
+      currentStage([
+        ...events,
+        { stage: 'feasibility', kind: 'reached', date: { value: '2023', precision: 'year' } },
+      ] as never),
+    ).toBe('feasibility');
+  });
+
   it('계획 현재 단계·개통 목표', async () => {
     const { rows } = await db.query<{ plan_id: string; stage: string }>(`SELECT plan_id, stage FROM v_plan_stage`);
     for (const r of rows) {

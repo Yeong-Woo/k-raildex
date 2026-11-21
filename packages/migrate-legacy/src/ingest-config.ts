@@ -39,6 +39,33 @@ export function parseRafisAbbr(buf: Buffer): Record<string, string[]> {
   return out;
 }
 
+/**
+ * 운행정보 역명 수기 대응 보정(노선번호 → 원문 역명 → 역 id). 기존 YAML 위에 덮어쓴다.
+ * - Q107 A: I4103 "당고개" 는 옛 id(stn-danggogae, 역 이름이 불암산으로 바뀜) → stn-buramsan.
+ *   기존 YAML 끝의 들여쓰기가 어긋난 `names.당고개: stn-buramsan`(노선번호 자리에 문자열)은 같은 뜻이라 지운다.
+ * - Q109 A: 원본 오기 "센럴파크"(인천 1호선), 역번호가 붙은 "215인천가좌"(인천 2호선)만 넣는다.
+ *   깨진 셀 7건은 추정하지 않고 버린다(C-1, 리포트만).
+ */
+export const KRIC_NAME_FIXES: Readonly<Record<string, Readonly<Record<string, string>>>> = {
+  I4103: { 당고개: 'stn-buramsan' },
+  S2801: { 센럴파크: 'stn-central-park' },
+  S2802: { '215인천가좌': 'stn-incheon-gajwa' },
+};
+/** 노선번호 자리에 잘못 들어간 키(지운다) */
+const KRIC_NAME_DROP_KEYS = ['당고개'];
+
+export function applyKricNameFixes(value: unknown): unknown {
+  if (!value || typeof value !== 'object') return value;
+  const v = value as { names?: Record<string, unknown> };
+  const names: Record<string, unknown> = { ...(v.names ?? {}) };
+  for (const k of KRIC_NAME_DROP_KEYS) if (typeof names[k] === 'string') delete names[k];
+  for (const [lineNo, fix] of Object.entries(KRIC_NAME_FIXES)) {
+    const cur = names[lineNo];
+    names[lineNo] = { ...(cur && typeof cur === 'object' ? (cur as Record<string, unknown>) : {}), ...fix };
+  }
+  return { ...v, names };
+}
+
 export function legacyIngestConfig(root: string): IngestConfigRow[] {
   const rows: IngestConfigRow[] = [];
   const tago = join(root, 'data/own/overrides/tago-route-services.yaml');
@@ -54,8 +81,8 @@ export function legacyIngestConfig(root: string): IngestConfigRow[] {
     rows.push({
       task: 'kric-train-ops',
       key: 'routes',
-      value: parse(readFileSync(kric, 'utf8')) as unknown,
-      note: '기존 data/own/overrides/kric-train-ops-routes.yaml 이관(routes·day_types·kinds·names)',
+      value: applyKricNameFixes(parse(readFileSync(kric, 'utf8')) as unknown),
+      note: '기존 data/own/overrides/kric-train-ops-routes.yaml 이관(routes·day_types·kinds·names) + 역명 보정(round-04 Q107·Q109)',
     });
   const rafis = join(root, 'data/public/raw/src-kric-rafis-station/rafis-stations.csv');
   if (existsSync(rafis))

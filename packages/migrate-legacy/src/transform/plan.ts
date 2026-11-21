@@ -1,5 +1,6 @@
 /** 상위 계획·계획 사업 변환(WP 3.5, docs/07-migration.md 3-4절, Q88·Q90·Q94) */
 import type { PlanCreate, PlanProgramCreate } from '@k-raildex/contracts';
+import { currentStage } from '@k-raildex/domain';
 import type { LLine, LPlan, LPlanProgram, LPlanRoute, LSource, LStation } from '../read/types';
 import { aliasNames, fuzzy, nameCols, programId, rec, regionCode, regionCodes, type MigrationReport } from './common';
 
@@ -198,6 +199,17 @@ export function transformPlan(
     }
   }
 
+  // Q101 A: 기존 abandoned 인데 이력에 폐기 항목이 없으면 계산 단계가 달라진다 → override 로 임시 유지
+  // (품질 목록 X-plan-abandoned-evidence "폐기 근거 필요", 근거를 이력에 넣으면 override 를 걷어 낸다)
+  let stageOverride: PlanCreate['stage_override'] = null;
+  let note = editorNote;
+  if (p.stage === 'abandoned' && currentStage(stageEvents) !== 'abandoned') {
+    stageOverride = 'abandoned';
+    const memo =
+      '폐기 근거 필요(round-04 Q101 A): 기존 stage abandoned, 단계 이력에 폐기 항목(날짜·출처)이 없어 stage_override = abandoned 로 임시 유지';
+    note = note ? `${note}\n${memo}` : memo;
+    report.add('폐기 근거 필요(stage_override = abandoned 임시 유지, Q101 A)', p.id);
+  }
   const extra: Record<string, unknown> = {};
   return {
     id: p.id,
@@ -207,9 +219,9 @@ export function transformPlan(
     operator_text: p.operator_name ?? null,
     description: p.description ?? null,
     is_national: yaml?.national ?? false,
-    stage_override: null,
+    stage_override: stageOverride,
     color: null,
-    ...rec(p.provenance, { review: p.review_status, editorNote, extra }),
+    ...rec(p.provenance, { review: p.review_status, editorNote: note, extra }),
     names: aliasNames(p.aliases, p.name.ko),
     external_refs: [],
     refs: p.plan_refs.map((r) => ({

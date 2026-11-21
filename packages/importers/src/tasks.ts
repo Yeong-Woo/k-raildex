@@ -13,6 +13,10 @@ export const IMPORTER_JOB = 'importer.run';
 export const ImporterOptionsSchema = z
   .object({
     fromRaw: z.string().min(1).optional(),
+    /** kric-train-ops: 원본 xlsx 파일·디렉터리(Q108 A) */
+    fromXlsx: z.string().min(1).optional(),
+    /** kric-train-ops: 원본 xlsx 를 레일포털에서 내려받아 fromXlsx 디렉터리에 저장(키 불필요) */
+    download: z.boolean().optional(),
     dryRun: z.boolean().optional(),
     trigger: z.enum(['schedule', 'manual', 'event']).optional(),
     tagoIds: z.array(z.string()).optional(),
@@ -58,7 +62,15 @@ export async function runImporter(
         log,
       });
     case KRIC_TASK:
-      return runKricTrainOps(db, { fromRaw: o.fromRaw, dryRun: o.dryRun, trigger: o.trigger, lineNos: o.lineNos, log });
+      return runKricTrainOps(db, {
+        fromRaw: o.fromRaw,
+        fromXlsx: o.fromXlsx,
+        download: o.download,
+        dryRun: o.dryRun,
+        trigger: o.trigger,
+        lineNos: o.lineNos,
+        log,
+      });
     case OSM_TASK:
       return runOsmRail(db, {
         fromRaw: o.fromRaw,

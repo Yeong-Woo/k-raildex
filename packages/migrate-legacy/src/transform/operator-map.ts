@@ -13,11 +13,32 @@ export interface OperatorDef {
   kind: Code<'operatorKind'>;
   /** 기존 번호대 operator enum */
   legacyEnum?: string;
+  /** 상태가 active 가 아닌 기관(기본 active). 필드 출처(status·merged_into_id·ended)를 함께 둔다(C-1) */
+  ended?: {
+    status: 'merged' | 'dissolved';
+    merged_into_id: string | null;
+    date: string;
+    sources: string[];
+    note: string;
+  };
 }
 
 export const OPERATORS: OperatorDef[] = [
   { id: 'op-korail', name_ko: '한국철도공사', kind: 'national_corp', legacyEnum: 'korail' },
-  { id: 'op-sr', name_ko: '주식회사 SR', kind: 'private', legacyEnum: 'sr' },
+  {
+    id: 'op-sr',
+    name_ko: '주식회사 SR',
+    kind: 'private',
+    legacyEnum: 'sr',
+    // round-04 Q102: "SR 은 2026-09-01 자로 모두 코레일에 통합"(사용자 확인). 기존 데이터의 근거는 운영 통합 공지·보도·연표뿐
+    ended: {
+      status: 'merged',
+      merged_into_id: 'op-korail',
+      date: '2026-09-01',
+      sources: ['src-sr-integration-notice', 'src-news-segye-suseo-ktx-2026', 'src-kric-chronology'],
+      note: '사용자 확인(round-04 Q102), 1차 출처 보강 필요 — 법인 합병(통합) 근거 법령·고시·공시 미확보. 지금 근거: SR 누리집 공지(9월 1일 운행 열차부터 KTX 예매), 세계일보 2026-09-01(기관 통합 완료), 철도통합연표 4707 "코레일-에스알 9월 1일 하나로"',
+    },
+  },
   { id: 'op-seoul-metro', name_ko: '서울교통공사', kind: 'local_corp', legacyEnum: 'seoul_metro' },
   { id: 'op-incheon-transit', name_ko: '인천교통공사', kind: 'local_corp', legacyEnum: 'incheon_transit' },
   { id: 'op-seoul-metro9', name_ko: '서울시메트로9호선㈜', kind: 'private', legacyEnum: 'seoul_metro9' },

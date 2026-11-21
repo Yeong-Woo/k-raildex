@@ -135,17 +135,28 @@ export function transformAll(legacy: LegacyData, opts: { timetables?: boolean } 
       name_full: null,
       short_ko: null,
       kind: def.kind,
-      status: 'active',
-      merged_into_id: null,
+      status: def.ended?.status ?? 'active',
+      merged_into_id: def.ended?.merged_into_id ?? null,
       founded: null,
-      ended: null,
+      ended: def.ended ? { value: def.ended.date, precision: 'day' } : null,
       homepage: null,
       checked_at: u.checked_at,
       provenance_note: `이관: 기존 노선 operator_name·번호대 operator 에서 생성(${u.lines.length}건: ${u.lines.slice(0, 5).join(', ')}${u.lines.length > 5 ? ' …' : ''})`,
       review_status: 'unverified',
-      editor_note: null,
+      editor_note: def.ended?.note ?? null,
       extra: def.legacyEnum ? { legacy_enum: def.legacyEnum } : {},
-      sources: [...u.sources].sort().map((source_id) => ({ source_id, field: null, locator: null, note: null })),
+      sources: [
+        ...[...u.sources].sort().map((source_id) => ({ source_id, field: null, locator: null, note: null })),
+        // 상태 필드 출처(status·merged_into_id·ended)
+        ...(def.ended?.sources ?? []).flatMap((source_id) =>
+          (['status', 'merged_into_id', 'ended'] as const).map((field) => ({
+            source_id,
+            field,
+            locator: source_id === 'src-kric-chronology' ? '철도통합연표 4707' : null,
+            note: null,
+          })),
+        ),
+      ],
       names: [],
       external_refs: [],
     });

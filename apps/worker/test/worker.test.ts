@@ -6,6 +6,7 @@ import {
   getJob,
   IMPORTER_TASK_LIST,
   JOB,
+  JOB_SCHEDULES,
   lastValidation,
   listJobs,
   listPageImages,
@@ -56,6 +57,9 @@ describe('수집기 과제 목록', () => {
     expect(IMPORTER_JOB).toBe(JOB.importerRun);
     const listed = IMPORTER_TASK_LIST.map((t) => t.task);
     for (const t of IMPORTER_TASKS) expect(listed).toContain(t);
+  });
+  it('수집기(시간표 등)는 예약하지 않는다 — 수동 실행만(round-04 Q110 C)', () => {
+    expect(JOB_SCHEDULES.map((s) => s.name)).not.toContain(JOB.importerRun);
   });
 });
 

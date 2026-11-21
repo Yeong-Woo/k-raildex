@@ -346,6 +346,74 @@ describe('품질·지도(픽스처)', () => {
     ]);
   });
 
+  it('이관 검수 목록: 폐기 근거 필요(Q101)·뺀 정차역(Q105)', async () => {
+    const count = async (id: string) => (await qualitySummary(db)).rules.find((r) => r.id === id)!.count;
+    expect(await count('X-plan-abandoned-evidence')).toBe(0);
+    expect(await count('X-service-dropped-stops')).toBe(0);
+    await apply([
+      { op: 'update', entity_type: 'plan', id: 'plan-fx-withdrawn', data: { stage_override: 'abandoned' } },
+      {
+        op: 'update',
+        entity_type: 'service',
+        id: 'svc-fx-one',
+        data: {
+          extra: {
+            dropped_stops: [
+              // express 패턴에 stn-fx-b 가 없음 → 목록에
+              { pattern: 'express', seq: 2, station_id: 'stn-fx-b', reason: 'ambiguous', candidates: ['l1', 'l2'] },
+              // local 패턴에는 이미 stn-fx-b 가 있음(보강됨) → 목록에서 빠짐
+              { pattern: 'local', seq: 2, station_id: 'stn-fx-b', reason: 'not_on_service_lines' },
+              { pattern: 'gone', seq: 1, station_id: 'stn-fx-a', reason: 'pattern_dropped' },
+            ],
+          },
+        },
+      },
+    ]);
+    const ab = await qualityItems(db, 'X-plan-abandoned-evidence', { limit: 10, offset: 0 });
+    expect(ab.items.map((i) => i.entity_id)).toEqual(['plan-fx-withdrawn']);
+    const ds = await qualityItems(db, 'X-service-dropped-stops', { limit: 10, offset: 0 });
+    expect(ds.items.map((i) => i.detail)).toEqual([
+      'express #2 stn-fx-b — 노선 모호(후보 l1, l2)',
+      'gone #1 stn-fx-a — 패턴 전체 제외(해석 정차역 2개 미만)',
+    ]);
+    expect(ds.items.every((i) => i.entity_type === 'service' && i.entity_id === 'svc-fx-one')).toBe(true);
+    // 근거가 이력에 들어가면 빠진다
+    await apply([
+      {
+        op: 'update',
+        entity_type: 'plan',
+        id: 'plan-fx-withdrawn',
+        data: {
+          stage_events: [
+            { stage: 'feasibility', date: { value: '2019', precision: 'year' }, source_id: 'src-fixture-notice' },
+            { stage: 'abandoned', date: { value: '2022', precision: 'year' }, source_id: 'src-fixture-notice' },
+          ],
+        },
+      },
+    ]);
+    expect(await count('X-plan-abandoned-evidence')).toBe(0);
+    await apply([
+      {
+        op: 'update',
+        entity_type: 'plan',
+        id: 'plan-fx-withdrawn',
+        data: {
+          stage_override: null,
+          stage_events: [
+            { stage: 'feasibility', date: { value: '2019', precision: 'year' }, source_id: 'src-fixture-notice' },
+            {
+              stage: 'feasibility',
+              kind: 'withdrawn',
+              date: { value: '2021', precision: 'year' },
+              source_id: 'src-fixture-notice',
+            },
+          ],
+        },
+      },
+      { op: 'update', entity_type: 'service', id: 'svc-fx-one', data: { extra: {} } },
+    ]);
+  });
+
   it('시점별 지도·연표', async () => {
     const ids = (fc: { features: { id?: string }[] }) => fc.features.map((f) => f.id).sort();
     const now = await mapAtLines(db, { year: 2026, stage_min: 'basic_plan', include_undated: false });

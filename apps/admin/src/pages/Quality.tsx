@@ -101,10 +101,10 @@ export function Quality() {
                     </tr>
                   </thead>
                   <tbody>
-                    {items.data.items.map((it) => {
+                    {items.data.items.map((it, i) => {
                       const t = isCode('entityType', it.entity_type) ? (it.entity_type as EntityType) : null;
                       return (
-                        <tr key={`${it.entity_type}/${it.entity_id}`} className="border-t border-border">
+                        <tr key={`${it.entity_type}/${it.entity_id}/${i}`} className="border-t border-border">
                           <td className="px-4 py-1.5 text-xs text-fg-muted">
                             {t ? entityUiMeta[t].label : it.entity_type}
                           </td>

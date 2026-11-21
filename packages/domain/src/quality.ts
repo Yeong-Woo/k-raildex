@@ -193,6 +193,36 @@ export const QUALITY_RULES: readonly QualityRule[] = [
             FROM plan p WHERE p.deleted_at IS NULL AND p.stage_override IS NOT NULL`,
   },
   {
+    // Q101 A: 기존 abandoned 인데 단계 이력에 폐기 항목(날짜·출처)이 없어 override 로 임시 유지한 계획
+    id: 'X-plan-abandoned-evidence',
+    title: '폐기 근거 필요(stage_override = abandoned, 단계 이력에 폐기 없음)',
+    sql: `SELECT 'plan' AS entity_type, p.id AS entity_id, '단계 이력에 폐기(abandoned) 항목 없음' AS detail, p.name_ko || p.id AS sort_key
+            FROM plan p
+           WHERE p.deleted_at IS NULL AND p.stage_override = 'abandoned'
+             AND NOT EXISTS (SELECT 1 FROM plan_stage_event e WHERE e.plan_id = p.id AND e.stage = 'abandoned')`,
+  },
+  {
+    // Q105 A: 이관 때 노선별 역으로 풀지 못해 정차 패턴에서 뺀 정차역(service.extra.dropped_stops).
+    // 운행 계통 노선 목록을 보강하고 그 패턴에 그 역의 정차역을 다시 넣으면 목록에서 빠진다.
+    id: 'X-service-dropped-stops',
+    title: '정차 패턴에서 뺀 정차역(이관 때 노선별 역 미해석)',
+    sql: `SELECT 'service' AS entity_type, sv.id AS entity_id,
+                 (d->>'pattern') || ' #' || (d->>'seq') || ' ' || (d->>'station_id') || ' — ' ||
+                 CASE d->>'reason' WHEN 'not_on_service_lines' THEN '운행 계통 노선에 노선별 역 없음'
+                                   WHEN 'ambiguous' THEN '노선 모호(후보 ' || coalesce((SELECT string_agg(c, ', ') FROM jsonb_array_elements_text(d->'candidates') c), '') || ')'
+                                   WHEN 'pattern_dropped' THEN '패턴 전체 제외(해석 정차역 2개 미만)'
+                                   ELSE coalesce(d->>'reason', '') END AS detail,
+                 sv.id || '|' || (d->>'pattern') || '|' || lpad(coalesce(d->>'seq', '0'), 5, '0') AS sort_key
+            FROM service sv
+           CROSS JOIN LATERAL jsonb_array_elements(
+                   CASE WHEN jsonb_typeof(sv.extra->'dropped_stops') = 'array' THEN sv.extra->'dropped_stops' ELSE '[]'::jsonb END) d
+           WHERE sv.deleted_at IS NULL
+             AND NOT EXISTS (SELECT 1 FROM stop_pattern sp
+                               JOIN stop_pattern_stop x ON x.pattern_id = sp.id
+                               JOIN line_station ls ON ls.id = x.line_station_id
+                              WHERE sp.service_id = sv.id AND sp.code = d->>'pattern' AND ls.station_id = d->>'station_id')`,
+  },
+  {
     id: 'X-source-license-unknown',
     title: '라이선스 미상(unknown) 출처',
     sql: `SELECT 'source' AS entity_type, s.id AS entity_id, s.title AS detail, s.id AS sort_key

@@ -59,7 +59,7 @@ export const JOB_QUEUES: Readonly<Record<JobName, JobQueueOptions>> = {
   'importer.run': { policy: 'standard', retryLimit: 0, expireInSeconds: 7200 },
 };
 
-/** 매일 04:00(Asia/Seoul) 정리 */
+/** 매일 04:00(Asia/Seoul) 정리. 수집기(importer.run)는 예약하지 않는다 — 시간표 재수집은 수동 실행만(round-04 Q110 C) */
 export const JOB_SCHEDULES: ReadonlyArray<{ name: JobName; cron: string; tz: string }> = [
   { name: JOB.cleanupApiCalls, cron: '0 4 * * *', tz: 'Asia/Seoul' },
 ];

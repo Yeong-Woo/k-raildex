@@ -4,7 +4,7 @@
  * 규칙은 기존 build-timetables.ts 134~292행(docs/legacy/design/timetable-model.md "운행정보 보강")과 같다.
  *
  * - 입력: 노선번호별 정규화 json.gz(`all-<노선번호>.json.gz`, 열차 `{ no, day, kind, from, to, stops: [[역명, 도착, 출발]] }`).
- *   원본 xlsx 내려받기·정규화(기존 fetch-kric-train-ops.ts)는 xlsx 해석기가 없어 아직 이식하지 않았다(docs/08 3-1).
+ *   또는 원본 xlsx(`--from-xlsx`, `--download` 로 레일포털에서 내려받기 — kric-xlsx.ts, 기존 fetch-kric-train-ops.ts 이식, Q108 A).
  * - 설정: ingest.config (kric-train-ops, routes) = 기존 kric-train-ops-routes.yaml(routes·day_types·kinds·names),
  *   (kric-train-ops, rafis_abbr) = RAFIS 역약어명 → 역명 목록.
  * - 노선번호 → 운행 계통(routes), 한 파일에 섞인 다른 계통 열차는 splits(약호·번호 범위)로 나눈다.
@@ -25,6 +25,7 @@ import { IssueLog } from '../core/issues';
 import type { RunTrigger } from '../core/run';
 import { withRun } from '../core/run';
 import { emptySnapshotStats, upsertSnapshot } from '../core/snapshot';
+import { downloadKricXlsx, normalizeKricXlsx, resolveKricXlsx } from './kric-xlsx';
 import { baseKey } from './names';
 import { lineStationResolver, loadNetworkContext, UNOPENED, type NetworkContext } from './network';
 import { opsMinute } from './time';
@@ -506,8 +507,12 @@ export function rafisAbbrMap(v: Record<string, string[]> | null): Map<string, st
 }
 
 export interface KricRunOptions {
-  /** 노선번호별 정규화 json.gz 디렉터리(필수 — xlsx 내려받기는 아직 이식하지 않음) */
+  /** 노선번호별 정규화 json.gz 디렉터리(기존 저장소 형식) */
   fromRaw?: string;
+  /** 원본 xlsx 파일 또는 디렉터리(Q108 A). download 와 함께면 이 디렉터리에 내려받는다 */
+  fromXlsx?: string;
+  /** 레일포털 원본 xlsx(id 900)를 내려받아 fromXlsx 디렉터리에 저장한 뒤 읽는다(키 불필요) */
+  download?: boolean;
   dryRun?: boolean;
   trigger?: RunTrigger;
   /** 대상 노선번호만 */
@@ -516,23 +521,58 @@ export interface KricRunOptions {
 }
 
 export async function runKricTrainOps(db: Queryable, opts: KricRunOptions = {}): Promise<ImportResult> {
-  if (!opts.fromRaw)
+  if (!opts.fromRaw && !opts.fromXlsx)
     throw new Error(
-      'kric-train-ops: --from-raw <dir> 이 필요하다(원본 xlsx 내려받기·정규화는 아직 이식하지 않았다 — docs/08 3-1)',
+      'kric-train-ops: --from-raw <정규화 json.gz 디렉터리> 또는 --from-xlsx <원본 xlsx|디렉터리> 가 필요하다',
     );
-  const dir = opts.fromRaw;
+  if (opts.fromRaw && opts.fromXlsx) throw new Error('kric-train-ops: --from-raw 와 --from-xlsx 는 하나만');
+  if (opts.download && !opts.fromXlsx)
+    throw new Error('kric-train-ops: --download 는 --from-xlsx <저장 디렉터리> 와 함께');
   const log = opts.log ?? (() => {});
-  const params = { from_raw: dir, dry_run: !!opts.dryRun, line_nos: opts.lineNos ?? null };
+  const params = {
+    from_raw: opts.fromRaw ?? null,
+    from_xlsx: opts.fromXlsx ?? null,
+    download: !!opts.download,
+    dry_run: !!opts.dryRun,
+    line_nos: opts.lineNos ?? null,
+  };
   return withRun(db, KRIC_TASK, { trigger: opts.trigger, params, dryRun: opts.dryRun }, async (run) => {
+    let xlsxInfo: Record<string, unknown> | null = null;
     const cfg = await requireConfig<KricConfig>(db, KRIC_TASK, 'routes');
     const abbr = rafisAbbrMap(await getConfig<Record<string, string[]>>(db, KRIC_TASK, 'rafis_abbr'));
     if (!abbr.size) run.log.push('- 주의: ingest.config (kric-train-ops, rafis_abbr) 없음 — RAFIS 약어 해석 생략');
     const net = await loadNetworkContext(db);
     const tago = await loadTagoCoverage(db);
     const only = opts.lineNos ? new Set(opts.lineNos) : null;
-    const names = listKricFiles(dir).filter((f) => !only || only.has(f.replace(/^all-|\.json\.gz$/g, '')));
-    const files = names.map((f) => readKricFile(dir, f));
-    log(`운행정보 ${files.length}개 노선번호 읽음(${dir})`);
+    let files: KricFile[];
+    if (opts.fromXlsx) {
+      let xlsxPath: string;
+      if (opts.download) {
+        const d = await downloadKricXlsx(opts.fromXlsx);
+        run.log.push(`- 원본 내려받음: ${d.url} → ${d.path} (${d.bytes} bytes, sha256 ${d.sha256})`);
+        xlsxPath = d.path;
+      } else xlsxPath = resolveKricXlsx(opts.fromXlsx);
+      const x = await normalizeKricXlsx(xlsxPath);
+      files = x.files.filter((f) => !only || only.has(f.line_no));
+      run.log.push(
+        `- 원본 xlsx ${xlsxPath}: 시트 "${x.sheet}", 머리글 ${x.header_row}행, 데이터 ${x.rows}행, 기준일 ${x.data_as_of}, sha256 ${x.sha256}` +
+          (Object.keys(x.skipped).length ? `, 행이 적어 건너뛴 노선번호 ${Object.keys(x.skipped).length}개` : ''),
+      );
+      xlsxInfo = {
+        path: xlsxPath,
+        sha256: x.sha256,
+        bytes: x.bytes,
+        rows: x.rows,
+        data_as_of: x.data_as_of,
+        skipped: x.skipped,
+      };
+      log(`운행정보 원본 xlsx ${files.length}개 노선번호 정규화(${xlsxPath})`);
+    } else {
+      const dir = opts.fromRaw!;
+      const names = listKricFiles(dir).filter((f) => !only || only.has(f.replace(/^all-|\.json\.gz$/g, '')));
+      files = names.map((f) => readKricFile(dir, f));
+      log(`운행정보 ${files.length}개 노선번호 읽음(${dir})`);
+    }
     const snap = emptySnapshotStats();
     for (const f of files) {
       const ch = await upsertSnapshot(
@@ -561,6 +601,7 @@ export async function runKricTrainOps(db: Queryable, opts: KricRunOptions = {}):
     for (const s of built.sets) byDay[s.day_type] = (byDay[s.day_type] ?? 0) + 1;
     const stats = {
       files: files.length,
+      xlsx: xlsxInfo,
       trains: files.reduce((a, f) => a + f.trains.length, 0),
       sets: built.sets.length,
       entries,

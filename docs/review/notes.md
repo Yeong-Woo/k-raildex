@@ -1,5 +1,7 @@
 # 판단 메모 (라운드 질문 후보)
 
+> 아래 두 절(M3·M8)의 질문 후보는 round-04(Q97~Q111)로 올려 답을 받았고 2026-11-21 반영을 마쳤다(결정 표 `../decisions.md` round-04). 남은 정리 항목만 다음 라운드 후보로 본다.
+
 ## M3 이관(packages/migrate-legacy) — 2026-11-20
 
 임시 가정으로 진행한 것. 대조 리포트: `docs/legacy/migration-report-2026-11-20.md`.

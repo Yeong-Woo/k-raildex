@@ -7,7 +7,8 @@ import type { LLine, LLineStation, LPlan, LSource, LStation } from '../src/read/
 import { fuzzy, fuzzyRepairs, MigrationReport, programId, transferCenterId } from '../src/transform/common';
 import { licenseClassOf, transformSource } from '../src/transform/source';
 import { combineStatus, splitLineCode, transformNetwork } from '../src/transform/network';
-import { resolveStops } from '../src/transform/service';
+import { resolveStops, type DroppedStop } from '../src/transform/service';
+import { applyKricNameFixes } from '../src/ingest-config';
 import { milestoneBasisOf, transformPlan } from '../src/transform/plan';
 import { operatorOfEnum } from '../src/transform/operator-map';
 import { transformGlossary } from '../src/transform/misc';
@@ -49,7 +50,9 @@ describe('출처 license_class 판정', () => {
     ['map_image', '공공누리 제3유형 표시(숨김) — 기관 확인 전까지 링크만', 'unknown'],
     ['wiki', 'CC BY-SA 4.0 — 사실 확인용 보조 출처', 'open'],
     ['news', '언론 보도 (사실 확인용, 출처 표시)', 'restricted'],
-    ['dataset_file', '이용허락범위 제한 없음', 'unknown'],
+    ['dataset_file', '이용허락범위 제한 없음', 'open'],
+    ['dataset_file', '이용허락범위 제한 없음 (공공누리 제1유형에 준해 출처 표시)', 'unknown'],
+    ['dataset_api', '저작권표시 (레일포털 오픈API 이용약관, 출처 표시)', 'unknown'],
   ])('%s / %s → %s', (type, license, cls) => {
     expect(licenseClassOf(type, license).cls).toBe(cls);
   });
@@ -61,7 +64,7 @@ describe('출처 license_class 판정', () => {
       title: '자료',
       publisher: '기관',
       type: 'dataset_file',
-      license: '이용허락범위 제한 없음',
+      license: '이용허락범위 제한 없음 (공공누리 제1유형 추정)',
       retrieved_at: '2026-10-11',
       published_at: '2026-06',
     };
@@ -256,6 +259,29 @@ describe('정차역 → 노선별 역', () => {
     expect(out).toEqual(['ls-l1--a', 'ls-l1--b', 'ls-l2--c']);
     expect(report.issues.get('정차 패턴 정차역 노선별 역 미해석(정차역 제외)')).toEqual(['svc-s/p: x']);
   });
+  it('뺀 정차역을 dropped 에 남긴다(Q105 A)', () => {
+    const dropped: DroppedStop[] = [];
+    const amb = new Map(byStation).set('y', [mk('l1', 'y'), mk('l2', 'y')]);
+    resolveStops('svc-s', 'p', ['l1', 'l2'], ['a', 'x', 'y'], amb, new MigrationReport(), dropped);
+    expect(dropped).toEqual([
+      { pattern: 'p', seq: 2, station_id: 'x', reason: 'not_on_service_lines' },
+      { pattern: 'p', seq: 3, station_id: 'y', reason: 'ambiguous', candidates: ['l1', 'l2'] },
+    ]);
+  });
+});
+
+describe('수집기 설정 보정(Q107·Q109)', () => {
+  it('당고개 → stn-buramsan, 오기·역번호 이름 추가, 잘못 들어간 키 제거', () => {
+    const out = applyKricNameFixes({
+      routes: { a: 1 },
+      names: { I4103: { 당고개: 'stn-danggogae', 수리산: 'stn-surisan' }, 당고개: 'stn-buramsan' },
+    }) as { routes: unknown; names: Record<string, unknown> };
+    expect(out.routes).toEqual({ a: 1 });
+    expect(out.names.I4103).toEqual({ 당고개: 'stn-buramsan', 수리산: 'stn-surisan' });
+    expect(out.names.S2801).toEqual({ 센럴파크: 'stn-central-park' });
+    expect(out.names.S2802).toEqual({ '215인천가좌': 'stn-incheon-gajwa' });
+    expect('당고개' in out.names).toBe(false);
+  });
 });
 
 describe('계획', () => {
@@ -315,6 +341,16 @@ describe('계획', () => {
     expect(out.watch_keywords).toEqual(['연장선']);
     expect(out.is_national).toBe(true);
     expect(entityContracts.plan.create.safeParse(out).success).toBe(true);
+  });
+
+  it('기존 abandoned 인데 이력에 폐기가 없으면 stage_override 로 유지(Q101 A)', () => {
+    const report = new MigrationReport();
+    const out = transformPlan({ ...plan, stage: 'abandoned' }, undefined, [], ctx, report, '주석');
+    expect(out.stage_override).toBe('abandoned');
+    expect(out.editor_note).toMatch(/^주석\n폐기 근거 필요/);
+    expect(report.issues.get('폐기 근거 필요(stage_override = abandoned 임시 유지, Q101 A)')).toEqual(['plan-x']);
+    const ok = transformPlan(plan, undefined, [], ctx, new MigrationReport(), null);
+    expect(ok.stage_override).toBeNull();
   });
 
   it('근거 출처가 없으면 기대 일정을 만들지 않고 리포트(D-7)', () => {

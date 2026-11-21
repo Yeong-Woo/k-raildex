@@ -707,6 +707,10 @@ CREATE INDEX ON timetable_entry (set_id, minute);
 
 시간표는 기계적 갱신(수집기가 세트 통째 교체, 소프트 삭제 대상 아님 — 감사는 수집 실행 단위: `import_run_id` → `ingest.run.id`, 08 문서 3-1-1절).
 
+**기계적 데이터 쓰기 경로(Q98 A)** — "모든 쓰기는 도메인 적용기"의 명시적 예외. 시간표(`timetable_set`·`timetable_entry`)와 이관 때의 id 리다이렉트(`id_redirect`, 상위 계획 `pp-`·환승센터 `xc-` — 관리 앱의 ID 변경·역 병합 리다이렉트는 적용기가 쓴다)는 개체가 아닌 기계적 데이터라 적용기·변경 묶음을 거치지 않고 SQL 한 트랜잭션으로 쓴다(시간표는 `packages/importers` 의 writer 하나 — 수집기와 이관 도구가 같이 쓴다). 감사는 수집 실행 `ingest.run`(params·stats·리포트) 단위이고, 세트의 `import_run_id` 가 그 실행을 가리킨다. 사실(개체) 변경은 이 경로로 쓰지 않는다. `osm` 스키마(참고 데이터, osm-rail)도 같은 성격이다.
+
+`day_note` 표시(Q111 A): 수집기는 `원문 — 해석…`(예 `운행정보 요일구분 "토요일+공휴일" — 토요일·공휴일 공통 다이아`)으로 쓰고, 공개 사이트는 해석 부분만 시간표에 보이고 원문 표기는 출처 절에 둔다(contracts `splitDayNote`).
+
 ### 4-18. 용어 `glossary_term` (Q34 B → Q86 A: 처음부터 DB 가 원천)
 
 ```sql
@@ -904,7 +908,7 @@ CREATE TABLE app_setting (key text PRIMARY KEY, value jsonb NOT NULL, updated_at
 | `mv_search` (물리화)                                                | 이름·별칭·정식 명칭·역번호·초성·용어                                            | search-index.json          |
 | `mv_map_station`, `mv_map_line` (물리화)                            | 현재 지도 재료(시설 제외, 근사 좌표 스냅)                                       | map/*.geojson              |
 
-**현재 단계 규칙**: 단계 이력을 날짜순으로 훑어 `reached` 는 진행도 최댓값 갱신, `withdrawn` 은 그 단계 직전으로 되돌림, `dormant` 는 휴면 표시(이후 reached 가 오면 해제), `abandoned`·`opened` 는 종결.
+**현재 단계 규칙**: 단계 이력을 날짜순으로 훑어 `reached` 는 진행도 최댓값 갱신, `withdrawn` 은 그 단계 직전으로 되돌림, `dormant` 는 휴면 표시(이후 reached 가 오면 해제), `abandoned`·`opened` 는 종결. 같은 날짜의 항목은 진행 단계(reached) 먼저, 폐기·휴면(reached abandoned·dormant, kind dormant)을 나중에 둔다 — 같은 날 고시가 반영과 폐기를 함께 담는 경우 폐기(0018, 기존 build-plans 의 단계 순서와 같음).
 
 ### 6-1. 시점별 지도 `v_map_at(year)` (Q87 A·Q88·Q90 A·Q92 A)
 
@@ -970,6 +974,8 @@ FK 전부, CHECK(코드값·좌표 범위·퍼지 날짜·범위·자기 참조 
 | V-S12 | 미래 지도 대상인데 선형이 schematic 뿐                                      |
 | V-S13 | 개통 예정이 지났는데 미개통(지연)                                           |
 | V-S14 | 시간표 세트의 노선별 역 미해석                                              |
+
+이관 검수 목록(같은 틀, 07 문서): `X-milestone-auto`(기대 일정 출처 자동 선택, Q100 A) · `X-stage-override`(현재 단계 수동 지정) · `X-plan-abandoned-evidence`(stage_override = abandoned 인데 단계 이력에 폐기 항목 없음 — "폐기 근거 필요", Q101 A) · `X-service-dropped-stops`(운행 계통 `extra.dropped_stops` 의 정차역 중 아직 그 패턴에 그 역의 정차역이 없는 것, Q105 A) · `X-source-license-unknown`.
 
 ## 9. 삭제·복구·병합 (Q37 B → Q74 A)
 

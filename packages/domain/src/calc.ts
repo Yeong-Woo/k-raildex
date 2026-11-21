@@ -17,6 +17,9 @@ export interface StageEventLike {
   date: FuzzyDate;
 }
 
+const isTerminal = (e: StageEventLike) =>
+  e.kind === 'dormant' || (e.kind === 'reached' && (e.stage === 'abandoned' || e.stage === 'dormant'));
+
 /** 현재 단계: reached 최고 진행도 / withdrawn 직전 단계 / dormant 휴면 / abandoned 폐기(이후 reached 로 되살림) */
 export function currentStage(events: StageEventLike[], override: Stage | null = null): Stage | null {
   if (override) return override;
@@ -30,6 +33,10 @@ export function currentStage(events: StageEventLike[], override: Stage | null = 
         if (fb === null) return -1;
         return fa < fb ? -1 : 1;
       }
+      // 같은 날짜: 폐기·휴면(reached abandoned·dormant, kind dormant)은 진행 단계 뒤(0018)
+      const ta = isTerminal(a.e) ? 1 : 0;
+      const tb = isTerminal(b.e) ? 1 : 0;
+      if (ta !== tb) return ta - tb;
       const pa = PLAN_STAGE_PROGRESS[a.e.stage];
       const pb = PLAN_STAGE_PROGRESS[b.e.stage];
       return pa !== pb ? pa - pb : a.i - b.i;

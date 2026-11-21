@@ -44,3 +44,23 @@ export const TimetableSetSchema = z
   .strict();
 // 행 순서 = 배열 순서(DB ord). 같은 분·다른 종착 행이 있을 수 있어 분·열차번호 중복을 막지 않는다(0016)
 export type TimetableSet = z.infer<typeof TimetableSetSchema>;
+
+/**
+ * 세트 `day_note` 의 공개 표시(round-04 Q111 A). 수집기는 `원문 — 해석 — 해석…` 꼴로 쓴다
+ * (예: `운행정보 요일구분 "토요일+공휴일" — 토요일·공휴일 공통 다이아`).
+ * 공개 사이트는 해석(`shown`)만 시간표에 보이고 원문 표기(`original`)는 출처 절에 둔다.
+ */
+export function splitDayNote(note: string | null | undefined): { shown: string | null; original: string | null } {
+  if (!note) return { shown: null, original: null };
+  const parts = note
+    .split(' — ')
+    .map((p) => p.trim())
+    .filter(Boolean);
+  const isOriginal = (p: string) => /^운행정보 요일구분 "/.test(p);
+  const original = parts.filter(isOriginal);
+  const shown = parts.filter((p) => !isOriginal(p));
+  return {
+    shown: shown.length ? shown.join(' · ') : null,
+    original: original.length ? original.join(' · ') : null,
+  };
+}
