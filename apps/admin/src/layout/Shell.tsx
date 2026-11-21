@@ -119,6 +119,12 @@ export function Shell() {
           <NavLink to="/map" search={{ tab: 'satellite' }}>
             <MapIcon className="size-4" /> 위성 비교
           </NavLink>
+          <NavLink to="/map" search={{ tool: 'geometry' }}>
+            <MapIcon className="size-4" /> 계획 선형 편집
+          </NavLink>
+          <NavLink to="/map" search={{ tool: 'osm' }}>
+            <MapIcon className="size-4" /> OSM 매핑 점검
+          </NavLink>
         </nav>
         <nav className="flex flex-col gap-0.5">
           <div className="px-2 text-xs font-semibold text-fg-muted">검수·기록</div>
