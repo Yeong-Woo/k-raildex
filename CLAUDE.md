@@ -62,6 +62,9 @@
 pnpm install
 pnpm dev:infra          # 로컬 PostgreSQL(PostGIS, 127.0.0.1:5440) + SeaweedFS S3(127.0.0.1:8333)
 pnpm dev:infra:down
+pnpm stack:up           # 전체를 컨테이너로(db·s3·migrate·api·worker·admin) → 관리 앱 http://127.0.0.1:5202, API 127.0.0.1:5101
+                        #   APP_DB=raildex_admin_dev pnpm stack:up 처럼 DB 이름을 바꿀 수 있다(기본 raildex = 전체 이관 데이터)
+pnpm stack:logs / pnpm stack:down
 pnpm check              # 전체 타입 검사
 pnpm lint               # ESLint
 pnpm test               # Vitest(단위 + 통합)

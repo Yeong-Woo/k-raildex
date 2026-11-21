@@ -14,6 +14,16 @@ pnpm dev:infra          # PostgreSQL(PostGIS) 127.0.0.1:5440 + S3(SeaweedFS) 127
 pnpm check && pnpm lint && pnpm test
 ```
 
+### 컨테이너로 전체 실행
+
+```bash
+pnpm stack:up           # db·s3·migrate·api·worker·admin
+# 관리 앱 http://127.0.0.1:5202 (개발용: 인증 우회 AUTH_DEV_BYPASS), API http://127.0.0.1:5101
+pnpm stack:down
+```
+
+다른 PC 에서는 SSH 포트 포워딩: `ssh -L 5202:127.0.0.1:5202 <사용자>@<서버>` 후 http://localhost:5202
+
 ## 라이선스
 
 코드 MIT, 자체 데이터 CC BY 4.0, 공공데이터·OSM·노선도 이미지는 각 출처 조건.
