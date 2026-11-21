@@ -10,3 +10,6 @@ coverage/
 .DS_Store
 /tmp/
 /data/dump/.tmp/
+
+# Next.js 가 만드는 파일(apps/web)
+next-env.d.ts

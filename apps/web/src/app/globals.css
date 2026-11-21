@@ -1,0 +1,7 @@
+@import 'tailwindcss';
+/* 디자인 토큰(WP 6.3, docs/design/tokens.md) — 값은 packages/ui/src/tokens.ts 한 곳에서 정의한다 */
+@import '@k-raildex/ui/tokens.css';
+@import '@k-raildex/ui/tailwind.css';
+@import '@k-raildex/ui/base.css';
+@import './site.css';
+@source '../../../../packages/ui/src';

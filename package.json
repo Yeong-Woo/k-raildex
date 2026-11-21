@@ -19,6 +19,7 @@
     "test:watch": "vitest",
     "dev:infra": "docker compose -f docker/compose.dev.yml up -d --wait db s3",
     "dev:infra:down": "docker compose -f docker/compose.dev.yml down",
+    "dev:web": "pnpm -F @k-raildex/web dev",
     "prepare": "simple-git-hooks",
     "db:migrate": "pnpm -F @k-raildex/db run db:migrate",
     "db:reset": "pnpm -F @k-raildex/db run db:reset",

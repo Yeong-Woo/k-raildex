@@ -12,13 +12,14 @@ pnpm install
 cp .env.example .env    # 값 채우기(커밋 금지)
 pnpm dev:infra          # PostgreSQL(PostGIS) 127.0.0.1:5440 + S3(SeaweedFS) 127.0.0.1:8333
 pnpm check && pnpm lint && pnpm test
+pnpm dev:web            # 공개 사이트 개발 서버 http://127.0.0.1:5303 (공개 API 127.0.0.1:5101 이 떠 있어야 함)
 ```
 
 ### 컨테이너로 전체 실행
 
 ```bash
-pnpm stack:up           # db·s3·migrate·api·worker·admin
-# 관리 앱 http://127.0.0.1:5202 (개발용: 인증 우회 AUTH_DEV_BYPASS), API http://127.0.0.1:5101
+pnpm stack:up           # db·s3·migrate·api·worker·admin·web
+# 관리 앱 http://127.0.0.1:5202 (개발용: 인증 우회 AUTH_DEV_BYPASS), API http://127.0.0.1:5101, 공개 사이트 http://127.0.0.1:5203
 pnpm stack:down
 ```
 

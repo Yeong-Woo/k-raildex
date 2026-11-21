@@ -1,0 +1,160 @@
+/** 노선 목록(P1): 법적 분류 탭 + 권역 + 광역철도 지정 + 상태. 탭·필터는 링크(JS 없이 동작) */
+import type { Metadata } from 'next';
+import { codeLabel, codes } from '@k-raildex/contracts';
+import { LineChip, ReviewBadge, StatusBadge, FuzzyDateText } from '@/components/badges';
+import { FilterRow, LinkTabs } from '@/components/tabs';
+import { getLines, getRegionIndex } from '@/lib/data';
+import { areaCounts, areaLabel, areaMatches, byKo } from '@/lib/filters';
+import { fmtKm, fmtNum } from '@/lib/format';
+import { pageMeta } from '@/lib/site';
+import { firstParam, paths, pickParam, withQuery } from '@/lib/urls';
+
+export const metadata: Metadata = pageMeta(
+  '노선',
+  '대한민국 철도 물리 노선 목록 — 법적 분류(고속철도·일반철도·도시철도)·광역철도 지정·권역별, 역 수·연장·개통일과 출처.',
+  '/lines/',
+);
+
+type SP = Promise<Record<string, string | string[] | undefined>>;
+const CLASSES = ['all', ...codes.railClass.values] as const;
+const STATUSES = ['all', ...codes.status.values] as const;
+
+export default async function LinesPage({ searchParams }: { searchParams: SP }) {
+  const sp = await searchParams;
+  const cls = pickParam(sp.class, CLASSES, 'all');
+  const area = pickParam(sp.area, ['all', ...codes.area.values] as const, 'all');
+  const status = pickParam(sp.status, STATUSES, 'all');
+  const wide = firstParam(sp.wide) === '1';
+  const current = { class: cls, area, status, wide: wide ? '1' : undefined };
+  const defaults = { class: 'all', area: 'all', status: 'all' };
+  const link = (change: Record<string, string | undefined>) => withQuery(paths.lines(), current, change, defaults);
+
+  const [all, regions] = await Promise.all([getLines(), getRegionIndex()]);
+  const base = all.filter((l) => (!wide || l.is_wide_area) && (status === 'all' || l.status === status));
+  const inClass = base.filter((l) => cls === 'all' || l.rail_class === cls);
+  const shown = inClass.filter((l) => areaMatches(l.areas, area)).sort(byKo);
+
+  const classTabs = CLASSES.map((c) => ({
+    value: c,
+    label: c === 'all' ? '전체' : codeLabel('railClass', c),
+    count: c === 'all' ? base.length : base.filter((l) => l.rail_class === c).length,
+    href: link({ class: c }),
+  }));
+  const areaTabs = areaCounts(inClass).map((a) => ({ ...a, label: areaLabel(a.value), href: link({ area: a.value }) }));
+  const statusTabs = STATUSES.filter((s) => s === 'all' || all.some((l) => l.status === s)).map((s) => ({
+    value: s,
+    label: s === 'all' ? '전체' : codeLabel('status', s),
+    href: link({ status: s }),
+  }));
+  const groups = (cls === 'all' ? codes.railClass.values : [cls]).map((c) => ({
+    cls: c,
+    items: shown.filter((l) => l.rail_class === c),
+  }));
+
+  return (
+    <div className="container" style={{ paddingBottom: 'var(--kr-space-12)' }}>
+      <div className="page-head">
+        <h1>노선</h1>
+        <p className="lead">
+          선로 단위의 물리 노선입니다. 열차가 실제로 달리는 이름·구간은 <a href={paths.services()}>운행 계통</a>에서
+          봅니다. 광역철도 = 노선의 법적 지정, 광역전철 = 운행 계통의 종류로 서로 다른 축입니다.
+        </p>
+      </div>
+      <div className="filters">
+        <FilterRow label="법적 분류">
+          <LinkTabs items={classTabs} current={cls} label="법적 분류" />
+        </FilterRow>
+        <FilterRow label="권역">
+          <LinkTabs items={areaTabs} current={area} label="권역" small />
+        </FilterRow>
+        <FilterRow label="상태">
+          <LinkTabs items={statusTabs} current={status} label="상태" small />
+          <ul className="tabs small" aria-label="광역철도 지정">
+            <li>
+              <a href={link({ wide: wide ? undefined : '1' })} aria-current={wide ? 'true' : undefined}>
+                {wide ? '✓ ' : ''}광역철도 지정만
+              </a>
+            </li>
+          </ul>
+        </FilterRow>
+      </div>
+      <p className="muted num" style={{ fontSize: 'var(--kr-text-sm)' }} aria-live="polite">
+        {fmtNum(shown.length)}개 노선
+      </p>
+      {shown.length === 0 ? <p className="empty surface">조건에 맞는 노선이 없습니다.</p> : null}
+      {groups
+        .filter((g) => g.items.length > 0)
+        .map((g) => (
+          <section key={g.cls} id={`class-${g.cls}`} className="section" style={{ marginTop: 'var(--kr-space-5)' }}>
+            <div className="section-head">
+              <h2>{codeLabel('railClass', g.cls)}</h2>
+              <span className="muted num">{fmtNum(g.items.length)}</span>
+            </div>
+            <div className="table-wrap">
+              <table className="data cardify">
+                <thead>
+                  <tr>
+                    <th scope="col">노선</th>
+                    <th scope="col">분류</th>
+                    <th scope="col">상태</th>
+                    <th scope="col">지역</th>
+                    <th scope="col" className="r">
+                      역 수
+                    </th>
+                    <th scope="col" className="r">
+                      연장(km)
+                    </th>
+                    <th scope="col">개통</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {g.items.map((l) => (
+                    <tr key={l.id}>
+                      <td>
+                        <LineChip line={l} short /> <a href={paths.line(l.id)}>{l.name_ko}</a>{' '}
+                        <ReviewBadge status={l.review_status} />
+                        {l.name_full && l.name_full !== l.name_ko ? (
+                          <span className="name-sub">{l.name_full}</span>
+                        ) : null}
+                        {l.name_en ? <span className="name-sub">{l.name_en}</span> : null}
+                      </td>
+                      <td data-label="분류">
+                        {codeLabel('lineCategory', l.category)}
+                        {l.line_role ? ` · ${codeLabel('lineRole', l.line_role)}` : ''}
+                        {l.is_wide_area ? (
+                          <>
+                            {' '}
+                            <span className="badge outline">광역철도 지정</span>
+                          </>
+                        ) : null}
+                      </td>
+                      <td data-label="상태">
+                        <StatusBadge status={l.status} />
+                        {l.target_open ? (
+                          <span className="name-sub">
+                            목표 <FuzzyDateText value={l.target_open} />
+                          </span>
+                        ) : null}
+                      </td>
+                      <td data-label="지역" style={{ fontSize: 'var(--kr-text-xs)' }}>
+                        {l.regions.map((r) => regions.byCode.get(r)?.short_ko ?? r).join(', ') || '—'}
+                      </td>
+                      <td data-label="역 수" className="r num">
+                        {fmtNum(l.station_count)}
+                      </td>
+                      <td data-label="연장" className="r num">
+                        {fmtKm(l.length_km)}
+                      </td>
+                      <td data-label="개통" className="nowrap">
+                        <FuzzyDateText value={l.opened} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        ))}
+    </div>
+  );
+}
