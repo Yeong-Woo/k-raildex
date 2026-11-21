@@ -38,6 +38,10 @@ export const lineOsmMapSchema = z
     bbox: nullish(bboxSchema),
     priority: z.number().int().default(0),
     include_construction: z.boolean().default(true),
+    /** 이 노선 way 가 다른 노선에 먼저 배정돼도 함께 쓰는 노선(공용 구간, 예: 수서평택고속선 ↔ GTX-A) */
+    share_with: z.array(idSchema('line')).default([]),
+    /** relation·이름으로 잡히지 않는 개별 way(OSM way id) */
+    way_ids: z.array(z.number().int().positive()).default([]),
     note: optText(),
   })
   .strict();

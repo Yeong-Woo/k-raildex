@@ -227,6 +227,39 @@ describe('osm-rail 수집기(DB)', () => {
     expect((await q(`SELECT 1 FROM osm.relation_member`)).length).toBe(4);
   });
 
+  it('공용 구간(share_with)·개별 way(way_ids): 먼저 차지한 노선이 있어도 함께 배정', async () => {
+    const author = await ensureServiceUser(fx.client, 'system', 'test');
+    await applyChangeset(fx.client, {
+      title: '공용 구간',
+      origin: 'admin_edit',
+      author_id: author,
+      ops: [
+        {
+          op: 'update',
+          entity_type: 'line',
+          id: 'line-fx-one',
+          data: { osm_map: { relation_ids: [9001], share_with: ['line-fx-two'], way_ids: [103] } },
+        },
+      ],
+    });
+    const assigned = await q<{ line_id: string; way_id: string }>(
+      `SELECT line_id, way_id FROM osm.v_line_way ORDER BY way_id, line_id`,
+    );
+    expect(assigned.map((a) => [a.line_id, Number(a.way_id)])).toEqual([
+      ['line-fx-one', 101],
+      ['line-fx-two', 101],
+      ['line-fx-one', 102],
+      ['line-fx-one', 103],
+    ]);
+    // 되돌림(뒤 시험은 원래 배정을 기대)
+    await applyChangeset(fx.client, {
+      title: '되돌림',
+      origin: 'admin_edit',
+      author_id: author,
+      ops: [{ op: 'update', entity_type: 'line', id: 'line-fx-one', data: { osm_map: { relation_ids: [9001] } } }],
+    });
+  });
+
   it('쓰기 도중 실패하면 ROLLBACK — 이전 데이터 유지, 실행 기록 failed', async () => {
     const failing: Queryable = {
       query: ((sql: string, p?: unknown[]) => {

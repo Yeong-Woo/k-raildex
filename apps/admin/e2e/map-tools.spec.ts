@@ -1,5 +1,6 @@
 /**
- * 지도 도구(FR-ADM-073·074): 계획 선형 편집(경유역 클릭 → schematic 저장) · OSM 매핑 점검(way 클릭 → relation 추가).
+ * 지도 도구(FR-ADM-050·073·074): 노선 편집(역 점 클릭 → 노선별 역 추가·저장) · 계획 선형 편집(경유역 클릭 → schematic 저장) ·
+ * OSM 매핑 점검(way 클릭 → relation 추가).
  * 전역 준비는 픽스처만 넣으므로(OSM 없음) 작은 OSM 추출을 E2E DB 에 직접 넣는다(osm 스키마만 — 자체 데이터는 API 로만 바꾼다).
  */
 import { createRequire } from 'node:module';
@@ -244,6 +245,88 @@ test('지도 정보 팝업: 편집 중이 아닐 때 역 점을 클릭하면 역
   const popup = page.locator('.maplibregl-popup');
   await expect(popup).toContainText('가');
   await expect(popup).toContainText('stn-fx-a');
+  // 고른 역은 지도에서 고리로 강조
+  const hl = () =>
+    page.evaluate(() =>
+      (window as unknown as { __kraildexMap: { getStyle(): { layers: { id: string }[] } } }).__kraildexMap
+        .getStyle()
+        .layers.filter((l) => l.id.startsWith('kr-hl-'))
+        .map((l) => l.id),
+    );
+  await expect.poll(hl).toContain('kr-hl-current-station-ring');
   await popup.getByRole('link', { name: /역 편집/ }).click();
   await expect(page).toHaveURL(/\/data\/station\/stn-fx-a/);
+});
+
+test('노선 편집: 지도에서 역을 클릭해 노선별 역에 넣고 저장하면 유지된다', async ({ page }) => {
+  const api = process.env.E2E_API_URL;
+  // 앞 시험(여러 건 입력)이 역을 더했을 수 있으므로 지금 목록을 기준으로 본다
+  const stationsOf = async () =>
+    (
+      (await (await page.request.get(`${api}/v1/admin/lines/line-fx-two/stations`)).json()) as {
+        items: { station_id: string; station_name_ko: string | null }[];
+      }
+    ).items;
+  const before = await stationsOf();
+  expect(before.map((x) => x.station_id)).not.toContain('stn-fx-c');
+
+  await page.goto('/map?tool=line&line=line-fx-two');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('노선 편집');
+  await expect(page.getByTestId('lm-line-summary')).toContainText('시험 2호선');
+  await expect(page.getByTestId('lm-line-summary').getByRole('link', { name: /노선 상세 편집/ })).toHaveAttribute(
+    'href',
+    /\/data\/line\/line-fx-two/,
+  );
+  const names = page.getByTestId('lm-station-name');
+  await expect(names).toHaveText(before.map((x) => x.station_name_ko ?? x.station_id));
+  await expect(page.getByTestId('lm-marker')).toHaveCount(before.length);
+
+  await waitMapReady(page, 'lm-stations');
+  await page.evaluate(() =>
+    (window as unknown as { __kraildexMap: { jumpTo(o: { center: Coord; zoom: number }): void } }).__kraildexMap.jumpTo(
+      { center: [127.05, 37.45], zoom: 11 },
+    ),
+  );
+  await waitMapReady(page, 'lm-stations');
+
+  // 추가 모드: 이미 있는 역(가)은 다시 넣지 않는다
+  await page.getByRole('button', { name: '지도에서 역 추가' }).click();
+  await clickLngLat(page, 'line-map', [127.0, 37.5]);
+  const msg = page.getByTestId('lm-add-message');
+  await expect(msg).toContainText('이미 이 노선의');
+  await expect(names).toHaveCount(before.length);
+  await expect(page.locator('.maplibregl-popup')).toHaveCount(0);
+
+  // 다(stn-fx-c)를 클릭 → 경로가 가장 적게 늘어나는 자리에
+  await clickLngLat(page, 'line-map', [127.1, 37.45]);
+  await expect(msg).toContainText(/다\(stn-fx-c\) → \d+번째에 넣었습니다/);
+  const at = Number(/(\d+)번째/.exec((await msg.textContent()) ?? '')![1]);
+  await expect(names).toHaveCount(before.length + 1);
+  await expect(names.nth(at - 1)).toHaveText('다');
+  await expect(page.getByTestId('lm-dirty')).toBeVisible();
+  await expect(page.getByTestId('lm-marker')).toHaveCount(before.length + 1);
+
+  await page.getByRole('button', { name: '역 순서 저장' }).click();
+  await expect(toast(page, '역 순서를 저장했습니다')).toBeVisible();
+  await expect(page.getByTestId('lm-dirty')).toHaveCount(0);
+
+  await page.reload();
+  await expect(names).toHaveCount(before.length + 1);
+  await expect(names.nth(at - 1)).toHaveText('다');
+  const after = await stationsOf();
+  expect(after.map((x) => x.station_id)[at - 1]).toBe('stn-fx-c');
+  expect(after.filter((x) => x.station_id !== 'stn-fx-c').map((x) => x.station_id)).toEqual(
+    before.map((x) => x.station_id),
+  );
+
+  // 추가 모드가 아니면 역 점 클릭 → 정보 팝업
+  await waitMapReady(page, 'lm-stations');
+  await page.evaluate(() =>
+    (window as unknown as { __kraildexMap: { jumpTo(o: { center: Coord; zoom: number }): void } }).__kraildexMap.jumpTo(
+      { center: [127.05, 37.45], zoom: 11 },
+    ),
+  );
+  await waitMapReady(page, 'lm-stations');
+  await clickLngLat(page, 'line-map', [127.0, 37.4]);
+  await expect(page.locator('.maplibregl-popup')).toContainText('stn-fx-e');
 });

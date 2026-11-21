@@ -1,4 +1,4 @@
-/** 지도(FR-ADM-070~076): 지도 편집 · 계획 선형 편집 · OSM 매핑 점검 · 미래 지도 미리 보기 · 위성 비교.
+/** 지도(FR-ADM-070~076): 지도 편집 · 노선 편집 · 계획 선형 편집 · 미래 지도 · 위성 비교 · OSM 매핑 점검.
  * 화면 전환은 사이드바 메뉴만 쓴다(탭 줄 없음). 역·선 클릭 → 정보 팝업(map/FeaturePopup). */
 import { lazy, Suspense } from 'react';
 import { useNavigate, useRouterState, useSearch } from '@tanstack/react-router';
@@ -11,12 +11,13 @@ const SatelliteCompare = lazy(() => import('../map/SatelliteCompare').then((m) =
 const PlanGeometryEditor = lazy(() =>
   import('../map/PlanGeometryEditor').then((m) => ({ default: m.PlanGeometryEditor })),
 );
+const LineMapEditor = lazy(() => import('../map/LineMapEditor').then((m) => ({ default: m.LineMapEditor })));
 const OsmMappingCheck = lazy(() => import('../map/OsmMappingCheck').then((m) => ({ default: m.OsmMappingCheck })));
 
 type RouteTab = 'edit' | 'future' | 'satellite';
 /** 라우트 검증(router.tsx MapSearch.tab)에 없는 도구 탭 — `?tool=` 으로 둔다(검증되지 않은 검색 키는 그대로 남는다) */
-type ToolTab = 'geometry' | 'osm';
-const TOOL_TABS: readonly ToolTab[] = ['geometry', 'osm'];
+type ToolTab = 'line' | 'geometry' | 'osm';
+const TOOL_TABS: readonly ToolTab[] = ['line', 'geometry', 'osm'];
 
 /** 라우트가 검증하지 않는 지도 도구 검색 키(tool·plan·line) */
 interface ToolSearch {
@@ -28,10 +29,11 @@ interface ToolSearch {
 /** 화면 이름(전환은 사이드바 "지도" 메뉴에서) */
 const TITLES: Record<RouteTab | ToolTab, string> = {
   edit: '지도 편집',
+  line: '노선 편집',
   geometry: '계획 선형 편집',
-  osm: 'OSM 매핑 점검',
-  future: '미래 지도 미리 보기',
+  future: '미래 지도',
   satellite: '위성 비교',
+  osm: 'OSM 매핑 점검',
 };
 
 export function MapPage() {
@@ -61,7 +63,12 @@ export function MapPage() {
       </div>
       <div className="relative min-h-0 flex-1">
         <Suspense fallback={<Empty>지도 불러오는 중…</Empty>}>
-          {tab === 'geometry' ? (
+          {tab === 'line' ? (
+            <LineMapEditor
+              lineId={str(raw.line)}
+              onLineChange={(id) => setTool({ tool: 'line', line: id ?? undefined })}
+            />
+          ) : tab === 'geometry' ? (
             <PlanGeometryEditor
               planId={str(raw.plan)}
               onPlanChange={(id) => setTool({ tool: 'geometry', plan: id ?? undefined })}

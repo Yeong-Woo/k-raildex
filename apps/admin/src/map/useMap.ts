@@ -43,7 +43,11 @@ export function useMapLibre(opts: { satellite?: boolean } = {}) {
     m.addControl(new AttributionControl({ compact: false }), 'bottom-right');
     m.addControl(new NavigationControl({ showCompass: false }), 'top-right');
     m.addControl(new ScaleControl({ unit: 'metric' }), 'bottom-left');
-    m.on('load', () => setMap(m));
+    m.on('load', () => {
+      setMap(m);
+      // E2E·점검 스크립트용(지도 하나만 떠 있다)
+      (window as unknown as { __kraildexMap?: MlMap }).__kraildexMap = m;
+    });
     return () => {
       setMap(null);
       m.remove();

@@ -45,7 +45,7 @@ test('품질 화면과 대시보드 품질 요약', async ({ page }) => {
   await expect(page.getByTestId('quality-items')).toBeVisible();
 });
 
-test('미래 지도 미리 보기: 연도에 맞는 계획이 나오고 계획 편집으로 갈 수 있다', async ({ page }) => {
+test('미래 지도: 연도에 맞는 계획이 나오고 계획 편집으로 갈 수 있다', async ({ page }) => {
   const r = await page.request.get(`${process.env.E2E_API_URL}/v1/admin/map/timeline`);
   test.skip(r.status() === 404, '지도 API 없음');
   await page.goto('/map?tab=future&at=2040');

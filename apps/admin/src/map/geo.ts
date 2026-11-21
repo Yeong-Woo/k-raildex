@@ -114,3 +114,30 @@ export function bboxParam(b: { getWest(): number; getSouth(): number; getEast():
     f(Math.min(90, b.getNorth())),
   ].join(',');
 }
+
+/**
+ * 순서 있는 점 목록에 새 점을 넣을 자리(0..n) — 이웃 사이 경로 길이가 가장 적게 늘어나는 곳.
+ * 좌표가 없는 행은 건너뛰고 가장 가까운 좌표 있는 행을 이웃으로 본다. 새 점 좌표가 없거나 좌표 있는 행이 하나도 없으면 끝(n).
+ */
+export function bestInsertIndex(points: (Coord | null)[], c: Coord | null): number {
+  const n = points.length;
+  if (!c || !points.some(Boolean)) return n;
+  let best = n;
+  let bestCost = Infinity;
+  for (let i = 0; i <= n; i++) {
+    let prev: Coord | null = null;
+    for (let j = i - 1; j >= 0 && !prev; j--) prev = points[j] ?? null;
+    let next: Coord | null = null;
+    for (let j = i; j < n && !next; j++) next = points[j] ?? null;
+    let cost: number;
+    if (prev && next) cost = haversineKm(prev, c) + haversineKm(c, next) - haversineKm(prev, next);
+    else if (prev) cost = haversineKm(prev, c);
+    else if (next) cost = haversineKm(c, next);
+    else continue;
+    if (cost < bestCost - 1e-9) {
+      bestCost = cost;
+      best = i;
+    }
+  }
+  return best;
+}

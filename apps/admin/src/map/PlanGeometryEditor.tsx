@@ -8,7 +8,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { Marker, type Map as MlMap, type MapLayerMouseEvent } from 'maplibre-gl';
+import { Marker, type MapLayerMouseEvent } from 'maplibre-gl';
 import { codeLabel, codes, type PlanGeometry } from '@k-raildex/contracts';
 import { currentLineLayers, currentStationLayers, GEOMETRY_QUALITY_LABELS, type LayerSpec } from '@k-raildex/map';
 import { Badge, Button, Card, cn, Input, Label, Select, Textarea } from '@k-raildex/ui';
@@ -151,10 +151,6 @@ export function PlanGeometryEditor({
   const [drawing, setDrawing] = useState(false);
   const [paste, setPaste] = useState('');
   const markers = useRef<Marker[]>([]);
-
-  useEffect(() => {
-    if (map) (window as unknown as { __kraildexMap?: MlMap }).__kraildexMap = map;
-  }, [map]);
 
   const stations = useQuery({
     queryKey: ['map', 'current-stations'],

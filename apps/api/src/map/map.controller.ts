@@ -1,5 +1,5 @@
 /**
- * 지도 GeoJSON — 관리 앱(현재 지도·미래 지도 미리 보기·계획 선형 편집·OSM 매핑 점검, docs/05-admin-app.md 6절 FR-ADM-070~075).
+ * 지도 GeoJSON — 관리 앱(현재 지도·미래 지도·노선 편집·계획 선형 편집·OSM 매핑 점검, docs/05-admin-app.md 6절 FR-ADM-070~075).
  * 공개 API(/v1/public/map/*)도 같은 도메인 함수(map.ts)를 쓸 예정.
  */
 import { Controller, Get, Inject, Param, Query } from '@nestjs/common';

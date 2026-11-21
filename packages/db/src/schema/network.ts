@@ -114,6 +114,14 @@ export const lineOsmMap = pgTable('line_osm_map', {
   bbox: numericArray('bbox'),
   priority: integer('priority').notNull().default(0),
   includeConstruction: boolean('include_construction').notNull().default(true),
+  wayIds: bigint('way_ids', { mode: 'number' })
+    .array()
+    .notNull()
+    .default(sql`'{}'`),
+  shareWith: text('share_with')
+    .array()
+    .notNull()
+    .default(sql`'{}'`),
   note: text('note'),
 });
 

@@ -381,17 +381,15 @@ export function transformNetwork(input: NetworkInput, report: MigrationReport): 
     let osmMap: LineCreate['osm_map'] = null;
     if (osm) {
       const notes = [osm.m.note];
-      if (osm.m.share_with?.length) notes.push(`share_with: ${osm.m.share_with.join(', ')}`);
-      if (osm.m.claim_first) notes.push(`claim_first: ${JSON.stringify(osm.m.claim_first)}`);
-      if (osm.m.ways?.length) notes.push(`ways: ${osm.m.ways.join(', ')}`);
-      if (osm.m.share_with || osm.m.claim_first || osm.m.ways)
-        report.add('OSM 배정 옵션(share_with·claim_first·ways)은 계약에 열이 없어 note 로 보관', l.id);
+      // share_with·ways 는 열(0019·0020), claim_first 는 priority 를 앞당겨(−1000) 표현
       osmMap = {
         relation_ids: osm.m.relations ?? [],
         way_names: osm.m.way_names ?? [],
         bbox: osm.m.bbox && osm.m.bbox.length === 4 ? (osm.m.bbox as [number, number, number, number]) : null,
-        priority: osm.priority,
+        priority: osm.m.claim_first ? osm.priority - 1000 : osm.priority,
         include_construction: true,
+        share_with: osm.m.share_with ?? [],
+        way_ids: osm.m.ways ?? [],
         note: notes.filter(Boolean).join('\n') || null,
       };
     }

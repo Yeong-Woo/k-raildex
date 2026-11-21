@@ -113,14 +113,17 @@ export function Shell() {
           <NavLink to="/map" search={{ tab: 'edit' }}>
             <MapIcon className="size-4" /> 지도 편집
           </NavLink>
-          <NavLink to="/map" search={{ tab: 'future' }}>
-            <MapIcon className="size-4" /> 미래 지도 미리 보기
-          </NavLink>
-          <NavLink to="/map" search={{ tab: 'satellite' }}>
-            <MapIcon className="size-4" /> 위성 비교
+          <NavLink to="/map" search={{ tool: 'line' }}>
+            <MapIcon className="size-4" /> 노선 편집
           </NavLink>
           <NavLink to="/map" search={{ tool: 'geometry' }}>
             <MapIcon className="size-4" /> 계획 선형 편집
+          </NavLink>
+          <NavLink to="/map" search={{ tab: 'future' }}>
+            <MapIcon className="size-4" /> 미래 지도
+          </NavLink>
+          <NavLink to="/map" search={{ tab: 'satellite' }}>
+            <MapIcon className="size-4" /> 위성 비교
           </NavLink>
           <NavLink to="/map" search={{ tool: 'osm' }}>
             <MapIcon className="size-4" /> OSM 매핑 점검

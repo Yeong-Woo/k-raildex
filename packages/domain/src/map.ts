@@ -250,7 +250,7 @@ export async function lineGeometry(db: Queryable, lineId: string): Promise<Featu
   }>(`SELECT id, name_ko, status, length_km, color FROM line WHERE id = $1 AND deleted_at IS NULL`, [lineId]);
   if (!line.rows[0]) throw new DomainError('not_found', `노선 ${lineId} 가 없음`);
   const map = await db.query<Record<string, unknown>>(
-    `SELECT relation_ids::float8[] AS relation_ids, way_names, bbox::float8[] AS bbox, priority, include_construction, note
+    `SELECT relation_ids::float8[] AS relation_ids, way_names, bbox::float8[] AS bbox, priority, include_construction, way_ids::float8[] AS way_ids, share_with, note
        FROM line_osm_map WHERE line_id = $1`,
     [lineId],
   );

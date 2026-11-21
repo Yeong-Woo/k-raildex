@@ -1,8 +1,7 @@
 /** 노선 역 순서 편집기(FR-ADM-050): 드래그 순서·행 추가/삭제·구간 일괄 상태·km 역행 경고. 저장 = 전체 교체(PUT) */
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
-import { useEffect, useMemo, useState } from 'react';
-import { toast } from 'sonner';
+import { useState } from 'react';
 import {
   closestCenter,
   DndContext,
@@ -22,82 +21,31 @@ import {
 import { codeLabel, codes } from '@k-raildex/contracts';
 import { Badge, Button, Card, CardHeader, cn, Empty, Input, Select } from '@k-raildex/ui';
 import { AlertTriangle, ArrowDown, ArrowUp, ExternalLink, GripVertical, Plus, RotateCcw, Trash2 } from 'lucide-react';
-import { api, ApiError, errorText, qs } from '../lib/api';
+import { api, errorText, qs } from '../lib/api';
 import { FuzzyCell } from '../form/widgets/FuzzyCell';
-import { kmRegressions, rangeKeys, setStatusFor, toPutItems, type LsRow } from '../lib/line-stations';
+import { kmRegressions, rangeKeys, setStatusFor, type LsRow } from '../lib/line-stations';
 import { RefInput, useLabel } from '../form/widgets/RefInput';
-
-interface LsResponse {
-  line_id: string;
-  items: (Record<string, unknown> & { id: string; version: number })[];
-}
-
-let keySeq = 0;
-const newKey = () => `k${++keySeq}`;
+import { newLineStationRow, useLineStations } from './useLineStations';
 
 export function LineStationsEditor({ lineId }: { lineId: string }) {
-  const qc = useQueryClient();
-  const path = `/v1/admin/lines/${encodeURIComponent(lineId)}/stations`;
-  const q = useQuery({ queryKey: ['line-stations', lineId], queryFn: () => api<LsResponse>(path) });
+  const { query: q, original, rows, setRows, dirty, save, rowErrors, serverErrors } = useLineStations(lineId);
   const operators = useQuery({
     queryKey: ['list', 'operator', 'all'],
     staleTime: 60_000,
     queryFn: () => api<{ items: { id: string; name_ko: string | null }[] }>(`/v1/admin/operator${qs({ limit: 200 })}`),
   });
 
-  const original = useMemo<LsRow[]>(
-    () => (q.data?.items ?? []).map((it) => ({ ...it, _key: it.id }) as LsRow),
-    [q.data],
-  );
-  const [rows, setRows] = useState<LsRow[]>(original);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [anchor, setAnchor] = useState<string | null>(null);
   const [bulkStatus, setBulkStatus] = useState('under_construction');
   const [hideBranches, setHideBranches] = useState(false);
-  const [rowErrors, setRowErrors] = useState<Record<number, string>>({});
-  const [serverErrors, setServerErrors] = useState<string[]>([]);
-  useEffect(() => setRows(original), [original]);
 
-  const dirty = JSON.stringify(toPutItems(rows)) !== JSON.stringify(toPutItems(original));
   const regress = kmRegressions(rows);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
-
-  const save = useMutation({
-    mutationFn: () => api<{ changeset_id: string | null }>(path, { method: 'PUT', json: { items: toPutItems(rows) } }),
-    onSuccess: async (r) => {
-      toast.success(r.changeset_id ? `역 순서를 저장했습니다 (${r.changeset_id})` : '바뀐 것이 없습니다');
-      setRowErrors({});
-      setServerErrors([]);
-      await qc.invalidateQueries({ queryKey: ['line-stations', lineId] });
-      await qc.invalidateQueries({ queryKey: ['entity'] });
-    },
-    onError: (e) => {
-      toast.error(errorText(e));
-      if (e instanceof ApiError) {
-        const re: Record<number, string> = {};
-        const other: string[] = [];
-        for (const d of e.body.details ?? []) {
-          const m = /^items\.(\d+)/.exec(d.path ?? '');
-          const msg = `${d.rule ? `[${d.rule}] ` : ''}${d.message}`;
-          if (m) re[Number(m[1])] = msg;
-          else other.push(`${d.entity_id ? `${d.entity_id}: ` : ''}${d.path ? `${d.path} ` : ''}${msg}`);
-        }
-        if (e.body.references?.length)
-          other.push(
-            `삭제하려는 노선별 역을 참조하는 행: ${e.body.references.map((r) => `${r.table}(${r.owner_id ?? '-'})`).join(', ')}`,
-          );
-        if (e.status === 409 && e.body.current_version !== undefined)
-          other.push('다른 곳에서 먼저 수정했습니다. [되돌리기]로 새로 불러온 뒤 다시 편집하세요.');
-        if (!other.length && !Object.keys(re).length) other.push(e.body.message);
-        setRowErrors(re);
-        setServerErrors(other);
-      }
-    },
-  });
 
   const update = (key: string, patch: Partial<LsRow>) =>
     setRows((rs) => rs.map((r) => (r._key === key ? { ...r, ...patch } : r)));
@@ -123,22 +71,7 @@ export function LineStationsEditor({ lineId }: { lineId: string }) {
   };
   const addStation = (stationId: string | null) => {
     if (!stationId) return;
-    setRows((rs) => [
-      ...rs,
-      {
-        _key: newKey(),
-        station_id: stationId,
-        branch: null,
-        km: null,
-        station_code: null,
-        order_confirmed: true,
-        status: rs.at(-1)?.status ?? 'operating',
-        opened: null,
-        closed: null,
-        name_ko: null,
-        operator_id: null,
-      },
-    ]);
+    setRows((rs) => [...rs, newLineStationRow(stationId, rs.at(-1)?.status ?? 'operating')]);
   };
 
   if (q.isLoading) return <Empty>불러오는 중…</Empty>;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bboxParam, curveThrough, haversineKm, lengthKm, parseLineGeoJson, type Coord } from './geo';
+import { bboxParam, bestInsertIndex, curveThrough, haversineKm, lengthKm, parseLineGeoJson, type Coord } from './geo';
 
 describe('geo', () => {
   it('하버사인 길이', () => {
@@ -64,5 +64,22 @@ describe('geo', () => {
   it('bbox 문자열', () => {
     const b = { getWest: () => 126.91234, getSouth: () => 37.4, getEast: () => 200, getNorth: () => 37.6 };
     expect(bboxParam(b)).toBe('126.9123,37.4,180,37.6');
+  });
+
+  it('역 넣을 자리: 경로 길이가 가장 적게 늘어나는 곳', () => {
+    const a: Coord = [127.0, 37.5];
+    const e: Coord = [127.0, 37.4];
+    // 가·마 사이(가운데)가 가장 짧다
+    expect(bestInsertIndex([a, e], [127.1, 37.45])).toBe(1);
+    // 끝 바깥쪽이면 끝
+    expect(bestInsertIndex([a, e], [127.0, 37.3])).toBe(2);
+    // 앞 바깥쪽이면 처음
+    expect(bestInsertIndex([a, e], [127.0, 37.6])).toBe(0);
+    // 좌표 없는 행은 건너뛴다
+    expect(bestInsertIndex([a, null, e], [127.0, 37.3])).toBe(3);
+    // 좌표가 없으면 끝
+    expect(bestInsertIndex([a, e], null)).toBe(2);
+    expect(bestInsertIndex([null, null], [127, 37])).toBe(2);
+    expect(bestInsertIndex([], [127, 37])).toBe(0);
   });
 });

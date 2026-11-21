@@ -9,7 +9,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import type { Map as MlMap, MapLayerMouseEvent } from 'maplibre-gl';
+import type { MapLayerMouseEvent } from 'maplibre-gl';
 import type { LineOsmMap } from '@k-raildex/contracts';
 import type { LayerSpec } from '@k-raildex/map';
 import { Badge, Button, Card, Label } from '@k-raildex/ui';
@@ -115,10 +115,6 @@ export function OsmMappingCheck({
   const [bbox, setBbox] = useState<string | null>(null);
   const [picked, setPicked] = useState<number | null>(null);
 
-  useEffect(() => {
-    if (map) (window as unknown as { __kraildexMap?: MlMap }).__kraildexMap = map;
-  }, [map]);
-
   // 지도 범위(줌 MIN_ZOOM 이상일 때만 way 를 받는다)
   useEffect(() => {
     if (!map) return;
@@ -214,6 +210,8 @@ export function OsmMappingCheck({
     bbox: null,
     priority: 0,
     include_construction: true,
+    share_with: [],
+    way_ids: [],
     note: null,
   };
   const save = useMutation({
