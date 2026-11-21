@@ -22,3 +22,4 @@ export * from './external-api';
 export * from './external-catalog';
 export * from './ops';
 export * from './ops-refetch';
+export * from './public';

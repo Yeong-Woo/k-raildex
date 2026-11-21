@@ -3,6 +3,7 @@
  * components.schemas 에 <Type>Create·<Type>Update·<Type>Read 를 두고, 관리 API 경로를 적는다.
  * 표현할 수 없는 검사(superRefine 등)는 빠진다 — 최종 검증은 서버(zod·도메인 적용기)가 한다.
  */
+import * as contracts from '@k-raildex/contracts';
 import { codes, entityContracts, type EntityType } from '@k-raildex/contracts';
 import { z } from 'zod';
 
@@ -276,9 +277,167 @@ export function buildOpenApi(): Json {
       responses: { ...ok(), ...errors },
     };
   }
+  // 공개 API(docs/04-api.md 5절) — 응답 계약은 contracts/src/public(zod strict). 범위 public:read
+  const pub: [string, string, keyof typeof contracts | null, string[]][] = [
+    ['/v1/public/version', '현재 데이터 판', null, []],
+    ['/v1/public/home', '홈: 통계·권역별 집계·개통 예정·최근 변경', 'publicHomeSchema', []],
+    ['/v1/public/areas', '권역·시·도별 집계', 'publicAreasSchema', []],
+    [
+      '/v1/public/lines',
+      '노선 목록',
+      'publicLineListSchema',
+      ['rail_class', 'category', 'status', 'area', 'region', 'is_wide_area', 'q', 'limit', 'offset'],
+    ],
+    ['/v1/public/lines/{id}', '노선 상세(역 순서·운행 계통·관련 계획·연혁·출처)', 'publicLineDetailSchema', []],
+    [
+      '/v1/public/stations',
+      '역 목록 + 탭 숫자(facets)',
+      'publicStationListSchema',
+      [
+        'area',
+        'region',
+        'status',
+        'opened',
+        'line_class',
+        'service_kind',
+        'line_id',
+        'q',
+        'include_facilities',
+        'limit',
+        'offset',
+      ],
+    ],
+    [
+      '/v1/public/stations/{id}',
+      '역 상세(노선별 절·이웃 역·시간표 요약·관련 계획·환승센터)',
+      'publicStationDetailSchema',
+      [],
+    ],
+    [
+      '/v1/public/services',
+      '운행 계통 목록',
+      'publicServiceListSchema',
+      ['kind', 'status', 'area', 'line_id', 'train_class_id', 'limit', 'offset'],
+    ],
+    ['/v1/public/services/{id}', '운행 계통 상세(정차 패턴)', 'publicServiceDetailSchema', []],
+    ['/v1/public/timetable/{station_id}', '역 시간표(요일 설명 해석·원문 분리)', 'publicTimetableSchema', []],
+    [
+      '/v1/public/plans',
+      '계획 목록',
+      'publicPlanListSchema',
+      [
+        'program_id',
+        'stage',
+        'stage_min',
+        'state',
+        'area',
+        'region',
+        'scope',
+        'ref_class',
+        'category',
+        'line_id',
+        'station_id',
+        'has_target',
+        'q',
+        'limit',
+        'offset',
+      ],
+    ],
+    ['/v1/public/plans/{id}', '계획 상세(단계·기대 일정·반영 내역·역할·근거 원문)', 'publicPlanDetailSchema', []],
+    [
+      '/v1/public/plan-programs',
+      '상위 계획 목록',
+      'publicPlanProgramListSchema',
+      ['kind', 'status', 'limit', 'offset'],
+    ],
+    ['/v1/public/plan-programs/{id}', '상위 계획 상세 + 반영 계획', 'publicPlanProgramDetailSchema', []],
+    [
+      '/v1/public/transfer-centers',
+      '환승센터 목록',
+      'publicTransferCenterListSchema',
+      ['status', 'kind', 'area', 'region', 'limit', 'offset'],
+    ],
+    ['/v1/public/transfer-centers/{id}', '환승센터 상세', 'publicTransferCenterDetailSchema', []],
+    ['/v1/public/upcoming', '개통 예정(노선·역·계획)', 'publicUpcomingSchema', ['area']],
+    ['/v1/public/closed', '폐선·폐역·운행 종료', 'publicClosedSchema', []],
+    [
+      '/v1/public/timeline',
+      '연표(v_event_all)',
+      'publicTimelineSchema',
+      ['decade', 'year', 'type', 'target', 'area', 'include_derived', 'limit', 'offset'],
+    ],
+    ['/v1/public/trains', '열차번호대·차량번호대', 'publicTrainsSchema', []],
+    ['/v1/public/train-classes', '열차 등급', 'publicTrainClassListSchema', []],
+    ['/v1/public/numbers/search', '번호 찾기(열차번호·차량번호 따로)', 'publicNumberSearchSchema', ['n']],
+    ['/v1/public/search', '통합 검색(mv_search)', 'publicSearchSchema', ['q', 'type', 'area', 'limit']],
+    [
+      '/v1/public/map/stations.geojson',
+      '역 지도(at 없음 = 현재, at=연도|future = 시점별)',
+      'publicMapStationsSchema',
+      ['at', 'stage_min', 'include_undated'],
+    ],
+    [
+      '/v1/public/map/lines.geojson',
+      '노선 지도(OSM 선형이면 ODbL attribution)',
+      'publicMapLinesSchema',
+      ['at', 'stage_min', 'include_undated'],
+    ],
+    [
+      '/v1/public/map/plans.geojson',
+      '계획 선형(at 없음 = 올해)',
+      'publicMapPlansSchema',
+      ['at', 'stage_min', 'include_undated'],
+    ],
+    ['/v1/public/map/timeline', '연도 슬라이더(연도별 개통 예정 계획)', 'publicMapTimelineSchema', ['stage_min']],
+    ['/v1/public/documents/{id}', '공개 원문 다운로드(publishable·공개 라이선스, 아니면 404)', null, ['disposition']],
+    ['/v1/public/documents/{id}/info', '공개 원문 정보', 'publicDocumentInfoSchema', []],
+    [
+      '/v1/public/sources',
+      '출처 목록(공개 원문 링크)',
+      'publicSourceListSchema',
+      ['type', 'q', 'with_documents', 'limit', 'offset'],
+    ],
+    ['/v1/public/route-maps', '공식 노선도', 'publicRouteMapListSchema', []],
+    ['/v1/public/terms', '용어', 'publicTermListSchema', []],
+    ['/v1/public/feed/changes', '최근 변경(Atom 재료)', 'publicFeedSchema', ['limit']],
+    ['/v1/public/sitemap-entries', '사이트맵 경로·갱신일', 'publicSitemapSchema', []],
+    ['/v1/public/redirects', '옛 id → 새 id 전체', 'publicRedirectListSchema', []],
+    ['/v1/public/redirects/{old_id}', '옛 id → 새 id 정보(없으면 404)', 'pubRedirectSchema', []],
+  ];
+  for (const [path, summary, schemaName, query] of pub) {
+    const params = [
+      ...[...path.matchAll(/\{(\w+)\}/g)].map((m) => pathParam(m[1]!)),
+      ...query.map((n) => queryParam(n)),
+    ];
+    let content: Json | undefined;
+    if (schemaName) {
+      const name = schemaName[0]!.toUpperCase() + schemaName.slice(1).replace(/Schema$/, '');
+      schemas[name] = toSchema(contracts[schemaName] as z.ZodType, 'output');
+      content = json(ref(name));
+    }
+    const entry = (paths[path] ??= {}) as Json;
+    entry.get = {
+      summary,
+      tags: ['public'],
+      security: [{ bearer: [] }],
+      ...(params.length ? { parameters: params } : {}),
+      responses: {
+        '200': { description: 'OK(ETag·X-Data-Version·Cache-Control)', ...(content ? { content } : {}) },
+        '301': { description: '옛 id(id_redirect) — Location 에 새 경로' },
+        '304': { description: 'If-None-Match 일치' },
+        '410': { description: '삭제된 개체' },
+        ...errors,
+      },
+    };
+  }
+
   return {
     openapi: '3.1.0',
-    info: { title: 'K-Raildex API', version: '0.1.0', description: '관리 API(docs/04-api.md). 127.0.0.1 전용.' },
+    info: {
+      title: 'K-Raildex API',
+      version: '0.1.0',
+      description: '관리 API·공개 읽기 API(docs/04-api.md). 127.0.0.1 전용.',
+    },
     servers: [{ url: 'http://127.0.0.1:5100' }],
     security: [{ cfAccess: [] }, { bearer: [] }],
     paths,
