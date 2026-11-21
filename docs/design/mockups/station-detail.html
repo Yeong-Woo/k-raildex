@@ -1,0 +1,1862 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>서울역 — 한국철도도감 (시안)</title>
+    <!-- 시안 미리보기 전용: Pretendard(SIL OFL 1.1) CDN. 실제 사이트는 자가 호스팅(06 문서 4절). 불러오지 못하면 시스템 한글 글꼴 -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
+    />
+    <style>
+      /* 생성 파일 — 직접 고치지 않는다. 원본: packages/ui/src/tokens.ts, 만들기: node packages/ui/scripts/gen-tokens.ts */
+      /* 문서: docs/design/tokens.md */
+
+      :root {
+        color-scheme: light;
+        --kr-font-sans:
+          'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, 'Apple SD Gothic Neo',
+          'Noto Sans KR', 'Malgun Gothic', sans-serif;
+        --kr-font-mono:
+          ui-monospace, SFMono-Regular, 'JetBrains Mono', Menlo, Consolas, 'Noto Sans Mono CJK KR', monospace;
+        --kr-text-xs: 0.75rem;
+        --kr-text-xs-lh: 1.5;
+        --kr-text-xs-ls: 0;
+        --kr-text-sm: 0.875rem;
+        --kr-text-sm-lh: 1.55;
+        --kr-text-sm-ls: 0;
+        --kr-text-base: 1rem;
+        --kr-text-base-lh: 1.7;
+        --kr-text-base-ls: 0;
+        --kr-text-lg: 1.125rem;
+        --kr-text-lg-lh: 1.55;
+        --kr-text-lg-ls: -0.005em;
+        --kr-text-xl: 1.25rem;
+        --kr-text-xl-lh: 1.45;
+        --kr-text-xl-ls: -0.01em;
+        --kr-text-2xl: 1.5rem;
+        --kr-text-2xl-lh: 1.35;
+        --kr-text-2xl-ls: -0.015em;
+        --kr-text-3xl: 1.875rem;
+        --kr-text-3xl-lh: 1.25;
+        --kr-text-3xl-ls: -0.02em;
+        --kr-text-display: clamp(2rem, 1.4rem + 2.4vw, 2.75rem);
+        --kr-text-display-lh: 1.15;
+        --kr-text-display-ls: -0.025em;
+        --kr-weight-regular: 400;
+        --kr-weight-medium: 500;
+        --kr-weight-semibold: 600;
+        --kr-weight-bold: 700;
+        --kr-weight-heavy: 800;
+        --kr-space-0: 0;
+        --kr-space-1: 0.25rem;
+        --kr-space-2: 0.5rem;
+        --kr-space-3: 0.75rem;
+        --kr-space-4: 1rem;
+        --kr-space-5: 1.25rem;
+        --kr-space-6: 1.5rem;
+        --kr-space-8: 2rem;
+        --kr-space-10: 2.5rem;
+        --kr-space-12: 3rem;
+        --kr-space-16: 4rem;
+        --kr-space-0_5: 0.125rem;
+        --kr-space-1_5: 0.375rem;
+        --kr-space-2_5: 0.625rem;
+        --kr-radius-xs: 3px;
+        --kr-radius-sm: 5px;
+        --kr-radius-md: 8px;
+        --kr-radius-lg: 12px;
+        --kr-radius-xl: 16px;
+        --kr-radius-pill: 999px;
+        --kr-duration-fast: 120ms;
+        --kr-duration-base: 180ms;
+        --kr-duration-slow: 280ms;
+        --kr-duration-map: 450ms;
+        --kr-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+        --kr-ease-enter: cubic-bezier(0, 0, 0, 1);
+        --kr-ease-exit: cubic-bezier(0.3, 0, 1, 1);
+        --kr-z-base: 0;
+        --kr-z-raised: 1;
+        --kr-z-sticky: 100;
+        --kr-z-map-controls: 200;
+        --kr-z-dropdown: 300;
+        --kr-z-overlay: 400;
+        --kr-z-modal: 500;
+        --kr-z-toast: 600;
+        --kr-z-tooltip: 700;
+        --kr-z-skip-link: 800;
+        --kr-content-max: 75rem;
+        --kr-measure: 68ch;
+        --kr-sidebar-w: 20rem;
+        --kr-map-panel-w: 24rem;
+        --kr-header-h: 3.5rem;
+        --kr-gutter: 1rem;
+        --kr-gutter-lg: 1.5rem;
+        --kr-target-min: 24px;
+        --kr-target-comfort: 44px;
+        --kr-line-band: 6px;
+        --kr-bg: oklch(0.975 0.003 255);
+        --kr-surface: oklch(1 0 0);
+        --kr-surface-muted: oklch(0.955 0.005 255);
+        --kr-surface-sunken: oklch(0.935 0.006 255);
+        --kr-overlay: oklch(0.2 0.02 255 / 0.45);
+        --kr-fg: oklch(0.22 0.014 255);
+        --kr-fg-muted: oklch(0.44 0.016 255);
+        --kr-fg-subtle: oklch(0.52 0.014 255);
+        --kr-border: oklch(0.9 0.006 255);
+        --kr-border-strong: oklch(0.62 0.012 255);
+        --kr-accent: oklch(0.47 0.15 258);
+        --kr-accent-fg: oklch(0.99 0 0);
+        --kr-accent-soft: oklch(0.94 0.03 258);
+        --kr-accent-soft-fg: oklch(0.38 0.13 258);
+        --kr-link: oklch(0.45 0.15 258);
+        --kr-link-visited: oklch(0.44 0.15 300);
+        --kr-focus: oklch(0.66 0.17 55);
+        --kr-danger: oklch(0.5 0.18 27);
+        --kr-danger-fg: oklch(0.99 0 0);
+        --kr-danger-soft: oklch(0.95 0.025 27);
+        --kr-warn: oklch(0.5 0.11 65);
+        --kr-warn-fg: oklch(0.99 0 0);
+        --kr-warn-soft: oklch(0.95 0.05 85);
+        --kr-good: oklch(0.47 0.11 150);
+        --kr-good-fg: oklch(0.99 0 0);
+        --kr-good-soft: oklch(0.95 0.04 150);
+        --kr-info: oklch(0.47 0.15 258);
+        --kr-info-soft: oklch(0.94 0.03 258);
+        --kr-status-operating-fg: oklch(0.4 0.1 150);
+        --kr-status-operating-bg: oklch(0.94 0.05 150);
+        --kr-status-operating-mark: oklch(0.58 0.14 150);
+        --kr-status-under_construction-fg: oklch(0.42 0.09 70);
+        --kr-status-under_construction-bg: oklch(0.95 0.07 90);
+        --kr-status-under_construction-mark: oklch(0.64 0.15 58);
+        --kr-status-planned-fg: oklch(0.4 0.13 258);
+        --kr-status-planned-bg: oklch(0.94 0.035 258);
+        --kr-status-planned-mark: oklch(0.58 0.15 258);
+        --kr-status-suspended-fg: oklch(0.43 0.12 45);
+        --kr-status-suspended-bg: oklch(0.94 0.04 50);
+        --kr-status-suspended-mark: oklch(0.66 0.16 45);
+        --kr-status-closed-fg: oklch(0.42 0.13 25);
+        --kr-status-closed-bg: oklch(0.94 0.03 20);
+        --kr-status-closed-mark: oklch(0.58 0.17 25);
+        --kr-status-abandoned-fg: oklch(0.4 0.01 255);
+        --kr-status-abandoned-bg: oklch(0.93 0.004 255);
+        --kr-status-abandoned-mark: oklch(0.62 0.01 255);
+        --kr-stage-early: oklch(0.62 0.03 255);
+        --kr-stage-early-fg: oklch(0.4 0.03 255);
+        --kr-stage-study: oklch(0.55 0.15 300);
+        --kr-stage-study-fg: oklch(0.42 0.15 300);
+        --kr-stage-design: oklch(0.52 0.15 255);
+        --kr-stage-design-fg: oklch(0.42 0.14 255);
+        --kr-stage-build: oklch(0.65 0.15 60);
+        --kr-stage-build-fg: oklch(0.43 0.1 65);
+        --kr-stage-open: oklch(0.55 0.14 150);
+        --kr-stage-open-fg: oklch(0.4 0.1 150);
+        --kr-stage-stopped: oklch(0.6 0.01 255);
+        --kr-stage-stopped-fg: oklch(0.42 0.01 255);
+        --kr-review-fg: oklch(0.43 0.09 75);
+        --kr-review-bg: oklch(0.96 0.05 90);
+        --kr-review-border: oklch(0.72 0.12 80);
+        --kr-shadow-sm: 0 1px 2px oklch(0.2 0.02 255 / 0.06), 0 1px 3px oklch(0.2 0.02 255 / 0.08);
+        --kr-shadow-md: 0 4px 14px oklch(0.2 0.02 255 / 0.1);
+        --kr-shadow-lg: 0 14px 36px oklch(0.2 0.02 255 / 0.16);
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme='light']) {
+          color-scheme: dark;
+          --kr-bg: oklch(0.185 0.009 255);
+          --kr-surface: oklch(0.22 0.011 255);
+          --kr-surface-muted: oklch(0.26 0.012 255);
+          --kr-surface-sunken: oklch(0.16 0.008 255);
+          --kr-overlay: oklch(0 0 0 / 0.6);
+          --kr-fg: oklch(0.94 0.005 255);
+          --kr-fg-muted: oklch(0.77 0.012 255);
+          --kr-fg-subtle: oklch(0.69 0.012 255);
+          --kr-border: oklch(0.33 0.012 255);
+          --kr-border-strong: oklch(0.54 0.014 255);
+          --kr-accent: oklch(0.76 0.12 255);
+          --kr-accent-fg: oklch(0.18 0.02 258);
+          --kr-accent-soft: oklch(0.31 0.06 258);
+          --kr-accent-soft-fg: oklch(0.87 0.07 255);
+          --kr-link: oklch(0.78 0.11 255);
+          --kr-link-visited: oklch(0.78 0.11 300);
+          --kr-focus: oklch(0.8 0.15 75);
+          --kr-danger: oklch(0.72 0.15 25);
+          --kr-danger-fg: oklch(0.18 0.02 25);
+          --kr-danger-soft: oklch(0.31 0.07 25);
+          --kr-warn: oklch(0.8 0.13 80);
+          --kr-warn-fg: oklch(0.2 0.03 75);
+          --kr-warn-soft: oklch(0.32 0.06 75);
+          --kr-good: oklch(0.78 0.13 150);
+          --kr-good-fg: oklch(0.2 0.03 150);
+          --kr-good-soft: oklch(0.3 0.05 150);
+          --kr-info: oklch(0.76 0.12 255);
+          --kr-info-soft: oklch(0.31 0.06 258);
+          --kr-status-operating-fg: oklch(0.86 0.1 150);
+          --kr-status-operating-bg: oklch(0.31 0.06 150);
+          --kr-status-operating-mark: oklch(0.72 0.15 150);
+          --kr-status-under_construction-fg: oklch(0.88 0.11 90);
+          --kr-status-under_construction-bg: oklch(0.33 0.06 75);
+          --kr-status-under_construction-mark: oklch(0.78 0.15 70);
+          --kr-status-planned-fg: oklch(0.87 0.07 255);
+          --kr-status-planned-bg: oklch(0.31 0.06 258);
+          --kr-status-planned-mark: oklch(0.7 0.13 258);
+          --kr-status-suspended-fg: oklch(0.86 0.08 55);
+          --kr-status-suspended-bg: oklch(0.32 0.06 50);
+          --kr-status-suspended-mark: oklch(0.74 0.14 50);
+          --kr-status-closed-fg: oklch(0.86 0.07 20);
+          --kr-status-closed-bg: oklch(0.31 0.07 22);
+          --kr-status-closed-mark: oklch(0.7 0.15 25);
+          --kr-status-abandoned-fg: oklch(0.84 0.008 255);
+          --kr-status-abandoned-bg: oklch(0.29 0.008 255);
+          --kr-status-abandoned-mark: oklch(0.6 0.01 255);
+          --kr-stage-early: oklch(0.62 0.03 255);
+          --kr-stage-early-fg: oklch(0.82 0.02 255);
+          --kr-stage-study: oklch(0.7 0.13 300);
+          --kr-stage-study-fg: oklch(0.84 0.09 300);
+          --kr-stage-design: oklch(0.7 0.13 255);
+          --kr-stage-design-fg: oklch(0.84 0.08 255);
+          --kr-stage-build: oklch(0.78 0.14 70);
+          --kr-stage-build-fg: oklch(0.86 0.11 80);
+          --kr-stage-open: oklch(0.72 0.14 150);
+          --kr-stage-open-fg: oklch(0.85 0.1 150);
+          --kr-stage-stopped: oklch(0.56 0.01 255);
+          --kr-stage-stopped-fg: oklch(0.8 0.01 255);
+          --kr-review-fg: oklch(0.88 0.1 88);
+          --kr-review-bg: oklch(0.32 0.06 80);
+          --kr-review-border: oklch(0.56 0.09 82);
+          --kr-shadow-sm: 0 1px 2px oklch(0 0 0 / 0.5);
+          --kr-shadow-md: 0 4px 14px oklch(0 0 0 / 0.5);
+          --kr-shadow-lg: 0 14px 36px oklch(0 0 0 / 0.6);
+        }
+      }
+
+      :root[data-theme='dark'] {
+        color-scheme: dark;
+        --kr-bg: oklch(0.185 0.009 255);
+        --kr-surface: oklch(0.22 0.011 255);
+        --kr-surface-muted: oklch(0.26 0.012 255);
+        --kr-surface-sunken: oklch(0.16 0.008 255);
+        --kr-overlay: oklch(0 0 0 / 0.6);
+        --kr-fg: oklch(0.94 0.005 255);
+        --kr-fg-muted: oklch(0.77 0.012 255);
+        --kr-fg-subtle: oklch(0.69 0.012 255);
+        --kr-border: oklch(0.33 0.012 255);
+        --kr-border-strong: oklch(0.54 0.014 255);
+        --kr-accent: oklch(0.76 0.12 255);
+        --kr-accent-fg: oklch(0.18 0.02 258);
+        --kr-accent-soft: oklch(0.31 0.06 258);
+        --kr-accent-soft-fg: oklch(0.87 0.07 255);
+        --kr-link: oklch(0.78 0.11 255);
+        --kr-link-visited: oklch(0.78 0.11 300);
+        --kr-focus: oklch(0.8 0.15 75);
+        --kr-danger: oklch(0.72 0.15 25);
+        --kr-danger-fg: oklch(0.18 0.02 25);
+        --kr-danger-soft: oklch(0.31 0.07 25);
+        --kr-warn: oklch(0.8 0.13 80);
+        --kr-warn-fg: oklch(0.2 0.03 75);
+        --kr-warn-soft: oklch(0.32 0.06 75);
+        --kr-good: oklch(0.78 0.13 150);
+        --kr-good-fg: oklch(0.2 0.03 150);
+        --kr-good-soft: oklch(0.3 0.05 150);
+        --kr-info: oklch(0.76 0.12 255);
+        --kr-info-soft: oklch(0.31 0.06 258);
+        --kr-status-operating-fg: oklch(0.86 0.1 150);
+        --kr-status-operating-bg: oklch(0.31 0.06 150);
+        --kr-status-operating-mark: oklch(0.72 0.15 150);
+        --kr-status-under_construction-fg: oklch(0.88 0.11 90);
+        --kr-status-under_construction-bg: oklch(0.33 0.06 75);
+        --kr-status-under_construction-mark: oklch(0.78 0.15 70);
+        --kr-status-planned-fg: oklch(0.87 0.07 255);
+        --kr-status-planned-bg: oklch(0.31 0.06 258);
+        --kr-status-planned-mark: oklch(0.7 0.13 258);
+        --kr-status-suspended-fg: oklch(0.86 0.08 55);
+        --kr-status-suspended-bg: oklch(0.32 0.06 50);
+        --kr-status-suspended-mark: oklch(0.74 0.14 50);
+        --kr-status-closed-fg: oklch(0.86 0.07 20);
+        --kr-status-closed-bg: oklch(0.31 0.07 22);
+        --kr-status-closed-mark: oklch(0.7 0.15 25);
+        --kr-status-abandoned-fg: oklch(0.84 0.008 255);
+        --kr-status-abandoned-bg: oklch(0.29 0.008 255);
+        --kr-status-abandoned-mark: oklch(0.6 0.01 255);
+        --kr-stage-early: oklch(0.62 0.03 255);
+        --kr-stage-early-fg: oklch(0.82 0.02 255);
+        --kr-stage-study: oklch(0.7 0.13 300);
+        --kr-stage-study-fg: oklch(0.84 0.09 300);
+        --kr-stage-design: oklch(0.7 0.13 255);
+        --kr-stage-design-fg: oklch(0.84 0.08 255);
+        --kr-stage-build: oklch(0.78 0.14 70);
+        --kr-stage-build-fg: oklch(0.86 0.11 80);
+        --kr-stage-open: oklch(0.72 0.14 150);
+        --kr-stage-open-fg: oklch(0.85 0.1 150);
+        --kr-stage-stopped: oklch(0.56 0.01 255);
+        --kr-stage-stopped-fg: oklch(0.8 0.01 255);
+        --kr-review-fg: oklch(0.88 0.1 88);
+        --kr-review-bg: oklch(0.32 0.06 80);
+        --kr-review-border: oklch(0.56 0.09 82);
+        --kr-shadow-sm: 0 1px 2px oklch(0 0 0 / 0.5);
+        --kr-shadow-md: 0 4px 14px oklch(0 0 0 / 0.5);
+        --kr-shadow-lg: 0 14px 36px oklch(0 0 0 / 0.6);
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        :root {
+          --kr-duration-fast: 0ms;
+          --kr-duration-base: 0ms;
+          --kr-duration-slow: 0ms;
+          --kr-duration-map: 0ms;
+        }
+      }
+
+      /* 공통 기본 스타일 — 토큰만 쓴다. 관리 앱·공개 사이트·시안이 함께 쓴다(docs/design/tokens.md 4절). */
+      html {
+        font-family: var(--kr-font-sans);
+        -webkit-text-size-adjust: 100%;
+        /* 한국어 어절 단위 줄바꿈 + 긴 URL·영문 넘침 방지 */
+        word-break: keep-all;
+        overflow-wrap: anywhere;
+        scroll-padding-top: calc(var(--kr-header-h) + var(--kr-space-2));
+      }
+      html,
+      body {
+        background: var(--kr-bg);
+        color: var(--kr-fg);
+      }
+      h1,
+      h2,
+      h3,
+      h4 {
+        text-wrap: balance;
+      }
+      p,
+      li,
+      dd {
+        text-wrap: pretty;
+      }
+      :focus-visible {
+        outline: 3px solid var(--kr-focus);
+        outline-offset: 2px;
+      }
+      ::selection {
+        background: var(--kr-accent-soft);
+        color: var(--kr-accent-soft-fg);
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+          scroll-behavior: auto !important;
+        }
+      }
+
+      /* ---- 시안 공통 컴포넌트(토큰만 사용) ---- */
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-size: var(--kr-text-base);
+        line-height: var(--kr-text-base-lh);
+      }
+      a {
+        color: var(--kr-link);
+        text-decoration-thickness: 1px;
+        text-underline-offset: 0.18em;
+      }
+      a:hover {
+        text-decoration-thickness: 2px;
+      }
+      h1,
+      h2,
+      h3 {
+        margin: 0;
+        color: var(--kr-fg);
+      }
+      .num {
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+      .muted {
+        color: var(--kr-fg-muted);
+      }
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+      }
+      .skip {
+        position: absolute;
+        left: var(--kr-space-2);
+        top: 0;
+        transform: translateY(-200%);
+        z-index: var(--kr-z-skip-link);
+        background: var(--kr-surface);
+        padding: var(--kr-space-2) var(--kr-space-3);
+        border-radius: var(--kr-radius-md);
+      }
+      .skip:focus {
+        transform: translateY(var(--kr-space-2));
+      }
+
+      /* 시안 표시 띠 */
+      .mock-note {
+        background: var(--kr-review-bg);
+        color: var(--kr-review-fg);
+        border-bottom: 1px dashed var(--kr-review-border);
+        font-size: var(--kr-text-xs);
+        text-align: center;
+        padding: var(--kr-space-1) var(--kr-gutter);
+      }
+
+      /* 머리 */
+      .site-header {
+        position: sticky;
+        top: 0;
+        z-index: var(--kr-z-sticky);
+        height: var(--kr-header-h);
+        background: color-mix(in oklab, var(--kr-surface) 92%, transparent);
+        backdrop-filter: saturate(1.4) blur(8px);
+        border-bottom: 1px solid var(--kr-border);
+      }
+      .site-header .in {
+        max-width: var(--kr-content-max);
+        margin: 0 auto;
+        height: 100%;
+        padding: 0 var(--kr-gutter-lg);
+        display: flex;
+        align-items: center;
+        gap: var(--kr-space-6);
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: var(--kr-space-2);
+        font-weight: var(--kr-weight-heavy);
+        letter-spacing: -0.02em;
+        color: var(--kr-fg);
+        text-decoration: none;
+        font-size: var(--kr-text-lg);
+      }
+      .brand svg {
+        flex: none;
+      }
+      .nav {
+        display: flex;
+        gap: var(--kr-space-1);
+        font-size: var(--kr-text-sm);
+      }
+      .nav a {
+        color: var(--kr-fg-muted);
+        text-decoration: none;
+        padding: var(--kr-space-1_5) var(--kr-space-2_5, 0.625rem);
+        border-radius: var(--kr-radius-sm);
+        font-weight: var(--kr-weight-medium);
+      }
+      .nav a:hover {
+        color: var(--kr-fg);
+        background: var(--kr-surface-muted);
+      }
+      .nav a[aria-current] {
+        color: var(--kr-fg);
+        font-weight: var(--kr-weight-bold);
+        box-shadow: inset 0 -2px 0 var(--kr-accent);
+        border-radius: 0;
+      }
+      .header-tools {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: var(--kr-space-2);
+      }
+      .search-btn {
+        display: flex;
+        align-items: center;
+        gap: var(--kr-space-2);
+        min-width: 15rem;
+        height: 36px;
+        padding: 0 var(--kr-space-3);
+        border: 1px solid var(--kr-border);
+        border-radius: var(--kr-radius-md);
+        background: var(--kr-bg);
+        color: var(--kr-fg-muted);
+        font: inherit;
+        font-size: var(--kr-text-sm);
+      }
+      .search-btn kbd,
+      kbd {
+        margin-left: auto;
+        font-family: var(--kr-font-mono);
+        font-size: 11px;
+        border: 1px solid var(--kr-border);
+        border-bottom-width: 2px;
+        border-radius: var(--kr-radius-xs);
+        padding: 0 4px;
+        color: var(--kr-fg-muted);
+        background: var(--kr-surface);
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--kr-space-1_5);
+        min-height: 36px;
+        padding: 0 var(--kr-space-3);
+        border-radius: var(--kr-radius-md);
+        border: 1px solid var(--kr-border);
+        background: var(--kr-surface);
+        color: var(--kr-fg);
+        font: inherit;
+        font-size: var(--kr-text-sm);
+        font-weight: var(--kr-weight-medium);
+        text-decoration: none;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .btn:hover {
+        background: var(--kr-surface-muted);
+      }
+      .btn.primary {
+        background: var(--kr-accent);
+        border-color: var(--kr-accent);
+        color: var(--kr-accent-fg);
+      }
+      .btn.primary:hover {
+        background: color-mix(in oklab, var(--kr-accent) 88%, var(--kr-fg));
+      }
+      .btn.icon {
+        width: 36px;
+        padding: 0;
+        justify-content: center;
+      }
+
+      /* 본문 틀 */
+      .container {
+        max-width: var(--kr-content-max);
+        margin: 0 auto;
+        padding: 0 var(--kr-gutter-lg);
+      }
+      .surface {
+        background: var(--kr-surface);
+        border: 1px solid var(--kr-border);
+        border-radius: var(--kr-radius-lg);
+      }
+      .section {
+        margin-top: var(--kr-space-8);
+      }
+      .section-head {
+        display: flex;
+        align-items: baseline;
+        gap: var(--kr-space-3);
+        margin-bottom: var(--kr-space-3);
+      }
+      .section-head h2 {
+        font-size: var(--kr-text-xl);
+        line-height: var(--kr-text-xl-lh);
+        letter-spacing: var(--kr-text-xl-ls);
+        font-weight: var(--kr-weight-bold);
+      }
+      .section-head .more {
+        margin-left: auto;
+        font-size: var(--kr-text-sm);
+      }
+      .eyebrow {
+        font-size: var(--kr-text-xs);
+        font-weight: var(--kr-weight-semibold);
+        color: var(--kr-fg-muted);
+        letter-spacing: 0.02em;
+      }
+
+      /* 이동 경로 */
+      .crumbs {
+        display: flex;
+        gap: var(--kr-space-1_5);
+        font-size: var(--kr-text-xs);
+        color: var(--kr-fg-muted);
+        list-style: none;
+        padding: 0;
+        margin: 0 0 var(--kr-space-2);
+      }
+      .crumbs li + li::before {
+        content: '›';
+        margin-right: var(--kr-space-1_5);
+        color: var(--kr-fg-subtle);
+      }
+      .crumbs a {
+        color: inherit;
+      }
+
+      /* 배지 — 색 + 모양 + 글자 */
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35em;
+        min-height: 24px;
+        padding: 0 0.55em;
+        border-radius: var(--kr-radius-pill);
+        font-size: var(--kr-text-xs);
+        font-weight: var(--kr-weight-semibold);
+        line-height: 1;
+        white-space: nowrap;
+        background: var(--kr-surface-muted);
+        color: var(--kr-fg-muted);
+        border: 1px solid transparent;
+      }
+      .badge .shape {
+        width: 0.7em;
+        height: 0.7em;
+        flex: none;
+        display: inline-block;
+      }
+      .shape-disc {
+        border-radius: 50%;
+        background: currentColor;
+      }
+      .shape-half {
+        border-radius: 50%;
+        border: 1.5px solid currentColor;
+        background: linear-gradient(90deg, currentColor 50%, transparent 50%);
+      }
+      .shape-ring {
+        border-radius: 50%;
+        border: 1.5px solid currentColor;
+      }
+      .shape-pause {
+        background: linear-gradient(90deg, currentColor 0 35%, transparent 35% 65%, currentColor 65%);
+      }
+      .shape-cross {
+        background:
+          linear-gradient(45deg, transparent 42%, currentColor 42% 58%, transparent 58%),
+          linear-gradient(-45deg, transparent 42%, currentColor 42% 58%, transparent 58%);
+      }
+      .shape-dash {
+        height: 0.2em !important;
+        background: currentColor;
+      }
+      .st-operating {
+        background: var(--kr-status-operating-bg);
+        color: var(--kr-status-operating-fg);
+      }
+      .st-under_construction {
+        background: var(--kr-status-under_construction-bg);
+        color: var(--kr-status-under_construction-fg);
+      }
+      .st-planned {
+        background: var(--kr-status-planned-bg);
+        color: var(--kr-status-planned-fg);
+      }
+      .st-closed {
+        background: var(--kr-status-closed-bg);
+        color: var(--kr-status-closed-fg);
+      }
+      .st-abandoned {
+        background: var(--kr-status-abandoned-bg);
+        color: var(--kr-status-abandoned-fg);
+      }
+      .badge.review {
+        background: var(--kr-review-bg);
+        color: var(--kr-review-fg);
+        border: 1px dashed var(--kr-review-border);
+      }
+      .badge.verified {
+        background: transparent;
+        color: var(--kr-good);
+        border: 1px solid color-mix(in oklab, var(--kr-good) 45%, transparent);
+      }
+      .badge.outline {
+        background: transparent;
+        border-color: var(--kr-border);
+        color: var(--kr-fg-muted);
+      }
+      .badge.stage {
+        background: transparent;
+        border: 1px solid currentColor;
+      }
+      .stage-early {
+        color: var(--kr-stage-early-fg);
+      }
+      .stage-study {
+        color: var(--kr-stage-study-fg);
+      }
+      .stage-design {
+        color: var(--kr-stage-design-fg);
+      }
+      .stage-build {
+        color: var(--kr-stage-build-fg);
+      }
+      .stage-open {
+        color: var(--kr-stage-open-fg);
+      }
+      .badge.dday {
+        background: var(--kr-accent-soft);
+        color: var(--kr-accent-soft-fg);
+      }
+
+      /* 노선 칩 */
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4em;
+        min-height: 24px;
+        padding: 0 0.5em 0 0.2em;
+        border-radius: var(--kr-radius-pill);
+        font-size: var(--kr-text-xs);
+        font-weight: var(--kr-weight-semibold);
+        background: var(--kr-surface);
+        border: 1px solid var(--kr-border);
+        color: var(--kr-fg);
+        text-decoration: none;
+        white-space: nowrap;
+      }
+      .chip .dot {
+        display: inline-grid;
+        place-items: center;
+        min-width: 18px;
+        height: 18px;
+        padding: 0 4px;
+        border-radius: var(--kr-radius-pill);
+        font-size: 11px;
+        font-weight: var(--kr-weight-bold);
+      }
+      .chip.nocolor .dot {
+        background: var(--kr-surface-muted);
+        border: 1px dashed var(--kr-border-strong);
+        color: var(--kr-fg-muted);
+      }
+
+      /* 상세 머리 띠 */
+      .band {
+        background: var(--kr-surface);
+        border-bottom: 1px solid var(--kr-border);
+      }
+      .band .stripe {
+        height: var(--kr-line-band);
+        background: var(--line, var(--kr-border-strong));
+      }
+      .band .in {
+        padding-top: var(--kr-space-5);
+        padding-bottom: var(--kr-space-5);
+      }
+      .title-row {
+        display: flex;
+        align-items: center;
+        gap: var(--kr-space-3);
+        flex-wrap: wrap;
+      }
+      .title-row h1 {
+        font-size: var(--kr-text-3xl);
+        line-height: var(--kr-text-3xl-lh);
+        letter-spacing: var(--kr-text-3xl-ls);
+        font-weight: var(--kr-weight-heavy);
+      }
+      .line-mark {
+        display: inline-grid;
+        place-items: center;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        font-weight: var(--kr-weight-heavy);
+        font-size: var(--kr-text-xl);
+      }
+      .subname {
+        color: var(--kr-fg-muted);
+        font-size: var(--kr-text-sm);
+        margin-top: 2px;
+      }
+      .badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--kr-space-1_5);
+        margin-top: var(--kr-space-3);
+      }
+      .facts {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+        gap: 0;
+        margin: var(--kr-space-5) 0 0;
+        border: 1px solid var(--kr-border);
+        border-radius: var(--kr-radius-md);
+        overflow: hidden;
+      }
+      .facts > div {
+        padding: var(--kr-space-3) var(--kr-space-4);
+        border-right: 1px solid var(--kr-border);
+      }
+      .facts > div:last-child {
+        border-right: 0;
+      }
+      .facts dt {
+        font-size: var(--kr-text-xs);
+        color: var(--kr-fg-muted);
+      }
+      .facts dd {
+        margin: 2px 0 0;
+        font-size: var(--kr-text-lg);
+        font-weight: var(--kr-weight-bold);
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -0.01em;
+      }
+      .facts dd small {
+        font-size: var(--kr-text-xs);
+        font-weight: var(--kr-weight-regular);
+        color: var(--kr-fg-muted);
+        margin-left: 2px;
+      }
+      .facts dd .src {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 11px;
+        font-weight: var(--kr-weight-regular);
+        color: var(--kr-fg-subtle);
+        letter-spacing: 0;
+      }
+
+      /* 절 탐색(앵커) */
+      .toc {
+        display: flex;
+        gap: var(--kr-space-1);
+        overflow-x: auto;
+        border-bottom: 1px solid var(--kr-border);
+        background: var(--kr-bg);
+        position: sticky;
+        top: var(--kr-header-h);
+        z-index: calc(var(--kr-z-sticky) - 1);
+      }
+      .toc a {
+        padding: var(--kr-space-2_5, 0.625rem) var(--kr-space-3);
+        font-size: var(--kr-text-sm);
+        color: var(--kr-fg-muted);
+        text-decoration: none;
+        white-space: nowrap;
+        font-weight: var(--kr-weight-medium);
+      }
+      .toc a[aria-current] {
+        color: var(--kr-fg);
+        box-shadow: inset 0 -2px 0 var(--kr-fg);
+      }
+      .toc .count {
+        font-size: var(--kr-text-xs);
+        color: var(--kr-fg-subtle);
+        margin-left: 3px;
+      }
+
+      /* 2단 */
+      .two-col {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) var(--kr-sidebar-w);
+        gap: var(--kr-space-8);
+        align-items: start;
+        padding-bottom: var(--kr-space-12);
+      }
+      .aside {
+        display: flex;
+        flex-direction: column;
+        gap: var(--kr-space-4);
+        position: sticky;
+        top: calc(var(--kr-header-h) + 56px);
+        margin-top: var(--kr-space-8);
+      }
+      .panel {
+        background: var(--kr-surface);
+        border: 1px solid var(--kr-border);
+        border-radius: var(--kr-radius-lg);
+        padding: var(--kr-space-4);
+      }
+      .panel h3 {
+        font-size: var(--kr-text-sm);
+        font-weight: var(--kr-weight-bold);
+        margin-bottom: var(--kr-space-2);
+      }
+      .kv {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: var(--kr-space-1_5) var(--kr-space-3);
+        font-size: var(--kr-text-sm);
+        margin: 0;
+      }
+      .kv dt {
+        color: var(--kr-fg-muted);
+      }
+      .kv dd {
+        margin: 0;
+      }
+
+      /* 표 */
+      .table-wrap {
+        overflow: auto;
+        border: 1px solid var(--kr-border);
+        border-radius: var(--kr-radius-lg);
+        background: var(--kr-surface);
+      }
+      table.data {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        font-size: var(--kr-text-sm);
+      }
+      table.data caption {
+        text-align: left;
+        padding: var(--kr-space-3) var(--kr-space-4);
+        font-weight: var(--kr-weight-semibold);
+        font-size: var(--kr-text-sm);
+        border-bottom: 1px solid var(--kr-border);
+      }
+      table.data th {
+        position: sticky;
+        top: 0;
+        background: var(--kr-surface-muted);
+        font-size: var(--kr-text-xs);
+        font-weight: var(--kr-weight-semibold);
+        color: var(--kr-fg-muted);
+        text-align: left;
+        padding: var(--kr-space-2) var(--kr-space-3);
+        border-bottom: 1px solid var(--kr-border);
+        white-space: nowrap;
+      }
+      table.data td {
+        padding: var(--kr-space-2_5, 0.625rem) var(--kr-space-3);
+        border-bottom: 1px solid var(--kr-border);
+        vertical-align: top;
+      }
+      table.data tr:last-child td {
+        border-bottom: 0;
+      }
+      table.data tbody tr:hover td {
+        background: color-mix(in oklab, var(--kr-surface-muted) 55%, transparent);
+      }
+      table.data .r {
+        text-align: right;
+      }
+
+      /* 출처 */
+      .sources {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        font-size: var(--kr-text-sm);
+      }
+      .sources li {
+        display: grid;
+        grid-template-columns: 1.6rem 1fr auto;
+        gap: var(--kr-space-2);
+        padding: var(--kr-space-2_5, 0.625rem) var(--kr-space-4);
+        border-bottom: 1px solid var(--kr-border);
+      }
+      .sources li:last-child {
+        border-bottom: 0;
+      }
+      .sources .n {
+        color: var(--kr-fg-subtle);
+        font-variant-numeric: tabular-nums;
+      }
+      .sources .meta {
+        display: block;
+        font-size: var(--kr-text-xs);
+        color: var(--kr-fg-muted);
+      }
+      .sources .field {
+        font-size: var(--kr-text-xs);
+      }
+      sup.ref {
+        font-size: 0.7em;
+        margin-left: 1px;
+      }
+      sup.ref a {
+        text-decoration: none;
+      }
+
+      details.more {
+        border: 1px solid var(--kr-border);
+        border-radius: var(--kr-radius-lg);
+        background: var(--kr-surface);
+      }
+      details.more > summary {
+        cursor: pointer;
+        padding: var(--kr-space-3) var(--kr-space-4);
+        font-weight: var(--kr-weight-semibold);
+        font-size: var(--kr-text-sm);
+        list-style: none;
+        display: flex;
+        align-items: center;
+        gap: var(--kr-space-2);
+      }
+      details.more > summary::before {
+        content: '';
+        width: 0.45em;
+        height: 0.45em;
+        border-right: 2px solid currentColor;
+        border-bottom: 2px solid currentColor;
+        transform: rotate(-45deg);
+        transition: transform var(--kr-duration-fast) var(--kr-ease-standard);
+      }
+      details.more[open] > summary::before {
+        transform: rotate(45deg);
+      }
+      details.more > .body {
+        padding: 0 var(--kr-space-4) var(--kr-space-4);
+      }
+
+      /* 바닥 */
+      .site-footer {
+        border-top: 1px solid var(--kr-border);
+        background: var(--kr-surface);
+        font-size: var(--kr-text-xs);
+        color: var(--kr-fg-muted);
+        padding: var(--kr-space-6) 0 var(--kr-space-8);
+      }
+      .site-footer .in {
+        display: flex;
+        gap: var(--kr-space-6);
+        flex-wrap: wrap;
+      }
+      .site-footer a {
+        color: inherit;
+      }
+
+      @media (max-width: 1023px) {
+        .two-col {
+          grid-template-columns: 1fr;
+        }
+        .aside {
+          position: static;
+        }
+        .nav {
+          display: none;
+        }
+        .search-btn {
+          min-width: 0;
+        }
+      }
+      .brand span {
+        white-space: nowrap;
+      }
+      @media (max-width: 639px) {
+        .site-header .in,
+        .container {
+          padding: 0 var(--kr-gutter);
+        }
+        .site-header .in {
+          gap: var(--kr-space-2);
+        }
+        .search-btn {
+          width: 36px;
+          padding: 0;
+          justify-content: center;
+        }
+        .search-btn span,
+        .search-btn kbd,
+        .header-tools .btn:not(.icon) .label {
+          display: none;
+        }
+        .mock-note {
+          font-size: 11px;
+        }
+        .title-row h1 {
+          font-size: var(--kr-text-2xl);
+        }
+        .facts {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+
+      .route {
+        list-style: none;
+        margin: 0;
+        padding: var(--kr-space-2) 0;
+        columns: 2;
+        column-gap: var(--kr-space-6);
+      }
+      .route li {
+        position: relative;
+        display: grid;
+        grid-template-columns: 3rem 1fr;
+        grid-template-areas: 'code nm' 'code xs';
+        column-gap: var(--kr-space-2);
+        padding: 6px 0 6px 28px;
+        break-inside: avoid;
+        min-height: 40px;
+      }
+      .route li::before {
+        content: '';
+        position: absolute;
+        left: 9px;
+        top: 0;
+        bottom: 0;
+        width: 5px;
+        background: var(--line);
+      }
+      .route li::after {
+        content: '';
+        position: absolute;
+        left: 5px;
+        top: 13px;
+        width: 13px;
+        height: 13px;
+        border-radius: 50%;
+        background: var(--kr-surface);
+        border: 3px solid var(--line);
+      }
+      .route li.xfer::after {
+        left: 3px;
+        top: 11px;
+        width: 17px;
+        height: 17px;
+        border: 3px solid var(--kr-fg);
+        box-shadow: 0 0 0 2px var(--kr-surface);
+      }
+      .route .code {
+        grid-area: code;
+        font-size: var(--kr-text-xs);
+        color: var(--kr-fg-muted);
+        padding-top: 3px;
+      }
+      .route .nm {
+        grid-area: nm;
+        font-weight: var(--kr-weight-semibold);
+      }
+      .route .nm a {
+        color: var(--kr-fg);
+        text-decoration: none;
+      }
+      .route .nm a:hover {
+        text-decoration: underline;
+      }
+      .route .nm small {
+        display: inline;
+        margin-left: 6px;
+        font-weight: var(--kr-weight-regular);
+        font-size: var(--kr-text-xs);
+        color: var(--kr-fg-subtle);
+      }
+      .route .xs {
+        grid-area: xs;
+        display: flex;
+        gap: 4px;
+        flex-wrap: wrap;
+      }
+      .route .xs:empty {
+        display: none;
+      }
+      .route.loop li:first-child::before {
+        top: 13px;
+      }
+      .branch-head {
+        display: flex;
+        align-items: center;
+        gap: var(--kr-space-2);
+        margin: var(--kr-space-5) 0 var(--kr-space-1);
+        font-size: var(--kr-text-sm);
+        font-weight: var(--kr-weight-bold);
+      }
+      .legend-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--kr-space-4);
+        font-size: var(--kr-text-xs);
+        color: var(--kr-fg-muted);
+        padding: var(--kr-space-2) var(--kr-space-4);
+        border-top: 1px solid var(--kr-border);
+      }
+      .legend-row i {
+        display: inline-block;
+        vertical-align: -2px;
+        margin-right: 4px;
+      }
+      .minimap {
+        width: 100%;
+        height: auto;
+        display: block;
+        border-radius: var(--kr-radius-md);
+        background: var(--kr-surface-sunken);
+      }
+      .svc {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: var(--kr-space-3);
+        align-items: center;
+        padding: var(--kr-space-3) var(--kr-space-4);
+        border-bottom: 1px solid var(--kr-border);
+        font-size: var(--kr-text-sm);
+      }
+      .svc:last-child {
+        border-bottom: 0;
+      }
+      .hist {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        font-size: var(--kr-text-sm);
+      }
+      .hist li {
+        display: grid;
+        grid-template-columns: 7.5rem 1fr;
+        gap: var(--kr-space-3);
+        padding: var(--kr-space-2) 0;
+        border-bottom: 1px dashed var(--kr-border);
+      }
+      .hist li:last-child {
+        border-bottom: 0;
+      }
+
+      .stripes {
+        display: flex;
+        height: var(--kr-line-band);
+      }
+      .stripes span {
+        flex: 1;
+      }
+      .lines-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+        gap: var(--kr-space-3);
+      }
+      .lcard {
+        background: var(--kr-surface);
+        border: 1px solid var(--kr-border);
+        border-radius: var(--kr-radius-lg);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      .lcard .top {
+        border-top: 4px solid var(--c, var(--kr-border-strong));
+        padding: var(--kr-space-3) var(--kr-space-4) var(--kr-space-2);
+        display: flex;
+        align-items: center;
+        gap: var(--kr-space-2);
+      }
+      .lcard.nocolor .top {
+        border-top-style: dashed;
+      }
+      .lcard .top b {
+        font-size: var(--kr-text-base);
+      }
+      .lcard .top .code {
+        margin-left: auto;
+        font-size: var(--kr-text-sm);
+        font-weight: var(--kr-weight-bold);
+        font-variant-numeric: tabular-nums;
+      }
+      .nb {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        align-items: center;
+        gap: var(--kr-space-2);
+        padding: var(--kr-space-2) var(--kr-space-4);
+        font-size: var(--kr-text-sm);
+      }
+      .nb .here {
+        font-weight: var(--kr-weight-bold);
+        padding: 2px 10px;
+        border-radius: var(--kr-radius-pill);
+        border: 2px solid var(--c, var(--kr-border-strong));
+      }
+      .nb .prev {
+        text-align: right;
+      }
+      .nb .none {
+        color: var(--kr-fg-subtle);
+        font-size: var(--kr-text-xs);
+      }
+      .lcard dl {
+        margin: 0;
+        padding: var(--kr-space-2) var(--kr-space-4) var(--kr-space-3);
+        border-top: 1px solid var(--kr-border);
+        font-size: var(--kr-text-xs);
+      }
+      .tt {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: var(--kr-space-2) var(--kr-space-4);
+        padding: var(--kr-space-3) var(--kr-space-4);
+        border-bottom: 1px solid var(--kr-border);
+        align-items: end;
+      }
+      .tt:last-child {
+        border-bottom: 0;
+      }
+      .tt .bars {
+        display: flex;
+        align-items: flex-end;
+        gap: 2px;
+        height: 40px;
+        grid-column: 1/-1;
+      }
+      .tt .bars span {
+        flex: 1;
+        background: var(--c);
+        border-radius: 2px 2px 0 0;
+        min-height: 1px;
+        opacity: 0.85;
+      }
+      .tt .axis {
+        grid-column: 1/-1;
+        display: flex;
+        justify-content: space-between;
+        font-size: 10px;
+        color: var(--kr-fg-subtle);
+        margin-top: -4px;
+      }
+      .seg {
+        display: inline-flex;
+        border: 1px solid var(--kr-border);
+        border-radius: var(--kr-radius-md);
+        overflow: hidden;
+        font-size: var(--kr-text-xs);
+      }
+      .seg button {
+        border: 0;
+        background: var(--kr-surface);
+        color: var(--kr-fg-muted);
+        padding: 6px 10px;
+        min-height: 28px;
+        font: inherit;
+        font-weight: 600;
+      }
+      .seg button[aria-pressed='true'] {
+        background: var(--kr-fg);
+        color: var(--kr-surface);
+      }
+    </style>
+    <script>
+      function toggleTheme() {
+        var r = document.documentElement;
+        var dark = r.dataset.theme ? r.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+        r.dataset.theme = dark ? 'light' : 'dark';
+      }
+      var q = new URLSearchParams(location.search).get('theme');
+      if (q) document.documentElement.dataset.theme = q;
+    </script>
+  </head>
+  <body>
+    <a class="skip" href="#main">본문 바로가기</a>
+    <div class="mock-note" role="note">
+      시안(WP 6.2) — 표본 데이터: 개발 DB 2026-11-21 추출, 검수 전 값이 섞여 있음. 실제 화면·값과 다를 수 있습니다.
+    </div>
+    <header class="site-header">
+      <div class="in">
+        <a class="brand" href="/"
+          ><svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true">
+            <rect width="26" height="26" rx="7" fill="var(--kr-accent)" />
+            <path d="M7 19 L11 7 M19 19 L15 7" stroke="var(--kr-accent-fg)" stroke-width="2" stroke-linecap="round" />
+            <path
+              d="M9 15.5h8M10.2 11.5h5.6"
+              stroke="var(--kr-accent-fg)"
+              stroke-width="1.6"
+              stroke-linecap="round"
+              opacity=".85"
+            /></svg
+          ><span>한국철도도감</span></a
+        >
+        <nav class="nav" aria-label="주 메뉴">
+          <a href="/lines/">노선</a><a href="/stations/" aria-current="page">역</a><a href="/services/">운행 계통</a
+          ><a href="/plans/">계획</a><a href="/map/">지도</a><a href="/timeline/">연표</a>
+        </nav>
+        <div class="header-tools">
+          <button class="search-btn" type="button">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              aria-hidden="true"
+            >
+              <circle cx="11" cy="11" r="7" />
+              <path d="m20 20-3.5-3.5" /></svg
+            ><span>역·노선·계획 검색</span><kbd>/</kbd>
+          </button>
+          <a class="btn" href="/map/?at=future" aria-label="미래 지도"
+            ><svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              aria-hidden="true"
+            >
+              <path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Z" />
+              <path d="M9 4v14M15 6v14" /></svg
+            ><span class="label">미래 지도</span></a
+          >
+          <button class="btn icon" type="button" aria-label="화면 밝기 바꾸기" onclick="toggleTheme()">
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="12" r="4" />
+              <path
+                d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"
+              />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </header>
+    <main id="main">
+      <div class="band">
+        <div class="stripes" aria-hidden="true">
+          <span style="background: #004a85"></span><span style="background: #009bce"></span
+          ><span style="background: #004a85"></span><span style="background: var(--kr-border-strong)"></span
+          ><span style="background: #0079ac"></span><span style="background: #9a6292"></span>
+        </div>
+        <div class="container in">
+          <ol class="crumbs">
+            <li><a href="/stations/">역</a></li>
+            <li><a href="/stations/region/seoul/">서울특별시</a></li>
+            <li>중구</li>
+          </ol>
+          <div class="title-row">
+            <div>
+              <h1>서울역</h1>
+              <div class="subname">Seoul Station · 서울특별시 중구 세종대로 지하2(남대문로 5가)</div>
+            </div>
+          </div>
+          <div class="badges">
+            <span class="badge st-operating"><span class="shape shape-disc" aria-hidden="true"></span>운영 중</span
+            ><span class="badge outline">고속·일반·광역·도시철도</span><span class="badge outline">역 등급 1</span
+            ><span class="badge review"><span class="shape shape-ring" aria-hidden="true"></span>검수 전</span>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: var(--kr-space-3)">
+            <a class="chip" href="#"
+              ><span class="dot" style="background: #004a85; color: #ffffff">1</span>서울 지하철 1호선</a
+            ><a class="chip" href="#"
+              ><span class="dot" style="background: #009bce; color: #111418">4</span>서울 지하철 4호선</a
+            ><a class="chip" href="#"><span class="dot" style="background: #004a85; color: #ffffff">경부</span>경부선</a
+            ><a class="chip nocolor" href="#"
+              ><span class="dot">경의</span>경의선<span class="sr-only">(공식 색 없음)</span></a
+            ><a class="chip" href="#"
+              ><span class="dot" style="background: #0079ac; color: #ffffff">공항</span>인천국제공항선</a
+            ><a class="chip" href="#"><span class="dot" style="background: #9a6292; color: #ffffff">A</span>GTX-A</a>
+          </div>
+        </div>
+      </div>
+      <nav class="toc" aria-label="이 페이지의 절">
+        <div class="container" style="display: flex; gap: 4px">
+          <a href="#lines" aria-current="true">노선별<span class="count">6</span></a
+          ><a href="#timetable">시간표</a><a href="#plans">관련 계획<span class="count">4</span></a
+          ><a href="#history">연혁</a><a href="#sources">출처<span class="count">9</span></a>
+        </div>
+      </nav>
+      <div class="container two-col">
+        <div>
+          <section class="section" id="lines">
+            <div class="section-head">
+              <h2>노선별</h2>
+              <span class="muted" style="font-size: var(--kr-text-sm)"
+                >노선마다 역번호·이웃 역·운영기관이 다릅니다</span
+              >
+            </div>
+            <div class="lines-grid">
+              <article class="lcard" style="--c: #004a85">
+                <div class="top">
+                  <a class="chip" href="#"><span class="dot" style="background: #004a85; color: #ffffff">1</span> </a
+                  ><b>서울 지하철 1호선</b><span class="code">133</span>
+                </div>
+                <div class="nb">
+                  <span class="prev"><a href="#">‹ 시청</a></span
+                  ><span class="here">서울</span><span><span class="none">종점</span></span>
+                </div>
+                <dl class="kv">
+                  <dt>운영기관</dt>
+                  <dd>서울교통공사</dd>
+                  <dt>상태</dt>
+                  <dd>
+                    <span class="badge st-operating"
+                      ><span class="shape shape-disc" aria-hidden="true"></span>운영 중</span
+                    >
+                  </dd>
+                </dl>
+              </article>
+              <article class="lcard" style="--c: #009bce">
+                <div class="top">
+                  <a class="chip" href="#"><span class="dot" style="background: #009bce; color: #111418">4</span> </a
+                  ><b>서울 지하철 4호선</b><span class="code">426</span>
+                </div>
+                <div class="nb">
+                  <span class="prev"><a href="#">‹ 회현</a></span
+                  ><span class="here">서울</span><span><a href="#">숙대입구 ›</a></span>
+                </div>
+                <dl class="kv">
+                  <dt>운영기관</dt>
+                  <dd>서울교통공사</dd>
+                  <dt>상태</dt>
+                  <dd>
+                    <span class="badge st-operating"
+                      ><span class="shape shape-disc" aria-hidden="true"></span>운영 중</span
+                    >
+                  </dd>
+                </dl>
+              </article>
+              <article class="lcard" style="--c: #004a85">
+                <div class="top">
+                  <a class="chip" href="#"><span class="dot" style="background: #004a85; color: #ffffff">경부</span> </a
+                  ><b>경부선</b><span class="code">—</span>
+                </div>
+                <div class="nb">
+                  <span class="prev"><span class="none">시점</span></span
+                  ><span class="here">서울</span><span><a href="#">남영 ›</a></span>
+                </div>
+                <dl class="kv">
+                  <dt>운영기관</dt>
+                  <dd>한국철도공사</dd>
+                  <dt>상태</dt>
+                  <dd>
+                    <span class="badge st-operating"
+                      ><span class="shape shape-disc" aria-hidden="true"></span>운영 중</span
+                    >
+                  </dd>
+                </dl>
+              </article>
+              <article class="lcard nocolor" style="">
+                <div class="top">
+                  <a class="chip nocolor" href="#"
+                    ><span class="dot">경의</span> <span class="sr-only">(공식 색 없음)</span></a
+                  ><b>경의선</b><span class="code">P313</span>
+                </div>
+                <div class="nb">
+                  <span class="prev"><span class="none">시점</span></span
+                  ><span class="here">서울</span><span><a href="#">신촌 ›</a></span>
+                </div>
+                <dl class="kv">
+                  <dt>운영기관</dt>
+                  <dd>한국철도공사</dd>
+                  <dt>상태</dt>
+                  <dd>
+                    <span class="badge st-operating"
+                      ><span class="shape shape-disc" aria-hidden="true"></span>운영 중</span
+                    >
+                  </dd>
+                </dl>
+              </article>
+              <article class="lcard" style="--c: #0079ac">
+                <div class="top">
+                  <a class="chip" href="#"><span class="dot" style="background: #0079ac; color: #ffffff">공항</span> </a
+                  ><b>인천국제공항선</b><span class="code">A01</span>
+                </div>
+                <div class="nb">
+                  <span class="prev"><span class="none">시점</span></span
+                  ><span class="here">서울</span><span><a href="#">공덕 ›</a></span>
+                </div>
+                <dl class="kv">
+                  <dt>운영기관</dt>
+                  <dd><span class="muted">미확인</span></dd>
+                  <dt>상태</dt>
+                  <dd>
+                    <span class="badge st-operating"
+                      ><span class="shape shape-disc" aria-hidden="true"></span>운영 중</span
+                    >
+                  </dd>
+                </dl>
+              </article>
+              <article class="lcard" style="--c: #9a6292">
+                <div class="top">
+                  <a class="chip" href="#"><span class="dot" style="background: #9a6292; color: #ffffff">A</span> </a
+                  ><b>GTX-A</b><span class="code">106</span>
+                </div>
+                <div class="nb">
+                  <span class="prev"><a href="#">‹ 연신내</a></span
+                  ><span class="here">서울</span><span><a href="#">삼성 ›</a></span>
+                </div>
+                <dl class="kv">
+                  <dt>운영기관</dt>
+                  <dd>주식회사 SR · 지티엑스에이운영</dd>
+                  <dt>상태</dt>
+                  <dd>
+                    <span class="badge st-operating"
+                      ><span class="shape shape-disc" aria-hidden="true"></span>운영 중</span
+                    >
+                  </dd>
+                </dl>
+              </article>
+            </div>
+          </section>
+          <section class="section" id="timetable">
+            <div class="section-head">
+              <h2>시간표 요약</h2>
+              <div class="seg" role="group" aria-label="요일" style="margin-left: auto">
+                <button aria-pressed="true">평일</button><button aria-pressed="false">토·휴일</button>
+              </div>
+            </div>
+            <div class="surface">
+              <div class="tt">
+                <div>
+                  <a class="chip" href="#"
+                    ><span class="dot" style="background: #0079ac; color: #ffffff">공항</span>공항철도</a
+                  >
+                  <b style="margin-left: 6px">인천공항2터미널·검암 방면</b>
+                </div>
+                <div class="num muted" style="font-size: var(--kr-text-sm)">
+                  첫차 05:20 · 막차 24:00 · <b style="color: var(--kr-fg)">208회</b>
+                </div>
+                <div class="bars" style="--c: #0079ac" role="img" aria-label="시간대별 열차 수: 최대 16회">
+                  <span style="height: 6%" title="0시 1회"></span><span style="height: 0%" title="1시 0회"></span
+                  ><span style="height: 0%" title="2시 0회"></span><span style="height: 0%" title="3시 0회"></span
+                  ><span style="height: 0%" title="4시 0회"></span><span style="height: 19%" title="5시 3회"></span
+                  ><span style="height: 56%" title="6시 9회"></span><span style="height: 81%" title="7시 13회"></span
+                  ><span style="height: 100%" title="8시 16회"></span><span style="height: 81%" title="9시 13회"></span
+                  ><span style="height: 75%" title="10시 12회"></span><span style="height: 75%" title="11시 12회"></span
+                  ><span style="height: 69%" title="12시 11회"></span><span style="height: 62%" title="13시 10회"></span
+                  ><span style="height: 62%" title="14시 10회"></span><span style="height: 69%" title="15시 11회"></span
+                  ><span style="height: 75%" title="16시 12회"></span><span style="height: 69%" title="17시 11회"></span
+                  ><span style="height: 94%" title="18시 15회"></span><span style="height: 88%" title="19시 14회"></span
+                  ><span style="height: 69%" title="20시 11회"></span><span style="height: 56%" title="21시 9회"></span
+                  ><span style="height: 50%" title="22시 8회"></span><span style="height: 44%" title="23시 7회"></span>
+                </div>
+                <div class="axis" aria-hidden="true">
+                  <span>0시</span><span>6</span><span>12</span><span>18</span><span>23시</span>
+                </div>
+              </div>
+              <div class="tt">
+                <div>
+                  <a class="chip" href="#"
+                    ><span class="dot" style="background: #9a6292; color: #ffffff">A</span>GTX-A</a
+                  >
+                  <b style="margin-left: 6px">운정중앙 방면</b>
+                </div>
+                <div class="num muted" style="font-size: var(--kr-text-sm)">
+                  첫차 05:30 · 막차 24:38 · <b style="color: var(--kr-fg)">141회</b>
+                </div>
+                <div class="bars" style="--c: #9a6292" role="img" aria-label="시간대별 열차 수: 최대 10회">
+                  <span style="height: 30%" title="0시 3회"></span><span style="height: 0%" title="1시 0회"></span
+                  ><span style="height: 0%" title="2시 0회"></span><span style="height: 0%" title="3시 0회"></span
+                  ><span style="height: 0%" title="4시 0회"></span><span style="height: 20%" title="5시 2회"></span
+                  ><span style="height: 80%" title="6시 8회"></span><span style="height: 100%" title="7시 10회"></span
+                  ><span style="height: 90%" title="8시 9회"></span><span style="height: 90%" title="9시 9회"></span
+                  ><span style="height: 60%" title="10시 6회"></span><span style="height: 60%" title="11시 6회"></span
+                  ><span style="height: 60%" title="12시 6회"></span><span style="height: 60%" title="13시 6회"></span
+                  ><span style="height: 80%" title="14시 8회"></span><span style="height: 70%" title="15시 7회"></span
+                  ><span style="height: 80%" title="16시 8회"></span><span style="height: 90%" title="17시 9회"></span
+                  ><span style="height: 100%" title="18시 10회"></span
+                  ><span style="height: 100%" title="19시 10회"></span><span style="height: 70%" title="20시 7회"></span
+                  ><span style="height: 70%" title="21시 7회"></span><span style="height: 60%" title="22시 6회"></span
+                  ><span style="height: 40%" title="23시 4회"></span>
+                </div>
+                <div class="axis" aria-hidden="true">
+                  <span>0시</span><span>6</span><span>12</span><span>18</span><span>23시</span>
+                </div>
+              </div>
+              <div class="legend-row">
+                자료 기준일 2026-10-11 · 운행정보 요일구분은 출처 절에 원문 표기 · <a href="#">전체 시간표</a>
+              </div>
+            </div>
+          </section>
+          <section class="section" id="plans">
+            <div class="section-head"><h2>관련 계획</h2></div>
+            <div class="table-wrap">
+              <table class="data">
+                <thead>
+                  <tr>
+                    <th>계획</th>
+                    <th>이 역에서</th>
+                    <th>단계</th>
+                    <th class="r">개통 예정</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><a href="#">수도권광역급행철도 B노선</a></td>
+                    <td>새 승강장(서울)</td>
+                    <td>
+                      <span class="badge stage stage-build"
+                        ><svg class="shape" viewBox="0 0 10 10" aria-hidden="true">
+                          <line x1="0" y1="5" x2="10" y2="5" stroke="currentColor" stroke-width="2.6" /></svg
+                        >공사</span
+                      >
+                    </td>
+                    <td class="r num">2032</td>
+                  </tr>
+                  <tr>
+                    <td><a href="#">공항철도 급행화</a></td>
+                    <td>기존 역 개량</td>
+                    <td>
+                      <span class="badge stage stage-build"
+                        ><svg class="shape" viewBox="0 0 10 10" aria-hidden="true">
+                          <line x1="0" y1="5" x2="10" y2="5" stroke="currentColor" stroke-width="2.6" /></svg
+                        >공사</span
+                      >
+                    </td>
+                    <td class="r num">2033</td>
+                  </tr>
+                  <tr>
+                    <td><a href="#">경부고속선 수색~광명 고속철도</a></td>
+                    <td>기존 역 개량</td>
+                    <td>
+                      <span class="badge stage stage-design"
+                        ><svg class="shape" viewBox="0 0 10 10" aria-hidden="true">
+                          <line
+                            x1="0"
+                            y1="5"
+                            x2="10"
+                            y2="5"
+                            stroke="currentColor"
+                            stroke-width="2.6"
+                            stroke-dasharray="3 1.8"
+                          /></svg
+                        >기본계획</span
+                      >
+                    </td>
+                    <td class="r num">2036</td>
+                  </tr>
+                  <tr>
+                    <td><a href="#">신분당선 서북부 연장</a></td>
+                    <td>환승 생김</td>
+                    <td>
+                      <span class="badge stage stage-study"
+                        ><svg class="shape" viewBox="0 0 10 10" aria-hidden="true">
+                          <line
+                            x1="0"
+                            y1="5"
+                            x2="10"
+                            y2="5"
+                            stroke="currentColor"
+                            stroke-width="1.6"
+                            stroke-dasharray="1.6 1.6"
+                          /></svg
+                        >타당성</span
+                      >
+                    </td>
+                    <td class="r muted">목표 미정</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+          <section class="section" id="sources">
+            <div class="section-head">
+              <h2>출처</h2>
+              <a class="more" href="#">오류 제보</a>
+            </div>
+            <div class="surface">
+              <ol class="sources">
+                <li>
+                  <span class="n">1</span
+                  ><span
+                    >한국철도공사_KTX 노선별 역정보<span class="meta"
+                      >한국철도공사 · 데이터 파일 · 이용허락범위 제한 없음 · 2026-10-11</span
+                    ></span
+                  ><span class="field badge outline">전체</span>
+                </li>
+                <li>
+                  <span class="n">2</span
+                  ><span
+                    >한국철도공사_철도운영정보_역키로정내역<span class="meta"
+                      >한국철도공사 · 데이터 파일 · 2026-10-12</span
+                    ></span
+                  ><span class="field badge outline">거리</span>
+                </li>
+                <li>
+                  <span class="n">3</span
+                  ><span
+                    >국가철도공단_철도역 정보<span class="meta"
+                      >국가철도공단(철도산업정보센터) · 데이터 파일 · 2026-10-11</span
+                    ></span
+                  ><span class="field badge outline">주소</span>
+                </li>
+                <li>
+                  <span class="n">4</span
+                  ><span>국토교통부_(TAGO)_지하철정보<span class="meta">국토교통부 · API · 2026-10-11</span></span
+                  ><span class="field badge outline">시간표</span>
+                </li>
+                <li><span class="n">…</span><span class="muted">외 5건</span><span></span></li>
+              </ol>
+            </div>
+          </section>
+        </div>
+        <aside class="aside" aria-label="보조 정보">
+          <div class="panel">
+            <h3>위치</h3>
+            <svg class="minimap" viewBox="0 0 288 150" role="img" aria-label="서울역 위치 표시(배경 지도 자리)">
+              <defs>
+                <pattern id="g" width="24" height="24" patternUnits="userSpaceOnUse">
+                  <path d="M24 0H0V24" fill="none" stroke="var(--kr-border)" stroke-width="1" />
+                </pattern>
+              </defs>
+              <rect width="288" height="150" fill="url(#g)" />
+              <circle
+                cx="144"
+                cy="75"
+                r="9"
+                fill="var(--kr-status-operating-mark)"
+                stroke="var(--kr-surface)"
+                stroke-width="3"
+              />
+              <text x="158" y="79" font-size="12" font-weight="700" fill="var(--kr-fg)">서울</text>
+            </svg>
+            <p class="muted" style="font-size: var(--kr-text-xs); margin: 6px 0 0">
+              좌표 출처: 국가철도공단 철도역 정보 · 배경 VWorld
+            </p>
+            <a
+              class="btn"
+              style="margin-top: var(--kr-space-2); width: 100%; justify-content: center"
+              href="/map/#station=stn-seoul"
+              ><svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                aria-hidden="true"
+              >
+                <path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Z" />
+                <path d="M9 4v14M15 6v14" /></svg
+              >지도에서 보기</a
+            >
+          </div>
+          <div class="panel">
+            <h3>정차 열차</h3>
+            <dl class="kv">
+              <dt>고속</dt>
+              <dd>KTX · KTX-산천 · KTX-이음</dd>
+              <dt>일반</dt>
+              <dd>ITX-새마을 · 무궁화호 · ITX-마음</dd>
+              <dt>광역</dt>
+              <dd>1·4호선 · 경의·중앙선 · 공항철도 · GTX-A</dd>
+            </dl>
+            <p class="muted" style="font-size: var(--kr-text-xs); margin: 8px 0 0">
+              표본 문구(실제는 정차 패턴에서 계산)
+            </p>
+          </div>
+          <div class="panel">
+            <h3>이 페이지</h3>
+            <dl class="kv">
+              <dt>검수</dt>
+              <dd>
+                <span class="badge review"><span class="shape shape-ring" aria-hidden="true"></span>검수 전</span>
+              </dd>
+              <dt>확인일</dt>
+              <dd class="num">2026-11-17</dd>
+              <dt>식별자</dt>
+              <dd><code>stn-seoul</code></dd>
+            </dl>
+          </div>
+        </aside>
+      </div>
+    </main>
+    <footer class="site-footer">
+      <div class="container in">
+        <span>한국철도도감 — 비상업 공개 자료. 광고·추적 없음.</span>
+        <span>자체 데이터 CC BY 4.0 · 지도 배경 © VWorld(국토교통부) · 선형 일부 © OpenStreetMap 기여자(ODbL)</span>
+        <span>공공누리 출처는 각 페이지 "출처" 절</span>
+        <span class="num">데이터 판 #2107 · 2026-11-21</span>
+      </div>
+    </footer>
+  </body>
+</html>

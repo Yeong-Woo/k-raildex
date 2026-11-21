@@ -130,7 +130,7 @@ function GoogleOverlay({ apiKey }: { apiKey: string }) {
     <div className="absolute inset-0">
       <div ref={el} className="absolute inset-0" />
       {err ? (
-        <div className="absolute top-3 left-3 rounded-md bg-danger px-3 py-2 text-xs text-white shadow">{err}</div>
+        <div className="absolute top-3 left-3 rounded-md bg-danger px-3 py-2 text-xs text-danger-fg shadow">{err}</div>
       ) : null}
       <p className="absolute bottom-6 left-2 rounded bg-bg-elevated/90 px-2 py-1 text-[11px] text-fg-muted shadow">
         참고용 겹쳐 보기 — 구글 좌표·지명은 저장하지 않습니다

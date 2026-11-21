@@ -2,13 +2,18 @@
   "name": "@k-raildex/ui",
   "version": "0.0.0",
   "private": true,
-  "description": "공용 디자인 시스템(M5)",
+  "description": "공용 디자인 시스템 — 디자인 토큰(tokens.ts·tokens.css)·Tailwind 연결·공용 위젯",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./tokens": "./src/tokens.ts",
+    "./tokens.css": "./src/tokens.css",
+    "./tailwind.css": "./src/tailwind.css",
+    "./base.css": "./src/base.css"
   },
   "scripts": {
-    "check": "tsc -p tsconfig.json"
+    "check": "tsc -p tsconfig.json",
+    "tokens": "node scripts/gen-tokens.ts"
   },
   "dependencies": {
     "class-variance-authority": "0.7.1",

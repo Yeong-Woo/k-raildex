@@ -3,10 +3,10 @@ import { cn } from './cn';
 
 const tones = {
   neutral: 'bg-muted text-fg',
-  good: 'bg-good/15 text-good',
-  warn: 'bg-warn/15 text-warn',
-  danger: 'bg-danger/15 text-danger',
-  info: 'bg-primary/15 text-primary',
+  good: 'bg-good-soft text-good',
+  warn: 'bg-warn-soft text-warn',
+  danger: 'bg-danger-soft text-danger',
+  info: 'bg-info-soft text-info',
 } as const;
 
 export function Badge({

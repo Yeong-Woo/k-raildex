@@ -8,24 +8,29 @@
  * - 선형 품질 schematic 은 "개략" — 가는 점선 + 범례 표시
  */
 
-/** 계획 단계 대표색(색 NULL 일 때). 진행도가 높을수록 진하고 따뜻하게 */
+/**
+ * 계획 단계 대표색(색 NULL 일 때) = 디자인 토큰 단계 묶음 색(라이트)의 hex(docs/design/tokens.md 3절).
+ * 묶음: 구상·계획 반영(회청) / 타당성 조사(보라) / 기본계획~실시설계(파랑) / 공사·시운전(주황) / 개통(초록) / 중단(회색).
+ * 색은 선 모양(LINE_STYLES)·라벨과 함께 쓴다 — 색만으로 단계를 전달하지 않는다.
+ * 값은 packages/ui 의 tokens.ts 와 교차 시험으로 맞춘다(packages/ui/test/tokens.test.ts).
+ */
 export const STAGE_COLORS: Readonly<Record<string, string>> = {
-  concept: '#9CA3AF',
-  plan_listed: '#94A3B8',
-  prefeasibility: '#A78BFA',
-  feasibility: '#8B5CF6',
-  strategic_eia: '#7C3AED',
-  basic_plan: '#3B82F6',
-  basic_design: '#2563EB',
-  eia: '#0EA5E9',
-  detail_design: '#0891B2',
-  construction: '#F59E0B',
-  trial_run: '#EA580C',
-  opened: '#16A34A',
-  abandoned: '#6B7280',
-  dormant: '#6B7280',
+  concept: '#7A8798',
+  plan_listed: '#7A8798',
+  prefeasibility: '#8059BB',
+  feasibility: '#8059BB',
+  strategic_eia: '#8059BB',
+  basic_plan: '#1F68BC',
+  basic_design: '#1F68BC',
+  eia: '#1F68BC',
+  detail_design: '#1F68BC',
+  construction: '#D0750A',
+  trial_run: '#D0750A',
+  opened: '#1C8742',
+  abandoned: '#7C8186',
+  dormant: '#7C8186',
 };
-export const STAGE_FALLBACK_COLOR = '#64748B';
+export const STAGE_FALLBACK_COLOR = '#7A8798';
 
 /** 12단계 진행 띠 순서(docs/05 FR-ADM-055) */
 export const STAGE_ORDER = [
@@ -52,14 +57,14 @@ export const LINE_STYLES: Readonly<Record<LineStyle, { width: number; dasharray:
   dashed_thin: { width: 2, dasharray: [1.5, 1.5], label: '그 전 단계(가는 점선)' },
 };
 
-/** 역 상태 색(현재 지도) */
+/** 역 상태 색(현재 지도) = 토큰 `status-*-mark`(라이트). 범례에는 모양(STATUS_SHAPE)과 라벨을 함께 */
 export const STATUS_COLORS: Readonly<Record<string, string>> = {
-  operating: '#2563EB',
-  suspended: '#F59E0B',
-  under_construction: '#EA580C',
-  planned: '#A78BFA',
-  closed: '#6B7280',
-  abandoned: '#9CA3AF',
+  operating: '#2A904B',
+  suspended: '#DF6C32',
+  under_construction: '#CE710C',
+  planned: '#3C79D1',
+  closed: '#CB4644',
+  abandoned: '#82878C',
 };
 
 /** 선형 품질 라벨(범례) */
@@ -173,8 +178,8 @@ export function futureStationLayers(source: string): LayerSpec[] {
       source,
       paint: {
         'circle-radius': ['interpolate', ['linear'], ['zoom'], 7, 2.5, 12, 5],
-        'circle-color': ['case', ['==', ['get', 'future'], true], '#ffffff', '#1f2937'],
-        'circle-stroke-color': ['case', ['==', ['get', 'future'], true], '#EA580C', '#ffffff'],
+        'circle-color': ['case', ['==', ['get', 'future'], true], '#FFFFFF', '#161B21'],
+        'circle-stroke-color': ['case', ['==', ['get', 'future'], true], STATUS_COLORS.under_construction, '#FFFFFF'],
         'circle-stroke-width': 1.5,
         'circle-opacity': ['case', ['==', ['get', 'approximate'], true], 0.6, 1],
       },
@@ -184,7 +189,7 @@ export function futureStationLayers(source: string): LayerSpec[] {
 
 /** 현재 노선 레이어(공사 중은 점선) */
 export function currentLineLayers(source: string): LayerSpec[] {
-  const color = ['coalesce', ['get', 'color'], '#64748B'];
+  const color = ['coalesce', ['get', 'color'], STAGE_FALLBACK_COLOR];
   return [
     {
       id: 'current-line',
@@ -215,8 +220,13 @@ export function currentStationLayers(source: string): LayerSpec[] {
       source,
       paint: {
         'circle-radius': ['interpolate', ['linear'], ['zoom'], 7, 3, 13, 6],
-        'circle-color': ['match', ['coalesce', ['get', 'status'], ''], ...pairs, '#6B7280'],
-        'circle-stroke-color': ['case', ['!=', ['coalesce', ['get', 'coord_basis'], ''], ''], '#F59E0B', '#ffffff'],
+        'circle-color': ['match', ['coalesce', ['get', 'status'], ''], ...pairs, STATUS_COLORS.abandoned],
+        'circle-stroke-color': [
+          'case',
+          ['!=', ['coalesce', ['get', 'coord_basis'], ''], ''],
+          STATUS_COLORS.under_construction,
+          '#FFFFFF',
+        ],
         'circle-stroke-width': 1.5,
       },
     },

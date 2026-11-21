@@ -1,49 +1,11 @@
 @import 'tailwindcss';
+/* 디자인 토큰(WP 6.3, docs/design/tokens.md) — 값은 packages/ui/src/tokens.ts 한 곳에서 정의한다 */
+@import '@k-raildex/ui/tokens.css';
+@import '@k-raildex/ui/tailwind.css';
+@import '@k-raildex/ui/base.css';
 @source '../../../packages/ui/src';
 
-/* 디자인 토큰(임시 — M6 UI/UX 조사 뒤 교체, Q83 A) */
-@theme {
-  --color-bg: oklch(0.99 0 0);
-  --color-bg-elevated: oklch(1 0 0);
-  --color-fg: oklch(0.22 0.01 260);
-  --color-fg-muted: oklch(0.5 0.01 260);
-  --color-muted: oklch(0.955 0.005 260);
-  --color-border: oklch(0.9 0.005 260);
-  --color-primary: oklch(0.52 0.17 255);
-  --color-primary-fg: oklch(0.99 0 0);
-  --color-ring: oklch(0.6 0.17 255);
-  --color-danger: oklch(0.58 0.2 25);
-  --color-warn: oklch(0.62 0.15 70);
-  --color-good: oklch(0.55 0.14 150);
-  --font-sans: system-ui, -apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) {
-    --color-bg: oklch(0.18 0.01 260);
-    --color-bg-elevated: oklch(0.22 0.01 260);
-    --color-fg: oklch(0.94 0.005 260);
-    --color-fg-muted: oklch(0.7 0.01 260);
-    --color-muted: oklch(0.27 0.01 260);
-    --color-border: oklch(0.32 0.01 260);
-    --color-primary: oklch(0.68 0.15 255);
-    --color-primary-fg: oklch(0.15 0.01 260);
-  }
-}
-:root[data-theme='dark'] {
-  --color-bg: oklch(0.18 0.01 260);
-  --color-bg-elevated: oklch(0.22 0.01 260);
-  --color-fg: oklch(0.94 0.005 260);
-  --color-fg-muted: oklch(0.7 0.01 260);
-  --color-muted: oklch(0.27 0.01 260);
-  --color-border: oklch(0.32 0.01 260);
-  --color-primary: oklch(0.68 0.15 255);
-  --color-primary-fg: oklch(0.15 0.01 260);
-}
-
-html,
-body {
-  background: var(--color-bg);
-  color: var(--color-fg);
-  font-family: var(--font-sans);
+/* 숫자 열 정렬 */
+table {
+  font-variant-numeric: tabular-nums;
 }

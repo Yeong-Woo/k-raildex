@@ -1,0 +1,60 @@
+/*
+ * Tailwind v4 연결 — 토큰(tokens.css 의 --kr-*)을 Tailwind 색·글꼴·반경·그림자 이름에 잇는다.
+ * 앱 CSS: @import 'tailwindcss'; @import '@k-raildex/ui/tokens.css'; @import '@k-raildex/ui/tailwind.css';
+ * `inline` 이라 클래스가 var(--kr-*) 를 직접 참조해 라이트/다크 전환이 그대로 따라온다.
+ * 기존 이름(bg·bg-elevated·muted·primary·ring)은 관리 앱 호환용 별칭이다(docs/design/tokens.md 5절).
+ */
+@theme inline {
+  --color-bg: var(--kr-bg);
+  --color-bg-elevated: var(--kr-surface);
+  --color-surface: var(--kr-surface);
+  --color-surface-muted: var(--kr-surface-muted);
+  --color-surface-sunken: var(--kr-surface-sunken);
+  --color-muted: var(--kr-surface-muted);
+  --color-overlay: var(--kr-overlay);
+  --color-fg: var(--kr-fg);
+  --color-fg-muted: var(--kr-fg-muted);
+  --color-fg-subtle: var(--kr-fg-subtle);
+  --color-border: var(--kr-border);
+  --color-border-strong: var(--kr-border-strong);
+  --color-accent: var(--kr-accent);
+  --color-accent-fg: var(--kr-accent-fg);
+  --color-accent-soft: var(--kr-accent-soft);
+  --color-accent-soft-fg: var(--kr-accent-soft-fg);
+  --color-primary: var(--kr-accent);
+  --color-primary-fg: var(--kr-accent-fg);
+  --color-link: var(--kr-link);
+  --color-ring: var(--kr-focus);
+  --color-focus: var(--kr-focus);
+  --color-danger: var(--kr-danger);
+  --color-danger-fg: var(--kr-danger-fg);
+  --color-danger-soft: var(--kr-danger-soft);
+  --color-warn: var(--kr-warn);
+  --color-warn-fg: var(--kr-warn-fg);
+  --color-warn-soft: var(--kr-warn-soft);
+  --color-good: var(--kr-good);
+  --color-good-fg: var(--kr-good-fg);
+  --color-good-soft: var(--kr-good-soft);
+  --color-info: var(--kr-info);
+  --color-info-soft: var(--kr-info-soft);
+  --color-review: var(--kr-review-fg);
+  --color-review-bg: var(--kr-review-bg);
+  --color-review-border: var(--kr-review-border);
+
+  --font-sans: var(--kr-font-sans);
+  --font-mono: var(--kr-font-mono);
+
+  --radius-xs: var(--kr-radius-xs);
+  --radius-sm: var(--kr-radius-sm);
+  --radius-md: var(--kr-radius-md);
+  --radius-lg: var(--kr-radius-lg);
+  --radius-xl: var(--kr-radius-xl);
+
+  --shadow-sm: var(--kr-shadow-sm);
+  --shadow-md: var(--kr-shadow-md);
+  --shadow-lg: var(--kr-shadow-lg);
+
+  --ease-standard: var(--kr-ease-standard);
+  --default-transition-duration: var(--kr-duration-fast);
+  --default-transition-timing-function: var(--kr-ease-standard);
+}

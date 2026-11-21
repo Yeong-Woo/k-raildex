@@ -1,0 +1,43 @@
+/* 공통 기본 스타일 — 토큰만 쓴다. 관리 앱·공개 사이트·시안이 함께 쓴다(docs/design/tokens.md 4절). */
+html {
+  font-family: var(--kr-font-sans);
+  -webkit-text-size-adjust: 100%;
+  /* 한국어 어절 단위 줄바꿈 + 긴 URL·영문 넘침 방지 */
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  scroll-padding-top: calc(var(--kr-header-h) + var(--kr-space-2));
+}
+html,
+body {
+  background: var(--kr-bg);
+  color: var(--kr-fg);
+}
+h1,
+h2,
+h3,
+h4 {
+  text-wrap: balance;
+}
+p,
+li,
+dd {
+  text-wrap: pretty;
+}
+:focus-visible {
+  outline: 3px solid var(--kr-focus);
+  outline-offset: 2px;
+}
+::selection {
+  background: var(--kr-accent-soft);
+  color: var(--kr-accent-soft-fg);
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
