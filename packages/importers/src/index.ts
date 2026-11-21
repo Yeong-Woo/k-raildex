@@ -11,4 +11,5 @@ export * from './timetable/network';
 export * from './timetable/writer';
 export * from './timetable/tago';
 export * from './timetable/kric';
+export * from './osm/rail';
 export * from './tasks';

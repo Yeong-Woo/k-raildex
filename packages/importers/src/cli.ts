@@ -2,6 +2,7 @@
  * 수집기 CLI. DATABASE_URL 환경 변수.
  *   pnpm -F @k-raildex/importers run tago-timetable [--from-raw <dir>] [--dry-run] [--ids MTRS14409,…] [--area capital|all] [--limit N] [--max-calls N]
  *   pnpm -F @k-raildex/importers run kric-train-ops --from-raw <dir> [--dry-run] [--line-nos S1102,…]
+ *   pnpm -F @k-raildex/importers run osm-rail [--from-raw <dir>(기본 LEGACY_ROOT/data/osm)] [--live [--endpoint <overpass>]] [--dry-run]
  * 실행 기록은 ingest.run(dry-run 은 기록하지 않음), 리포트(마크다운)는 표준 출력과 ingest.run.log.
  */
 import pg from 'pg';
@@ -39,6 +40,12 @@ function parseArgs(argv: string[]): { task: string | undefined; options: Importe
         break;
       case '--max-calls':
         opt.maxCalls = Number(val(i++));
+        break;
+      case '--live':
+        opt.live = true;
+        break;
+      case '--endpoint':
+        opt.endpoint = val(i++);
         break;
       case '--quiet':
         quiet = true;

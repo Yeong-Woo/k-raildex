@@ -135,6 +135,12 @@
 | FR-ADM-075 | **미래 지도 미리 보기**: 연도 슬라이더·단계 필터, 공개 사이트와 같은 API(`/v1/public/map?at=`)로 확인. 클릭한 계획의 데이터 누락(기대 일정 없음·선형 schematic 뿐·역할 미지정)을 바로 표시하고 편집 화면으로 이동.                                                                           |
 | FR-ADM-076 | **위성 비교**(Q68 A): Google Maps JavaScript API(위성·스트리트뷰) 위에 우리 데이터(역 점, 노선 선형, 계획 선형)를 겹쳐 그린다. 관리 앱 전용(공개 사이트 아님). 구글에서 얻은 좌표·지명은 저장하지 않는다 — 좌표 수정은 지도 편집(VWorld)에서. 키 `GOOGLE_MAPS_API_KEY`(관리 앱 도메인 제한). |
 
+구현 메모(FR-ADM-073·074, 2026-11-21):
+
+- 지도 화면 탭 = 지도 편집 · **계획 선형 편집** · **OSM 매핑 점검** · 미래 지도 · 위성 비교. 두 도구 탭은 라우트 검증(`MapSearch.tab`)에 없는 검색 키 `?tool=geometry|osm`(+ `plan=`·`line=`)로 연다(`tab=` 값 추가는 router.tsx 를 고쳐야 해서 보류 — 고치면 `tool` 을 `tab` 으로 합친다).
+- 계획 선형 편집: 계획 선택 → 기존 선형 목록(편집·삭제)·표시 선형(`v_plan_shape` 품질·길이)·계획 연장(`plan_ref.length_km`). schematic = 지도에서 역 클릭(또는 역 검색)으로 경유역, 순서 바꾸기·빼기, 직선/곡선(Catmull-Rom) 미리 보기 — 곡선이면 보간 결과를 geom 으로 저장, 직선이면 geom 없이 저장해 DB 가 경유역 직선으로 채운다. traced·official = 지도 클릭으로 꼭짓점, 꼭짓점 끌기, 새 줄, 되돌리기, 그리기 끝, GeoJSON 붙여넣기. 길이는 하버사인 합. 출처 필수, traced·official 은 정확도(m)·방법 메모도 필수. 저장 = `PATCH plan { geometries }`(If-Match, 다른 선형은 그대로 다시 보냄). 경유역 좌표는 자체 좌표만(스냅해 보이는 근사 좌표 역은 `own_coord`).
+- OSM 매핑 점검: 노선 선택 → 배정 way 빨강(공사 중 점선)·노선별 역 점. 줌 10 이상에서 지금 범위의 way 를 미배정(주황)·다른 노선(회색)으로. way 클릭 → id·이름·ref·railway·배정 노선·relation 목록, "osm_map 에 추가"(relation id)·"way 이름 추가"·목록에서 빼기 → `PATCH line { osm_map }`(If-Match). 배정(`osm.v_line_way`)은 뷰라 바로 바뀌고 현재 지도 물리화 뷰는 파생 갱신 뒤(버튼 = `POST /v1/admin/jobs {name: refresh-derived}`, 없으면 안내). ODbL 표기는 OSM way 가 보이는 화면에 항상.
+
 ## 6-1. 외부 API 탐색기 (FR-ADM-100~, 2026-11-20 추가 요구)
 
 관리자가 공공데이터포털·레일포털(KRIC)·TAGO 등 외부 API 를 관리 앱에서 직접 호출해 결과를 보고, 필요하면 근거 문서로 남기는 화면. 데이터 조사·대조용이며 **조회 결과가 DB 개체를 바꾸지는 않는다**(바꾸려면 폼 편집 또는 제안).

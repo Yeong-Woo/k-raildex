@@ -4,7 +4,8 @@
  * 2) 마이그레이션·참조 시드(@k-raildex/db cli) + 개발 픽스처(@k-raildex/domain fixtureOps → applyChangeset) + 지도 MV 갱신
  * 3) API(tsx src/main.ts, AUTH_DEV_BYPASS=1)와 Vite 개발 서버(ADMIN_API_PROXY)를 빈 포트에 띄운다
  * 4) 외부 API 탐색기용 가짜 외부 서버(127.0.0.1, TAGO 비슷한 JSON). API 에는 가짜 키 DATA_GO_KR_KEY_E2E_STUB 만 준다(실제 키 없음)
- * 결과 주소는 process.env.E2E_BASE_URL·E2E_API_URL·E2E_MOCK_URL 로 작업자에게 넘긴다.
+ * 결과 주소는 process.env.E2E_BASE_URL·E2E_API_URL·E2E_MOCK_URL·E2E_DATABASE_URL 로 작업자에게 넘긴다
+ * (DB 주소는 픽스처에 없는 자료 — 예: OSM 추출 — 를 시험이 직접 넣을 때만 쓴다).
  *
  * 관리 앱은 서버 패키지에 의존하지 않으므로 pg·testcontainers 는 @k-raildex/db 의 의존성에서 불러오고,
  * 마이그레이션·픽스처는 각 패키지의 CLI 를 하위 프로세스로 돌린다.
@@ -203,6 +204,7 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
   process.env.E2E_BASE_URL = `http://127.0.0.1:${webPort}`;
   process.env.E2E_API_URL = `http://127.0.0.1:${apiPort}`;
   process.env.E2E_MOCK_URL = mock.url;
+  process.env.E2E_DATABASE_URL = dbUrl;
 
   return async () => {
     stopping = true;
