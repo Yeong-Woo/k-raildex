@@ -134,7 +134,7 @@ test('계획 선형 편집: 지도에서 경유역을 차례로 클릭해 schema
   expect(before.data.geometries).toEqual([]);
 
   await page.goto('/map?tool=geometry&plan=plan-fx-withdrawn');
-  await expect(page.getByRole('tab', { name: '계획 선형 편집' })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('계획 선형 편집');
   await expect(page.getByTestId('plan-shape')).toBeVisible();
   await page.getByRole('button', { name: '개략(경유역)' }).click();
   const draft = page.getByTestId('geometry-draft');
@@ -228,4 +228,22 @@ test('OSM 매핑 점검: way 를 클릭해 relation 을 노선 osm_map 에 더�
     data: { osm_map: { relation_ids: number[] } | null };
   };
   expect(line.data.osm_map?.relation_ids).toEqual([RELATION]);
+});
+
+test('지도 정보 팝업: 편집 중이 아닐 때 역 점을 클릭하면 역 정보와 편집 링크가 뜬다', async ({ page }) => {
+  await page.goto('/map?tool=geometry&plan=plan-fx-ext');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('계획 선형 편집');
+  await waitMapReady(page, 'stations');
+  await page.evaluate(() =>
+    (window as unknown as { __kraildexMap: { jumpTo(o: { center: Coord; zoom: number }): void } }).__kraildexMap.jumpTo(
+      { center: [127.05, 37.475], zoom: 11 },
+    ),
+  );
+  await waitMapReady(page, 'stations');
+  await clickLngLat(page, 'geometry-map', [127.0, 37.5]);
+  const popup = page.locator('.maplibregl-popup');
+  await expect(popup).toContainText('가');
+  await expect(popup).toContainText('stn-fx-a');
+  await popup.getByRole('link', { name: /역 편집/ }).click();
+  await expect(page).toHaveURL(/\/data\/station\/stn-fx-a/);
 });

@@ -9,3 +9,34 @@
 table {
   font-variant-numeric: tabular-nums;
 }
+
+/* 지도 정보 팝업(map/FeaturePopup) — 라이트·다크 토큰 */
+.kr-popup .maplibregl-popup-content {
+  background: var(--kr-surface);
+  color: var(--kr-fg);
+  border: 1px solid var(--kr-border);
+  border-radius: 8px;
+  padding: 10px 28px 10px 12px;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.18);
+}
+.kr-popup .maplibregl-popup-close-button {
+  color: var(--kr-fg-muted);
+  font-size: 18px;
+  padding: 2px 8px;
+}
+.kr-popup.maplibregl-popup-anchor-top .maplibregl-popup-tip,
+.kr-popup.maplibregl-popup-anchor-top-left .maplibregl-popup-tip,
+.kr-popup.maplibregl-popup-anchor-top-right .maplibregl-popup-tip {
+  border-bottom-color: var(--kr-surface);
+}
+.kr-popup.maplibregl-popup-anchor-bottom .maplibregl-popup-tip,
+.kr-popup.maplibregl-popup-anchor-bottom-left .maplibregl-popup-tip,
+.kr-popup.maplibregl-popup-anchor-bottom-right .maplibregl-popup-tip {
+  border-top-color: var(--kr-surface);
+}
+.kr-popup.maplibregl-popup-anchor-left .maplibregl-popup-tip {
+  border-right-color: var(--kr-surface);
+}
+.kr-popup.maplibregl-popup-anchor-right .maplibregl-popup-tip {
+  border-left-color: var(--kr-surface);
+}

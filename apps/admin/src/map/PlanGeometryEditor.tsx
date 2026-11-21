@@ -17,6 +17,7 @@ import { api, apiOptional, errorText, type EntityResponse } from '../lib/api';
 import { RefInput } from '../form/widgets/RefInput';
 import { curveThrough, lengthKm, parseLineGeoJson, type Coord } from './geo';
 import { boundsOf, EMPTY_FC, useGeoJsonLayer, useMapLibre, type FeatureCollection } from './useMap';
+import { useFeaturePopup } from './FeaturePopup';
 
 type Kind = PlanGeometry['kind'];
 const KINDS = codes.planGeometryKind.values as readonly Kind[];
@@ -226,6 +227,9 @@ export function PlanGeometryEditor({
   useGeoJsonLayer(map, 'plan-geoms', shown, EXISTING_LAYERS);
   useGeoJsonLayer(map, 'draft', draftFc, DRAFT_LAYERS);
   useGeoJsonLayer(map, 'stations', stations.data, currentStationLayers('stations'));
+
+  // 편집 중이 아닐 때만 역·노선 정보 팝업(편집 중 클릭은 경유역·꼭짓점 추가)
+  useFeaturePopup(map, ['current-station', 'current-line', 'current-line-construction'], !draft);
 
   // 계획을 고르면 선형 범위로
   useEffect(() => {

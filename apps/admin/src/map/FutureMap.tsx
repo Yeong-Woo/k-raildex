@@ -5,7 +5,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate, useRouter, useSearch } from '@tanstack/react-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Popup, type MapLayerMouseEvent } from 'maplibre-gl';
+import type { MapLayerMouseEvent } from 'maplibre-gl';
 import { codeLabel, formatFuzzy, isCode, type FuzzyDate } from '@k-raildex/contracts';
 import {
   DISCLAIMER,
@@ -22,6 +22,7 @@ import { Badge, Card, cn, Select } from '@k-raildex/ui';
 import { AlertTriangle, ExternalLink } from 'lucide-react';
 import { apiOptional, qs } from '../lib/api';
 import { boundsOf, useGeoJsonLayer, useMapLibre, type FeatureCollection } from './useMap';
+import { useFeaturePopup } from './FeaturePopup';
 
 interface LineProps {
   feature_id: string;
@@ -117,7 +118,9 @@ export function FutureMap() {
     setFitted(true);
   }, [map, lines.data, fitted]);
 
-  // 선 클릭 → 팝업 + 옆 패널
+  // 역·선 클릭 → 공용 정보 팝업, 선 클릭은 옆 패널 선택도
+  useFeaturePopup(map, ['future-station', ...LINE_LAYER_IDS]);
+  // 선 클릭 → 옆 패널
   useEffect(() => {
     if (!map) return;
     const onClick = (e: MapLayerMouseEvent) => {
@@ -125,29 +128,6 @@ export function FutureMap() {
       if (!p) return;
       const props = { ...p, odbl: String(p.odbl) === 'true', delayed: String(p.delayed) === 'true' } as LineProps;
       setSelected(props);
-      const el = document.createElement('div');
-      el.className = 'text-xs';
-      const title = document.createElement('div');
-      title.className = 'font-semibold';
-      title.textContent = props.name_ko;
-      el.append(title);
-      const info = document.createElement('div');
-      info.textContent = `${stageLabel(props.stage)} · 개통 ${targetText(props)}${props.delayed ? ' · 지연' : ''}`;
-      el.append(info);
-      if (props.plan_id || props.line_id) {
-        const a = document.createElement('a');
-        const type = props.plan_id ? 'plan' : 'line';
-        const id = (props.plan_id ?? props.line_id)!;
-        a.href = `/data/${type}/${encodeURIComponent(id)}`;
-        a.textContent = props.plan_id ? '계획 편집 →' : '노선 편집 →';
-        a.className = 'underline';
-        a.onclick = (ev) => {
-          ev.preventDefault();
-          void router.navigate({ to: '/data/$type/$id', params: { type, id }, search: {} });
-        };
-        el.append(a);
-      }
-      new Popup({ closeButton: true, maxWidth: '260px' }).setLngLat(e.lngLat).setDOMContent(el).addTo(map);
     };
     const enter = () => (map.getCanvas().style.cursor = 'pointer');
     const leave = () => (map.getCanvas().style.cursor = '');

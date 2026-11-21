@@ -1,7 +1,8 @@
-/** 지도(FR-ADM-070~076): 지도 편집 · 계획 선형 편집 · OSM 매핑 점검 · 미래 지도 미리 보기 · 위성 비교 */
+/** 지도(FR-ADM-070~076): 지도 편집 · 계획 선형 편집 · OSM 매핑 점검 · 미래 지도 미리 보기 · 위성 비교.
+ * 화면 전환은 사이드바 메뉴만 쓴다(탭 줄 없음). 역·선 클릭 → 정보 팝업(map/FeaturePopup). */
 import { lazy, Suspense } from 'react';
 import { useNavigate, useRouterState, useSearch } from '@tanstack/react-router';
-import { Empty, Tabs, TabsList, TabsTrigger } from '@k-raildex/ui';
+import { Empty } from '@k-raildex/ui';
 
 // MapLibre 는 무거우므로 지도 화면에서만 불러온다
 const EditMap = lazy(() => import('../map/EditMap').then((m) => ({ default: m.EditMap })));
@@ -24,6 +25,15 @@ interface ToolSearch {
   line?: string;
 }
 
+/** 화면 이름(전환은 사이드바 "지도" 메뉴에서) */
+const TITLES: Record<RouteTab | ToolTab, string> = {
+  edit: '지도 편집',
+  geometry: '계획 선형 편집',
+  osm: 'OSM 매핑 점검',
+  future: '미래 지도 미리 보기',
+  satellite: '위성 비교',
+};
+
 export function MapPage() {
   const search = useSearch({ from: '/map' });
   const raw = useRouterState({ select: (s) => s.location.search as Record<string, unknown> });
@@ -32,10 +42,6 @@ export function MapPage() {
   const tab: RouteTab | ToolTab = tool ?? search.tab ?? 'edit';
   const str = (v: unknown) => (typeof v === 'string' && v ? v : null);
 
-  const go = (t: string) =>
-    void navigate({
-      search: (TOOL_TABS.includes(t as ToolTab) ? { tool: t } : { tab: t as RouteTab }) as never,
-    });
   const setTool = (patch: ToolSearch) =>
     void navigate({
       search: ((s: Record<string, unknown>) => {
@@ -49,16 +55,9 @@ export function MapPage() {
   return (
     <div className="-m-6 flex h-screen flex-col">
       <div className="flex items-center gap-4 border-b border-border bg-bg-elevated px-6 pt-3">
-        <h1 className="pb-2 text-lg font-bold">지도</h1>
-        <Tabs value={tab} onValueChange={go}>
-          <TabsList className="border-b-0">
-            <TabsTrigger value="edit">지도 편집</TabsTrigger>
-            <TabsTrigger value="geometry">계획 선형 편집</TabsTrigger>
-            <TabsTrigger value="osm">OSM 매핑 점검</TabsTrigger>
-            <TabsTrigger value="future">미래 지도 미리 보기</TabsTrigger>
-            <TabsTrigger value="satellite">위성 비교</TabsTrigger>
-          </TabsList>
-        </Tabs>
+        <h1 className="pb-2 text-lg font-bold">
+          지도 <span className="font-normal text-fg-muted">· {TITLES[tab]}</span>
+        </h1>
       </div>
       <div className="relative min-h-0 flex-1">
         <Suspense fallback={<Empty>지도 불러오는 중…</Empty>}>

@@ -18,6 +18,7 @@ import { api, ApiError, apiOptional, errorText, qs, type EntityResponse } from '
 import { RefInput } from '../form/widgets/RefInput';
 import { bboxParam } from './geo';
 import { boundsOf, EMPTY_FC, useGeoJsonLayer, useMapLibre, type FeatureCollection } from './useMap';
+import { useFeaturePopup } from './FeaturePopup';
 
 interface RelationInfo {
   id: number;
@@ -172,6 +173,8 @@ export function OsmMappingCheck({
     [pickedFeature],
   );
   useGeoJsonLayer(map, 'osm-picked', pickedFc, PICK_LAYERS);
+  // 역 점 클릭 → 정보 팝업(OSM way 클릭은 옆 패널)
+  useFeaturePopup(map, ['osm-line-station']);
 
   // 노선을 고르면 그 선형 범위로
   useEffect(() => {

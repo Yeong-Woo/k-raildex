@@ -14,6 +14,7 @@ import { Crosshair, ExternalLink, MapPin, X } from 'lucide-react';
 import { api, apiOptional, errorText, qs, type EntityResponse } from '../lib/api';
 import { RefInput } from '../form/widgets/RefInput';
 import { useGeoJsonLayer, useMapLibre, VWORLD_KEY, type FeatureCollection } from './useMap';
+import { useFeaturePopup } from './FeaturePopup';
 
 interface StationData {
   id: string;
@@ -60,6 +61,8 @@ export function EditMap() {
 
   useGeoJsonLayer(map, 'current-lines', lines.data, currentLineLayers('current-lines'));
   useGeoJsonLayer(map, 'current-stations', stations.data, currentStationLayers('current-stations'));
+  // 역·노선 클릭 → 정보 팝업(좌표 찍기 중에는 끔). 역 클릭은 아래에서 옆 패널 선택도 한다
+  useFeaturePopup(map, ['current-station', 'current-line', 'current-line-construction'], !placing);
 
   const select = (id: string | null) => {
     setPending(null);
@@ -225,7 +228,8 @@ export function EditMap() {
         ) : (
           <p className="text-xs text-fg-muted">지도에서 역 점을 클릭하거나 위에서 찾으세요.</p>
         )}
-        <section className="flex min-h-0 flex-col">
+        {/* 목록은 남는 높이 안에서만 스크롤(범례와 겹치지 않게) */}
+        <section className="flex min-h-40 flex-1 flex-col">
           <h2 className="mb-1 flex items-center gap-2 text-xs font-semibold text-fg-muted">
             좌표 없는 역·시·도 미상(V-S02)
             {missing.data ? <Badge tone={missing.data.total ? 'warn' : 'good'}>{missing.data.total}</Badge> : null}
@@ -237,7 +241,7 @@ export function EditMap() {
           ) : !missing.data?.items.length ? (
             <p className="text-xs text-fg-muted">없음</p>
           ) : (
-            <ul className="flex flex-col text-sm" data-testid="missing-coords">
+            <ul className="flex min-h-0 flex-1 flex-col overflow-y-auto text-sm" data-testid="missing-coords">
               {missing.data.items
                 .filter((it) => it.entity_type === 'station')
                 .map((it) => (
@@ -261,7 +265,7 @@ export function EditMap() {
             </ul>
           )}
         </section>
-        <section className="mt-auto text-[11px] text-fg-muted">
+        <section className="shrink-0 border-t border-border pt-2 text-[11px] text-fg-muted">
           <div className="mb-1 font-semibold">범례</div>
           <ul className="grid grid-cols-2 gap-x-2 gap-y-0.5">
             {Object.entries(STATUS_COLORS).map(([k, c]) => (
