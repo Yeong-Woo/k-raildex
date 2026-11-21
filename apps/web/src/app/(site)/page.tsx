@@ -3,9 +3,10 @@ import type { Metadata } from 'next';
 import { codeLabel, isCode } from '@k-raildex/contracts';
 import { STAGE_GROUP, type StageGroup } from '@k-raildex/ui/tokens';
 import { StageBadge, TargetText } from '@/components/badges';
+import { JsonLd } from '@/components/json-ld';
 import { getHome } from '@/lib/data';
 import { fmtMonthDay, fmtNum } from '@/lib/format';
-import { pageMeta } from '@/lib/site';
+import { pageMeta, SITE_NAME, siteUrl } from '@/lib/site';
 import { entityPath, paths } from '@/lib/urls';
 
 export const metadata: Metadata = {
@@ -40,6 +41,21 @@ export default async function HomePage() {
 
   return (
     <>
+      <JsonLd
+        data={{
+          '@context': 'https://schema.org',
+          '@type': 'WebSite',
+          name: SITE_NAME,
+          alternateName: 'K-Raildex',
+          url: `${siteUrl()}/`,
+          inLanguage: 'ko',
+          potentialAction: {
+            '@type': 'SearchAction',
+            target: `${siteUrl()}/search/?q={q}`,
+            'query-input': 'required name=q',
+          },
+        }}
+      />
       <section className="hero">
         <div className="container">
           <h1>대한민국 철도의 지금과 앞으로</h1>

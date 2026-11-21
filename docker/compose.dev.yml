@@ -124,6 +124,8 @@ services:
       WEB_API_TOKEN: ${WEB_API_TOKEN:-}
       SITE_URL: ${SITE_URL:-http://127.0.0.1:5203}
       PUBLIC_ISSUES_URL: ${PUBLIC_ISSUES_URL:-}
+      # 미래 지도 배경(VWorld, 도메인 묶인 브라우저 공개 키 — 서버가 읽어 타일 주소로 넘긴다). 없으면 OSM 타일
+      VWORLD_API_KEY: ${VWORLD_API_KEY:-}
     ports:
       - '127.0.0.1:${WEB_PORT:-5203}:3000'
     depends_on:

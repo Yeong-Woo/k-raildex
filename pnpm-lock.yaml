@@ -363,9 +363,15 @@ importers:
       '@k-raildex/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@k-raildex/map':
+        specifier: workspace:*
+        version: link:../../packages/map
       '@k-raildex/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      maplibre-gl:
+        specifier: 6.19.0
+        version: 6.19.0(@types/react@19.3.0)(react@19.3.1)(use-sync-external-store@1.7.0(react@19.3.1))
       next:
         specifier: 16.4.6
         version: 16.4.6(@opentelemetry/api@1.10.0)(@playwright/test@1.65.1)(@types/node@24.9.2)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)

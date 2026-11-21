@@ -13,6 +13,9 @@ export const paths = {
   service: (id: string) => `/services/${enc(id)}/`,
   plans: () => '/plans/',
   plan: (id: string) => `/plans/${enc(id)}/`,
+  planPrograms: (id?: string) => `/plans/programs/${id ? `#${enc(id)}` : ''}`,
+  planProgram: (id: string) => `/plans/programs/${enc(id)}/`,
+  transferCenters: () => '/transfer-centers/',
   transferCenter: (id: string) => `/transfer-centers/${enc(id)}/`,
   term: (id: string) => `/terms/#${enc(id)}`,
   search: (q?: string) => (q ? `/search/?q=${enc(q)}` : '/search/'),
@@ -21,7 +24,16 @@ export const paths = {
   sources: () => '/sources/',
   about: () => '/about/',
   upcoming: () => '/upcoming/',
+  closed: () => '/closed/',
   timeline: () => '/timeline/',
+  /** 연대 페이지(예 2010 → /timeline/2010s/) */
+  timelineDecade: (decade: number) => `/timeline/${decade}s/`,
+  trains: () => '/trains/',
+  trainClasses: () => '/train-classes/',
+  routeMaps: () => '/maps/',
+  terms: () => '/terms/',
+  /** 미래 지도 특정 연도(`/map/?at=2030#plan=…`) */
+  mapAt: (at: number | 'future', hash?: string) => `/map/?at=${at}${hash ? `#${hash}` : ''}`,
   /** 공개 원문 다운로드(Route Handler 중계, FR-WEB-002) */
   document: (id: string) => `/api/documents/${enc(id)}/`,
   timetableJson: (stationId: string) => `/api/timetable/${enc(stationId)}/`,
@@ -92,4 +104,21 @@ export function issueUrl(base: string | undefined, title: string, pagePath: stri
   u.searchParams.set('title', `[오류 제보] ${title}`);
   u.searchParams.set('body', `페이지: ${pagePath}\n\n무엇이 틀렸나요?\n\n근거(출처 링크):\n`);
   return u.toString();
+}
+
+/** id 접두사 → 사이트 경로(연표 대상 등 종류를 모를 때). 모르는 접두사는 null */
+export function idPath(id: string): string | null {
+  if (id.startsWith('line-')) return paths.line(id);
+  if (id.startsWith('stn-')) return paths.station(id);
+  if (id.startsWith('svc-')) return paths.service(id);
+  if (id.startsWith('plan-')) return paths.plan(id);
+  if (id.startsWith('xc-')) return paths.transferCenter(id);
+  if (id.startsWith('pp-')) return paths.planProgram(id);
+  return null;
+}
+
+/** 연대 slug(`2010s`) ↔ 숫자 */
+export function parseDecade(slug: string): number | null {
+  const m = /^(\d{3}0)s$/.exec(slug);
+  return m ? Number(m[1]) : null;
 }

@@ -3,13 +3,15 @@
  * - 주소 `PUBLIC_API_URL`(기본 http://127.0.0.1:5101). 옛 시스템의 `API_URL`(5100, 다른 API)은 읽지 않는다, 토큰 `WEB_API_TOKEN`(범위 public:read)이 있으면 Bearer.
  * - 캐시(FR-WEB-003): fetch 캐시 30초 재검증 + 태그(`kr-data` 데이터 전체, `kr-path:<경로>`, 개체 id). 쓰기 반영 30초 이내(Q52 A).
  * - 응답은 contracts 의 zod 규격으로 검증한다. 개발 중에는 어긋나면 오류, 운영은 기록만 하고 그대로 쓴다(새 필드 때문에 사이트가 멈추지 않게).
- * - 옛 id(301)는 새 경로로 영구 이동, 없음·삭제(404·410)는 notFound().
+ * - 옛 id: src/proxy.ts 가 먼저 301 로 보낸다. 여기까지 온 API 301 은 permanentRedirect(308, 예비), 없음·삭제(404·410)는 notFound().
  */
 import 'server-only';
 import { notFound, permanentRedirect } from 'next/navigation';
 import type { z } from 'zod';
 
-export const API_BASE = (process.env.PUBLIC_API_URL || 'http://127.0.0.1:5101').replace(/\/+$/, '');
+import { API_BASE, apiHeaders } from './api-base';
+
+export { API_BASE, apiHeaders };
 
 /** 데이터 재검증 주기(초) — Q52 A "30초 이내" */
 export const REVALIDATE_SECONDS = 30;
@@ -25,11 +27,6 @@ export class ApiError extends Error {
   ) {
     super(message);
   }
-}
-
-export function apiHeaders(extra: Record<string, string> = {}): Record<string, string> {
-  const token = process.env.WEB_API_TOKEN;
-  return { accept: 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}), ...extra };
 }
 
 type QueryValue = string | number | boolean | null | undefined;

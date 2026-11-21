@@ -61,3 +61,73 @@ test('검색: 결과 링크, 라이트/다크 전환', async ({ page }) => {
   await page.reload();
   expect(await page.evaluate(() => document.documentElement.dataset.theme)).toBe(after);
 });
+
+test('계획 목록(차수 탭 링크) → 상세(단계 띠·기대 일정·미래 지도 링크)', async ({ page }) => {
+  await page.goto('/plans/');
+  await expect(page.getByRole('heading', { level: 1, name: '계획' })).toBeVisible();
+  await expect(page.locator('a[aria-current="true"]').first()).toBeVisible();
+  const href = await page.locator('table.data tbody tr td a[href^="/plans/plan-"]').first().getAttribute('href');
+  expect(href).toMatch(/^\/plans\/[^/]+\/$/);
+  await page.goto(href!);
+  await expect(page.locator('ol.track > li')).toHaveCount(12);
+  await expect(page.locator('#stages-h')).toHaveText('단계 이력');
+  await expect(page.locator('#sources-h')).toHaveText('출처');
+  const map = await page.getByRole('link', { name: '미래 지도에서 보기' }).getAttribute('href');
+  expect(map).toMatch(/^\/map\/\?at=(\d{4}|future)#plan=/);
+});
+
+test('상위 계획·P2 목록 페이지', async ({ page }) => {
+  for (const [path, h1] of [
+    ['/plans/programs/', '상위 계획'],
+    ['/upcoming/', '개통 예정'],
+    ['/closed/', '폐선·폐역'],
+    ['/timeline/', '연표'],
+    ['/trains/', '열차번호·차량번호'],
+    ['/train-classes/', '열차 등급'],
+    ['/transfer-centers/', '환승센터'],
+    ['/maps/', '공식 노선도'],
+    ['/terms/', '철도 용어'],
+    ['/sources/', '출처·라이선스'],
+    ['/about/', '소개'],
+  ] as const) {
+    const res = await page.goto(path);
+    expect(res?.status(), path).toBe(200);
+    await expect(page.getByRole('heading', { level: 1 })).toContainText(h1);
+  }
+});
+
+test('미래 지도: 캔버스, 연도 바꾸면 URL ?at= 이 바뀐다', async ({ page }) => {
+  await page.goto('/map/?at=2030');
+  await expect(page.locator('[data-testid="future-map"] canvas')).toBeVisible({ timeout: 30_000 });
+  await page.waitForFunction(
+    () => {
+      const m = (window as unknown as { __kraildexMap?: { querySourceFeatures(id: string): unknown[] } }).__kraildexMap;
+      return !!m && m.querySourceFeatures('lines').length > 0;
+    },
+    null,
+    { timeout: 60_000 },
+  );
+  await expect(page.getByTestId('future-at')).toContainText('2030');
+  await page.locator('body').press('ArrowRight');
+  await expect(page).toHaveURL(/[?&]at=2031/);
+  await page.getByRole('button', { name: '이전 연도' }).click();
+  await expect(page).toHaveURL(/[?&]at=2030/);
+  await page.getByRole('button', { name: /^목표 미정/ }).click();
+  await expect(page).toHaveURL(/[?&]at=future/);
+  await expect(page.getByText('개략 선형은 실제 위치와 다를 수 있습니다', { exact: false })).toBeVisible();
+});
+
+test('사이트맵·robots·Atom 200, 옛 id 는 301', async ({ request }) => {
+  const sm = await request.get('/sitemap.xml');
+  expect(sm.status()).toBe(200);
+  expect(await sm.text()).toContain('<urlset');
+  const rb = await request.get('/robots.txt');
+  expect(rb.status()).toBe(200);
+  expect(await rb.text()).toContain('Sitemap:');
+  const at = await request.get('/changes.xml');
+  expect(at.status()).toBe(200);
+  expect(at.headers()['content-type']).toContain('application/atom+xml');
+  const r = await request.get('/plans/?program=national_rail_4', { maxRedirects: 0 });
+  expect(r.status()).toBe(301);
+  expect(r.headers()['location']).toContain('program=pp-national-rail-4');
+});

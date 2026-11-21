@@ -22,8 +22,10 @@ const config: NextConfig = {
   trailingSlash: true,
   poweredByHeader: false,
   reactStrictMode: true,
-  transpilePackages: ['@k-raildex/contracts', '@k-raildex/ui'],
+  transpilePackages: ['@k-raildex/contracts', '@k-raildex/ui', '@k-raildex/map'],
   outputFileTracingRoot: new URL('../..', import.meta.url).pathname,
+  // 미래 지도 MapLibre 워커(Route Handler /api/map/worker/ 가 파일을 그대로 읽는다)
+  outputFileTracingIncludes: { '/api/map/worker': ['./node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs'] },
   images: { unoptimized: true },
   allowedDevOrigins,
   // next dev 가 저장소에 AGENTS.md 를 만들지 않게(규칙은 루트 CLAUDE.md)

@@ -35,6 +35,7 @@ export function DetailBand({
   sub,
   badges,
   extra,
+  after,
   facts,
 }: {
   colors: (string | null)[];
@@ -44,6 +45,8 @@ export function DetailBand({
   sub?: ReactNode;
   badges?: ReactNode;
   extra?: ReactNode;
+  /** 배지 아래 자유 영역(계획 단계 진행 띠 등) */
+  after?: ReactNode;
   facts?: ReactNode;
 }) {
   const real = colors.filter((c): c is string => !!c);
@@ -69,6 +72,7 @@ export function DetailBand({
         </div>
         {badges ? <div className="badges">{badges}</div> : null}
         {extra ? <div className="badges">{extra}</div> : null}
+        {after}
         {facts ? <dl className="facts">{facts}</dl> : null}
       </div>
     </header>

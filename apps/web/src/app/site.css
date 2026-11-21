@@ -1588,3 +1588,646 @@ table.matrix th.pat {
     gap: 0;
   }
 }
+
+/* ================================================================ 계획 상세(WP 7.3, 시안 plan-detail) */
+.track-wrap {
+  margin-top: var(--kr-space-4);
+}
+.track {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 3px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.track li {
+  position: relative;
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--kr-fg-subtle);
+  padding-top: 14px;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+.track li::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--kr-surface-sunken);
+  border: 1px solid var(--kr-border);
+}
+.track li.done {
+  color: var(--kr-fg-muted);
+}
+.track li.done::before {
+  background: var(--g);
+  border-color: var(--g);
+}
+.track li[aria-current] {
+  color: var(--kr-fg);
+  font-weight: 700;
+}
+.track li[aria-current]::before {
+  background: var(--g);
+  border-color: var(--g);
+  height: 12px;
+  top: -2px;
+  box-shadow:
+    0 0 0 2px var(--kr-surface),
+    0 0 0 4px var(--g);
+}
+.track li .n,
+.track li .y {
+  display: block;
+  font-variant-numeric: tabular-nums;
+  font-size: 10px;
+}
+.track li.expected::before {
+  background: repeating-linear-gradient(
+    135deg,
+    transparent 0 3px,
+    color-mix(in oklab, var(--kr-stage-open) 45%, transparent) 3px 5px
+  );
+  border: 1px dashed var(--kr-stage-open);
+}
+@media (max-width: 760px) {
+  .track {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    row-gap: var(--kr-space-3);
+  }
+}
+.tl {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 var(--kr-space-2);
+  position: relative;
+}
+.tl::before {
+  content: '';
+  position: absolute;
+  left: calc(var(--kr-space-2) + 5px);
+  top: 10px;
+  bottom: 10px;
+  width: 2px;
+  background: var(--kr-border);
+}
+.tl li {
+  position: relative;
+  display: grid;
+  grid-template-columns: 6.5rem 1fr;
+  gap: var(--kr-space-3);
+  padding: var(--kr-space-2) 0 var(--kr-space-2) 24px;
+}
+.tl li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 14px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--kr-surface);
+  border: 3px solid var(--g);
+}
+.tl li.future::before {
+  border-style: dashed;
+}
+.tl .d {
+  font-variant-numeric: tabular-nums;
+  font-size: var(--kr-text-sm);
+  font-weight: 600;
+  padding-top: 1px;
+}
+.tl .t {
+  font-size: var(--kr-text-sm);
+}
+.tl .s {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-top: 4px;
+  font-size: var(--kr-text-xs);
+  color: var(--kr-fg-muted);
+  flex-wrap: wrap;
+}
+@media (max-width: 560px) {
+  .tl li {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+}
+.expect {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--kr-space-4);
+  align-items: center;
+  padding: var(--kr-space-4);
+  border: 1px solid var(--kr-border);
+  border-left: 4px solid var(--kr-stage-open);
+  border-radius: var(--kr-radius-lg);
+  background: var(--kr-surface);
+}
+.expect .big {
+  display: block;
+  font-size: var(--kr-text-2xl, 1.6rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+@media (max-width: 560px) {
+  .expect {
+    grid-template-columns: 1fr;
+  }
+}
+.stations-new {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  row-gap: var(--kr-space-2);
+  font-size: var(--kr-text-sm);
+  padding: var(--kr-space-4);
+}
+.stations-new > span {
+  display: inline-flex;
+  align-items: center;
+}
+.stations-new > span + span::before {
+  content: '';
+  width: 20px;
+  height: 3px;
+  background: var(--kr-stage-build);
+  margin: 0 6px;
+}
+.stations-new a.stn {
+  padding: 3px 10px;
+  border: 2px solid var(--kr-stage-build);
+  border-radius: var(--kr-radius-pill);
+  background: var(--kr-surface);
+  font-weight: 600;
+  color: var(--kr-fg);
+  text-decoration: none;
+}
+.stations-new a.stn.ex {
+  border-width: 1px;
+  border-color: var(--kr-border-strong);
+  font-weight: 500;
+}
+.stations-new a.stn:hover {
+  text-decoration: underline;
+}
+.legend-lines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+  font-size: var(--kr-text-xs);
+}
+.legend-lines li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.prog-group {
+  display: flex;
+  align-items: baseline;
+  gap: var(--kr-space-2);
+  flex-wrap: wrap;
+}
+.prog-group .tabs {
+  flex: 1;
+}
+
+/* ================================================================ 지도·미래 지도(WP 7.3, 시안 future-map) */
+.fmap {
+  display: grid;
+  grid-template-columns: var(--kr-map-panel-w) minmax(0, 1fr);
+  height: calc(100dvh - var(--kr-header-h));
+  min-height: 520px;
+  border-bottom: 1px solid var(--kr-border);
+}
+.fmap-panel {
+  border-right: 1px solid var(--kr-border);
+  background: var(--kr-surface);
+  overflow-y: auto;
+  min-height: 0;
+}
+.fmap-panel .sheet-handle {
+  display: none;
+}
+.fp-sec {
+  padding: var(--kr-space-4);
+  border-bottom: 1px solid var(--kr-border);
+}
+.fp-h {
+  font-size: var(--kr-text-xs);
+  font-weight: var(--kr-weight-bold);
+  color: var(--kr-fg-muted);
+  margin: 0 0 var(--kr-space-2);
+}
+.fp-sub {
+  font-size: var(--kr-text-sm);
+  font-weight: var(--kr-weight-bold);
+  margin: var(--kr-space-3) 0 var(--kr-space-1);
+}
+.fp-year {
+  margin: 0 0 var(--kr-space-2);
+  font-size: var(--kr-text-sm);
+  color: var(--kr-fg-muted);
+}
+.fp-year b {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--kr-fg);
+  letter-spacing: -0.02em;
+  margin-right: 4px;
+}
+.fmap input[type='range'] {
+  width: 100%;
+  accent-color: var(--kr-accent);
+  min-height: 24px;
+}
+.fmap input[type='range'].dim {
+  opacity: 0.45;
+}
+.fp-range-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--kr-fg-subtle);
+}
+.fp-hint {
+  font-size: var(--kr-text-xs);
+  color: var(--kr-fg-muted);
+  margin: var(--kr-space-2) 0 0;
+}
+.fp-radios {
+  display: grid;
+  gap: 6px;
+  font-size: var(--kr-text-sm);
+}
+.fp-radios label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+  cursor: pointer;
+}
+.fp-radios input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--kr-accent);
+}
+.seg.wide {
+  display: flex;
+}
+.seg.wide button {
+  flex: 1;
+  min-height: 40px;
+  font-size: var(--kr-text-sm);
+}
+.fp-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: var(--kr-text-sm);
+}
+.fp-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 0;
+  border-bottom: 1px dashed var(--kr-border);
+}
+.fp-list li:last-child {
+  border-bottom: 0;
+}
+.fp-list li > i {
+  width: 16px;
+  height: 4px;
+  border-radius: 2px;
+  flex: none;
+}
+.fp-list li > a {
+  flex: 1;
+  min-width: 0;
+}
+.fp-list.removed li > a {
+  text-decoration: line-through;
+  text-decoration-color: var(--kr-fg-subtle);
+}
+.linkish {
+  border: 0;
+  background: none;
+  padding: 2px 4px;
+  font: inherit;
+  font-size: var(--kr-text-xs);
+  color: var(--kr-link, var(--kr-accent));
+  cursor: pointer;
+  text-decoration: underline;
+  min-height: 24px;
+}
+.linkish.strong {
+  font-size: var(--kr-text-sm);
+  font-weight: 600;
+  flex: 1;
+  text-align: left;
+}
+.fp-sec.info {
+  background: var(--kr-surface-muted);
+}
+.info-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.info-title {
+  font-size: var(--kr-text-lg);
+  font-weight: var(--kr-weight-bold);
+  margin: 2px 0 var(--kr-space-2);
+}
+.fp-sec.info .kv {
+  margin: var(--kr-space-2) 0 var(--kr-space-3);
+}
+.fp-sec.info .dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  vertical-align: -1px;
+}
+.fp-disclaimer {
+  font-size: var(--kr-text-xs);
+  color: var(--kr-fg-muted);
+  padding: var(--kr-space-4);
+  margin: 0;
+}
+.fmap-main {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+}
+.fmap-canvas {
+  position: absolute;
+  inset: 0;
+  background: var(--kr-surface-sunken);
+}
+.fmap-loading {
+  display: grid;
+  place-items: center;
+  color: var(--kr-fg-muted);
+  font-size: var(--kr-text-sm);
+}
+.fmap-status {
+  position: absolute;
+  top: var(--kr-space-3);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--kr-surface);
+  border: 1px solid var(--kr-border);
+  border-radius: var(--kr-radius-pill);
+  padding: 4px 12px;
+  font-size: var(--kr-text-xs);
+  box-shadow: var(--kr-shadow-sm);
+  z-index: 2;
+}
+.fmap-status.error {
+  color: var(--kr-danger-fg);
+}
+.yearband {
+  position: absolute;
+  left: var(--kr-space-3);
+  right: var(--kr-space-3);
+  bottom: 36px;
+  z-index: 2;
+  display: flex;
+  align-items: stretch;
+  gap: var(--kr-space-2);
+  padding: var(--kr-space-2) var(--kr-space-3);
+  background: color-mix(in oklab, var(--kr-surface) 94%, transparent);
+  border: 1px solid var(--kr-border);
+  border-radius: var(--kr-radius-lg);
+  box-shadow: var(--kr-shadow-md);
+}
+.yearband > .btn {
+  align-self: center;
+  font-size: 18px;
+}
+.yearband .bars {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex: 1;
+  gap: 3px;
+  min-width: 0;
+  overflow-x: auto;
+}
+.yearband .bars li {
+  flex: 1 0 34px;
+}
+.yearband .bars button {
+  width: 100%;
+  height: 58px;
+  border: 0;
+  background: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: stretch;
+  cursor: pointer;
+  font: inherit;
+  border-radius: var(--kr-radius-sm);
+}
+.yearband .bars .bar {
+  display: block;
+  max-height: 34px;
+  min-height: 3px;
+  background: color-mix(in oklab, var(--kr-stage-build) 30%, transparent);
+  border-radius: 2px 2px 0 0;
+}
+.yearband .bars button.in .bar {
+  background: var(--kr-stage-build);
+}
+.yearband .bars button.undated .bar {
+  background: repeating-linear-gradient(
+    135deg,
+    transparent 0 3px,
+    color-mix(in oklab, var(--kr-stage-early) 60%, transparent) 3px 5px
+  );
+}
+.yearband .bars .lbl {
+  font-size: 11px;
+  color: var(--kr-fg-muted);
+  text-align: center;
+  padding-top: 3px;
+  border-top: 2px solid var(--kr-border);
+}
+.yearband .bars button[aria-pressed='true'] .lbl {
+  color: var(--kr-fg);
+  font-weight: 800;
+  border-top-color: var(--kr-accent);
+}
+.yearband .bars button:focus-visible {
+  outline: 2px solid var(--kr-accent);
+  outline-offset: 1px;
+}
+.maplibregl-ctrl-attrib {
+  font-size: 11px;
+}
+@media (max-width: 860px) {
+  .fmap {
+    grid-template-columns: 1fr;
+    position: relative;
+  }
+  .fmap-main {
+    grid-row: 1;
+  }
+  .fmap-panel {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 3;
+    max-height: 48dvh;
+    border-right: 0;
+    border-top: 1px solid var(--kr-border);
+    border-radius: var(--kr-radius-xl) var(--kr-radius-xl) 0 0;
+    box-shadow: var(--kr-shadow-lg);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .fmap-panel-body {
+    overflow-y: auto;
+  }
+  .fmap:not(.sheet-open) .fmap-panel-body {
+    display: none;
+  }
+  .fmap-panel .sheet-handle {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    width: 100%;
+    border: 0;
+    background: var(--kr-surface);
+    padding: 6px 0 8px;
+    font: inherit;
+    font-size: var(--kr-text-xs);
+    color: var(--kr-fg-muted);
+    min-height: 40px;
+  }
+  .sheet-handle .grip {
+    width: 40px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--kr-border-strong);
+  }
+  .yearband {
+    bottom: calc(48dvh + 8px);
+    left: var(--kr-space-2);
+    right: var(--kr-space-2);
+    padding: 4px 6px;
+  }
+  .fmap:not(.sheet-open) .yearband {
+    bottom: 56px;
+  }
+  .yearband .bars button {
+    height: 46px;
+  }
+}
+
+/* ---- P2 공통(WP 7.4) ---- */
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--kr-space-1) var(--kr-space-3);
+}
+.input {
+  min-height: 36px;
+  padding: 0 var(--kr-space-3);
+  border: 1px solid var(--kr-border-strong);
+  border-radius: var(--kr-radius-md);
+  background: var(--kr-surface);
+  color: var(--kr-fg);
+  font: inherit;
+  min-width: 12rem;
+}
+.src-mini a {
+  color: inherit;
+}
+.term {
+  padding: var(--kr-space-4);
+  border-bottom: 1px solid var(--kr-border);
+}
+.term:last-child {
+  border-bottom: 0;
+}
+.term h3 {
+  font-size: var(--kr-text-base);
+  font-weight: var(--kr-weight-bold);
+  margin: 0 0 var(--kr-space-1);
+}
+.term p {
+  margin: 0 0 var(--kr-space-2);
+  font-size: var(--kr-text-sm);
+}
+.term:target,
+.term:has(> span:target) {
+  background: var(--kr-accent-soft);
+}
+.hist li:target {
+  background: var(--kr-accent-soft);
+}
+.fmap-info {
+  position: absolute;
+  top: var(--kr-space-3);
+  left: var(--kr-space-3);
+  z-index: 3;
+  width: min(22rem, calc(100% - 5rem));
+  max-height: calc(100% - 9rem);
+  overflow-y: auto;
+  background: var(--kr-surface);
+  border: 1px solid var(--kr-border);
+  border-radius: var(--kr-radius-lg);
+  box-shadow: var(--kr-shadow-lg);
+  padding: var(--kr-space-3) var(--kr-space-4) var(--kr-space-4);
+}
+.fmap-info .kv {
+  margin: var(--kr-space-2) 0 var(--kr-space-3);
+}
+.fmap-info .dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  vertical-align: -1px;
+}
+.fmap-info .fp-list li {
+  padding: 4px 0;
+}
+.fmap-main .maplibregl-ctrl-bottom-left .maplibregl-ctrl-scale {
+  margin: 0 0 6px 10px;
+}
+@media (max-width: 1023px) {
+  /* 머리가 두 줄(로고·도구 + 탐색)이라 지도 높이를 그만큼 줄인다 */
+  .fmap {
+    height: calc(100dvh - 5.75rem);
+  }
+}
+@media (max-width: 860px) {
+  .fmap-info {
+    width: calc(100% - 4.5rem);
+    max-height: calc(100% - 10rem);
+  }
+  .fmap.sheet-open .fmap-info {
+    max-height: calc(100% - 48dvh - 6.5rem);
+  }
+}

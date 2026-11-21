@@ -4,6 +4,25 @@ import { cache } from 'react';
 import { z } from 'zod';
 import {
   publicAreasSchema,
+  publicClosedSchema,
+  publicFeedSchema,
+  publicMapTimelineSchema,
+  publicNumberSearchSchema,
+  publicPlanDetailSchema,
+  publicPlanListSchema,
+  publicPlanProgramDetailSchema,
+  publicPlanProgramListSchema,
+  publicRedirectListSchema,
+  publicRouteMapListSchema,
+  publicSitemapSchema,
+  publicSourceListSchema,
+  publicTermListSchema,
+  publicTimelineSchema,
+  publicTrainClassListSchema,
+  publicTrainsSchema,
+  publicTransferCenterDetailSchema,
+  publicTransferCenterListSchema,
+  publicUpcomingSchema,
   publicHomeSchema,
   publicLineDetailSchema,
   publicLineListSchema,
@@ -14,6 +33,7 @@ import {
   publicStationListSchema,
   publicTimetableSchema,
   type PublicLineListItem,
+  type PublicPlanListItem,
 } from '@k-raildex/contracts';
 import { apiGet, apiGetAll } from './api';
 
@@ -27,6 +47,22 @@ export type StationDetail = z.infer<typeof publicStationDetailSchema>;
 export type ServiceDetail = z.infer<typeof publicServiceDetailSchema>;
 export type SearchResult = z.infer<typeof publicSearchSchema>;
 export type Timetable = z.infer<typeof publicTimetableSchema>;
+export type PlanItem = PublicPlanListItem;
+export type PlanDetail = z.infer<typeof publicPlanDetailSchema>;
+export type Program = z.infer<typeof publicPlanProgramListSchema>['items'][number];
+export type ProgramDetail = z.infer<typeof publicPlanProgramDetailSchema>;
+export type TransferCenterItem = z.infer<typeof publicTransferCenterListSchema>['items'][number];
+export type TransferCenterDetail = z.infer<typeof publicTransferCenterDetailSchema>;
+export type Upcoming = z.infer<typeof publicUpcomingSchema>;
+export type Closed = z.infer<typeof publicClosedSchema>;
+export type TimelinePage = z.infer<typeof publicTimelineSchema>;
+export type Trains = z.infer<typeof publicTrainsSchema>;
+export type TrainClass = z.infer<typeof publicTrainClassListSchema>['items'][number];
+export type RouteMap = z.infer<typeof publicRouteMapListSchema>['items'][number];
+export type Term = z.infer<typeof publicTermListSchema>['items'][number];
+export type SourceItem = z.infer<typeof publicSourceListSchema>['items'][number];
+export type FeedEntry = z.infer<typeof publicFeedSchema>['items'][number];
+export type MapTimeline = z.infer<typeof publicMapTimelineSchema>;
 
 const versionSchema = z.object({ data_version: z.number().int() }).strict();
 
@@ -101,3 +137,63 @@ export const getRegionIndex = cache(async () => {
     }
   return { byCode, bySlug };
 });
+
+// ------------------------------------------------------------------ 계획·상위 계획·환승센터(WP 7.3)
+
+export const getPlans = cache(() => apiGetAll<PlanItem>('/plans', publicPlanListSchema));
+export const getPlan = cache((id: string) =>
+  apiGet(`/plans/${encodeURIComponent(id)}`, publicPlanDetailSchema, { tags: [`kr-id:${id}`] }),
+);
+/** 다른 화면에서 곁들여 읽을 때(없으면 null) */
+export const findPlan = cache((id: string) =>
+  apiGet(`/plans/${encodeURIComponent(id)}`, publicPlanDetailSchema, { tags: [`kr-id:${id}`], nullOn404: true }),
+);
+export const getPrograms = cache(() => apiGetAll<Program>('/plan-programs', publicPlanProgramListSchema));
+export const getProgram = cache((id: string) =>
+  apiGet(`/plan-programs/${encodeURIComponent(id)}`, publicPlanProgramDetailSchema, { tags: [`kr-id:${id}`] }),
+);
+export const getTransferCenters = cache(() =>
+  apiGetAll<TransferCenterItem>('/transfer-centers', publicTransferCenterListSchema),
+);
+export const getTransferCenter = cache((id: string) =>
+  apiGet(`/transfer-centers/${encodeURIComponent(id)}`, publicTransferCenterDetailSchema, { tags: [`kr-id:${id}`] }),
+);
+
+// ------------------------------------------------------------------ P2(WP 7.4)
+
+export const getUpcoming = cache(() => apiGet('/upcoming', publicUpcomingSchema));
+export const getClosed = cache(() => apiGet('/closed', publicClosedSchema));
+export const getTimelineDecade = cache(async (decade: number) => {
+  const first = await apiGet('/timeline', publicTimelineSchema, { query: { decade, limit: 500, offset: 0 } });
+  const items = [...first.items];
+  for (let offset = 500; items.length < first.total; offset += 500) {
+    const page = await apiGet('/timeline', publicTimelineSchema, { query: { decade, limit: 500, offset } });
+    if (page.items.length === 0) break;
+    items.push(...page.items);
+  }
+  return { items, total: first.total, decades: first.decades };
+});
+/** 연대 목록만(항목 1건) */
+export const getTimelineDecades = cache(
+  async () => (await apiGet('/timeline', publicTimelineSchema, { query: { limit: 1 } })).decades,
+);
+export const getTrains = cache(() => apiGet('/trains', publicTrainsSchema));
+export const getTrainClasses = cache(async () => (await apiGet('/train-classes', publicTrainClassListSchema)).items);
+export const searchNumber = cache((n: string) => apiGet('/numbers/search', publicNumberSearchSchema, { query: { n } }));
+export const getRouteMaps = cache(async () => (await apiGet('/route-maps', publicRouteMapListSchema)).items);
+export const getTerms = cache(async () => (await apiGet('/terms', publicTermListSchema)).items);
+export const getSources = cache(() => apiGetAll<SourceItem>('/sources', publicSourceListSchema));
+export const getMapTimeline = cache((stageMin: string) =>
+  apiGet('/map/timeline', publicMapTimelineSchema, { query: { stage_min: stageMin } }),
+);
+
+// ------------------------------------------------------------------ 피드·사이트맵·리다이렉트(WP 7.5)
+
+export const getFeed = cache(
+  async (limit = 50) => (await apiGet('/feed/changes', publicFeedSchema, { query: { limit } })).items,
+);
+export const getSitemapEntries = cache(async () => (await apiGet('/sitemap-entries', publicSitemapSchema)).items);
+export const getRedirectList = cache(async () => (await apiGet('/redirects', publicRedirectListSchema)).items);
+
+/** 상위 계획 id → 이름·약칭 */
+export const getProgramIndex = cache(async () => new Map((await getPrograms()).map((p) => [p.id, p])));

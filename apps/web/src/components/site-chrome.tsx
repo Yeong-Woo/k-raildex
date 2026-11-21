@@ -9,6 +9,7 @@ export const NAV: NavItem[] = [
   { href: paths.services(), label: '운행 계통', match: '/services/' },
   { href: paths.plans(), label: '계획', match: '/plans/' },
   { href: paths.map(), label: '지도', match: '/map/' },
+  { href: paths.timeline(), label: '연표', match: '/timeline/' },
 ];
 
 function Logo() {
@@ -99,9 +100,17 @@ export function SiteFooter({ dataVersion }: { dataVersion: number | null }) {
           자체 데이터 출처·라이선스는 각 페이지 &quot;출처&quot; 절과 <a href={paths.sources()}>출처·라이선스</a> ·
           공공누리 저작물은 출처 표시 · 지도 선형 일부 © OpenStreetMap 기여자(ODbL)
         </span>
-        <span>
+        <nav aria-label="더 보기" className="footer-links">
+          <a href={paths.upcoming()}>개통 예정</a>
+          <a href={paths.closed()}>폐선·폐역</a>
+          <a href={paths.trains()}>열차번호</a>
+          <a href={paths.trainClasses()}>열차 등급</a>
+          <a href={paths.transferCenters()}>환승센터</a>
+          <a href={paths.routeMaps()}>공식 노선도</a>
+          <a href={paths.terms()}>용어</a>
+          <a href="/changes.xml">변경 기록(Atom)</a>
           <a href={paths.about()}>소개·비상업 고지</a>
-        </span>
+        </nav>
         {dataVersion != null ? <span className="num">데이터 판 #{dataVersion}</span> : null}
       </div>
     </footer>

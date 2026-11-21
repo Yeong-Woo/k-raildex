@@ -125,3 +125,13 @@ export function matchedKindLabel(kind: string | null | undefined): string | null
   }
   return null;
 }
+
+/** 억 원 → "1조 4,909억 원" */
+export function fmtEok(n: number | null | undefined): string {
+  if (n == null) return '—';
+  const v = Math.round(n);
+  const jo = Math.floor(v / 10_000);
+  const eok = v % 10_000;
+  if (jo === 0) return `${eok.toLocaleString('ko-KR')}억 원`;
+  return `${jo.toLocaleString('ko-KR')}조${eok ? ` ${eok.toLocaleString('ko-KR')}억` : ''} 원`;
+}

@@ -13,7 +13,7 @@ export function pageMeta(title: string, description: string, path: string): Meta
   return {
     title,
     description,
-    alternates: { canonical: path },
+    alternates: { canonical: path, types: { 'application/atom+xml': '/changes.xml' } },
     openGraph: { title, description, url: path, siteName: SITE_NAME, locale: 'ko_KR', type: 'website' },
   };
 }

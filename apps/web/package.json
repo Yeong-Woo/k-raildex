@@ -13,7 +13,9 @@
   },
   "dependencies": {
     "@k-raildex/contracts": "workspace:*",
+    "@k-raildex/map": "workspace:*",
     "@k-raildex/ui": "workspace:*",
+    "maplibre-gl": "6.19.0",
     "next": "16.4.6",
     "pretendard": "1.3.9",
     "react": "19.3.1",
