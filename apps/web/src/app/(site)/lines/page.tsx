@@ -65,7 +65,7 @@ export default async function LinesPage({ searchParams }: { searchParams: SP }) 
           <LinkTabs items={classTabs} current={cls} label="법적 분류" />
         </FilterRow>
         <FilterRow label="권역">
-          <LinkTabs items={areaTabs} current={area} label="권역" small />
+          <LinkTabs items={areaTabs} current={area} label="권역" small anchor="area" />
         </FilterRow>
         <FilterRow label="상태">
           <LinkTabs items={statusTabs} current={status} label="상태" small />

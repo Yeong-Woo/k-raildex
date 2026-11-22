@@ -58,7 +58,7 @@ export default async function UpcomingPage({ searchParams }: { searchParams: SP 
       </div>
       <div className="filters">
         <FilterRow label="권역">
-          <LinkTabs items={areaTabs} current={area} label="권역" small />
+          <LinkTabs items={areaTabs} current={area} label="권역" small anchor="area" />
         </FilterRow>
       </div>
       <nav className="chips" aria-label="절">

@@ -7,7 +7,7 @@
  * - 글자: style glyphs 없이 로컬 글꼴(자가 호스팅 Pretendard)로 그린다 — 외부 글꼴 서버 없음
  * - 강조: #line= #station= #plan= (부모가 넘긴 highlight)
  */
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   AttributionControl,
   Map as MlMap,
@@ -210,6 +210,35 @@ function boundsOf(features: FC['features']): [[number, number], [number, number]
     : null;
 }
 
+function createMap(container: HTMLElement, style: StyleSpecification, view: MapView): MlMap {
+  return new MlMap({
+    container,
+    style,
+    center: view.center,
+    zoom: view.zoom,
+    minZoom: 5,
+    maxZoom: 17,
+    maxBounds: [
+      [118, 30],
+      [136, 43],
+    ],
+    attributionControl: false,
+    cooperativeGestures: false,
+    dragRotate: false,
+    pitchWithRotate: false,
+    // 지도 조작 단추·캔버스 이름을 한국어로(FR-WEB-007, 화면 낭독기)
+    locale: {
+      'Map.Title': '철도 지도',
+      'NavigationControl.ZoomIn': '확대',
+      'NavigationControl.ZoomOut': '축소',
+      'NavigationControl.ResetBearing': '북쪽으로 되돌리기',
+      'AttributionControl.ToggleAttribution': '지도 출처 보기/숨기기',
+      'AttributionControl.MapFeedback': '지도 의견 보내기',
+      'Popup.Close': '닫기',
+    },
+  });
+}
+
 export default function MapCanvas({
   lines,
   stations,
@@ -234,28 +263,22 @@ export default function MapCanvas({
   const pickRef = useRef(onPick);
   pickRef.current = onPick;
   const fittedFor = useRef<string>('');
+  // WebGL2 가 없으면 MapLibre 가 생성자에서 던진다 — 페이지 전체 오류 화면 대신 지도 자리에만 안내(패널·목록은 그대로)
+  const [failed, setFailed] = useState(false);
 
   // 지도 만들기(한 번)
   useEffect(() => {
     if (!el.current) return;
     setWorkerUrl(new URL('/api/map/worker/', window.location.origin).href);
     const style = basemapStyle({ vworldKey }) as unknown as StyleSpecification;
-    const m = new MlMap({
-      container: el.current,
-      style,
-      center: view.center,
-      zoom: view.zoom,
-      minZoom: 5,
-      maxZoom: 17,
-      maxBounds: [
-        [118, 30],
-        [136, 43],
-      ],
-      attributionControl: false,
-      cooperativeGestures: false,
-      dragRotate: false,
-      pitchWithRotate: false,
-    });
+    let m: MlMap;
+    try {
+      m = createMap(el.current, style, view);
+    } catch (e) {
+      console.warn('지도를 그리지 못함(WebGL2 필요)', e);
+      setFailed(true);
+      return;
+    }
     m.touchZoomRotate.disableRotation();
     m.addControl(new AttributionControl({ compact: true }), 'bottom-right');
     m.addControl(new NavigationControl({ showCompass: false }), 'top-right');
@@ -417,6 +440,12 @@ export default function MapCanvas({
       aria-label="철도 지도(키보드: 지도에 초점을 두면 화살표로 이동, +/- 로 확대)"
     >
       <div ref={el} data-testid="future-map" style={{ width: '100%', height: '100%' }} />
+      {failed ? (
+        <p className="fmap-nogl" role="status">
+          이 브라우저에서는 지도를 그릴 수 없습니다(WebGL2 필요). 옆 목록과 각 계획·노선 상세 페이지는 그대로 볼 수
+          있습니다.
+        </p>
+      ) : null}
     </div>
   );
 }

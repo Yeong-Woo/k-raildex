@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { legacyAnchorScript, resolveRedirect, type RedirectEntry } from '../src/lib/redirects';
+import { legacyAnchorScript, legacyRouteRedirect, resolveRedirect, type RedirectEntry } from '../src/lib/redirects';
 
 const list: RedirectEntry[] = [
   {
@@ -42,5 +42,26 @@ describe('옛 id 301(FR-WEB-004, Q69 A)', () => {
     expect(s).toContain('"national_rail_4":"pp-national-rail-4"');
     expect(s).not.toContain('</script>');
     expect(s).toContain("'program-'");
+  });
+});
+
+describe('기존 사이트에만 있던 경로·쿼리(WP 7.6 크롤)', () => {
+  it('5년 단위 연표 → 10년 단위', () => {
+    expect(legacyRouteRedirect('/timeline/2005-2009/', '')).toBe('/timeline/2000s/');
+    expect(legacyRouteRedirect('/timeline/2020-2024/', '?area=all')).toBe('/timeline/2020s/?area=all');
+    expect(legacyRouteRedirect('/timeline/2010s/', '')).toBeNull();
+  });
+  it('시스템 구조도 → 소개', () => {
+    expect(legacyRouteRedirect('/system-summary/', '')).toBe('/about/');
+  });
+  it('역 목록 ?status= → ?opened=', () => {
+    expect(legacyRouteRedirect('/stations/', '?status=unopened')).toBe('/stations/?opened=unopened');
+    expect(legacyRouteRedirect('/stations/', '?status=open&area=capital')).toBe('/stations/?area=capital');
+    expect(legacyRouteRedirect('/stations/', '?status=')).toBe('/stations/?opened=all');
+    expect(legacyRouteRedirect('/stations/region/capital/', '?status=closed')).toBe(
+      '/stations/region/capital/?opened=closed',
+    );
+    expect(legacyRouteRedirect('/lines/', '?status=operating')).toBeNull();
+    expect(legacyRouteRedirect('/stations/', '?opened=unopened')).toBeNull();
   });
 });

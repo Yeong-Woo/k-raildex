@@ -120,11 +120,8 @@ export function FutureMap({
   const [picks, setPicks] = useState<Pick[]>([]);
   const [plan, setPlan] = useState<PlanSummary | null | 'loading'>(null);
   const [view, setView] = useState<MapView & { seq: number }>({ ...VIEWS.capital, seq: 0 });
-  const [sheet, setSheet] = useState(true);
-  // 좁은 화면(아래 시트)은 지도를 먼저 보이게 시트를 접고 시작한다
-  useEffect(() => {
-    if (narrow()) setSheet(false);
-  }, []);
+  // 아래 시트(좁은 화면)는 접고 시작한다 — 처음 값은 CSS 가 정하게 두어(sheet-open 없음) 그린 뒤 접히며 생기는 밀림(CLS)이 없다
+  const [sheet, setSheet] = useState(false);
   const lastFutureYear = useRef<number>(Math.min(years[years.length - 1]!, timeline.current_year + 4));
 
   // 해시(#line= #station= #plan=)
@@ -192,12 +189,19 @@ export function FutureMap({
           );
         })
         .catch(() => undefined);
-      // 다음 칸 미리 받기
-      const next = stepAt(at, years, 1);
-      void loadMap(next, stage).catch(() => undefined);
     }
+    // 다음 칸 미리 받기 — 첫 그림·차이 목록 뒤 한가할 때(큰 GeoJSON 해석이 첫 입력 응답을 막지 않게, WP 7.6 TBT)
+    const next = stepAt(at, years, 1);
+    const idle = (cb: () => void) =>
+      typeof window.requestIdleCallback === 'function'
+        ? window.requestIdleCallback(cb, { timeout: 4000 })
+        : window.setTimeout(cb, 1500);
+    const cancelIdle = (h: number) =>
+      typeof window.cancelIdleCallback === 'function' ? window.cancelIdleCallback(h) : window.clearTimeout(h);
+    const idleHandle = idle(() => void loadMap(next, stage).catch(() => undefined));
     return () => {
       alive = false;
+      cancelIdle(idleHandle);
     };
   }, [at, stage, years]);
 
@@ -517,12 +521,12 @@ export function FutureMap({
                   <button
                     type="button"
                     aria-pressed={cur}
-                    aria-label={`${y}년 (개통 예정 ${n}건)`}
                     onClick={() => go({ mode: 'year', year: y })}
                     className={at.mode === 'year' && y <= at.year ? 'in' : undefined}
                   >
                     <span className="bar" style={{ height: `${Math.max(n ? 18 : 6, (n / max) * 100)}%` }} />
-                    <span className="lbl num">{y}</span>
+                    {/* 이름 = 보이는 연도 + 숨은 건수(WCAG 2.5.3 — 보이는 글자가 이름 앞에 오게) */}
+                    <span className="lbl num">{y}</span> <span className="sr-only">년, 개통 예정 {n}건</span>
                   </button>
                 </li>
               );

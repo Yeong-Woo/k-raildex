@@ -102,16 +102,16 @@
 
 ## 4. 글자·여백·모양·움직임
 
-| 묶음   | 토큰                                                                                                                                                                |
-| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 글꼴   | `font-sans` = Pretendard Variable(SIL OFL 1.1, **공개 사이트는 자가 호스팅** 동적 부분 집합) → 시스템 한글 글꼴. `font-mono` = ui-monospace 계열                    |
-| 크기   | `text-xs` 12 / `sm` 14 / `base` 16 / `lg` 18 / `xl` 20 / `2xl` 24 / `3xl` 30 / `display` clamp(32~44). 각각 `-lh`(줄 높이: 본문 1.7) · `-ls`(자간: 큰 제목 음수)    |
-| 굵기   | `weight-regular` 400 · `medium` 500 · `semibold` 600 · `bold` 700 · `heavy` 800                                                                                     |
-| 여백   | `space-0~16` 4px 격자(0.5=2px, 1=4px, 2=8px, 2_5=10px, 3=12px, 4=16px, 6=24px, 8=32px, 12=48px, 16=64px) — Tailwind 기본 눈금과 같다                                |
-| 반경   | `radius-xs` 3 · `sm` 5 · `md` 8 · `lg` 12 · `xl` 16 · `pill`                                                                                                        |
-| 움직임 | `duration-fast` 120ms · `base` 180ms · `slow` 280ms · `map` 450ms, `ease-standard/enter/exit`. `prefers-reduced-motion: reduce` 이면 모두 0                         |
-| 쌓임   | `z-sticky` 100 · `map-controls` 200 · `dropdown` 300 · `overlay` 400 · `modal` 500 · `toast` 600 · `tooltip` 700 · `skip-link` 800                                  |
-| 배치   | `content-max` 1200px · `measure` 68ch · `sidebar-w` 320px · `map-panel-w` 384px · `header-h` 56px · `gutter` 16px(`-lg` 24px) · `target-min` 24px · `line-band` 6px |
+| 묶음   | 토큰                                                                                                                                                                                                                                                                                |
+| ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 글꼴   | `font-sans` = Pretendard Variable(SIL OFL 1.1, **공개 사이트는 자가 호스팅** 동적 부분 집합) → `Pretendard Fallback`(공개 사이트 `globals.css` 가 정의: 시스템 글꼴을 글자 폭·높이를 맞춰 줄인 것, 글꼴 교체 CLS 방지 — WP 7.6) → 시스템 한글 글꼴. `font-mono` = ui-monospace 계열 |
+| 크기   | `text-xs` 12 / `sm` 14 / `base` 16 / `lg` 18 / `xl` 20 / `2xl` 24 / `3xl` 30 / `display` clamp(32~44). 각각 `-lh`(줄 높이: 본문 1.7) · `-ls`(자간: 큰 제목 음수)                                                                                                                    |
+| 굵기   | `weight-regular` 400 · `medium` 500 · `semibold` 600 · `bold` 700 · `heavy` 800                                                                                                                                                                                                     |
+| 여백   | `space-0~16` 4px 격자(0.5=2px, 1=4px, 2=8px, 2_5=10px, 3=12px, 4=16px, 6=24px, 8=32px, 12=48px, 16=64px) — Tailwind 기본 눈금과 같다                                                                                                                                                |
+| 반경   | `radius-xs` 3 · `sm` 5 · `md` 8 · `lg` 12 · `xl` 16 · `pill`                                                                                                                                                                                                                        |
+| 움직임 | `duration-fast` 120ms · `base` 180ms · `slow` 280ms · `map` 450ms, `ease-standard/enter/exit`. `prefers-reduced-motion: reduce` 이면 모두 0                                                                                                                                         |
+| 쌓임   | `z-sticky` 100 · `map-controls` 200 · `dropdown` 300 · `overlay` 400 · `modal` 500 · `toast` 600 · `tooltip` 700 · `skip-link` 800                                                                                                                                                  |
+| 배치   | `content-max` 1200px · `measure` 68ch · `sidebar-w` 320px · `map-panel-w` 384px · `header-h` 56px · `gutter` 16px(`-lg` 24px) · `target-min` 24px · `line-band` 6px                                                                                                                 |
 
 반응형 기준 폭(TS `breakpoints`): sm 640 · md 768 · lg 1024 · xl 1280(Tailwind 기본).
 

@@ -27,7 +27,7 @@ export default async function TermsPage() {
   }
   sections.sort((a, b) => (a.no ?? 99) - (b.no ?? 99));
   const slug = slugger();
-  slug('철도 용어 사전');
+  const titleSlug = slug('철도 용어 사전');
   const withSlugs = sections.map((s) => ({
     ...s,
     slug: slug(s.no ? `${s.no}. ${s.name}` : s.name),
@@ -36,7 +36,8 @@ export default async function TermsPage() {
   return (
     <div className="container" style={{ paddingBottom: 'var(--kr-space-12)' }}>
       <div className="page-head">
-        <h1>철도 용어</h1>
+        {/* 옛 문서 제목 앵커(#철도-용어-사전) */}
+        <h1 id={titleSlug}>철도 용어</h1>
         <p className="lead">
           법령·공식 자료의 정의를 우선하고 근거를 적었습니다. 통용 속칭과 법적 정의가 다르면 둘 다 적습니다. 노선(물리
           선로)과 운행 계통(열차가 다니는 이름)은 서로 다른 개념입니다.

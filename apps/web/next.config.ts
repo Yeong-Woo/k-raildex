@@ -30,6 +30,13 @@ const config: NextConfig = {
   allowedDevOrigins,
   // next dev 가 저장소에 AGENTS.md 를 만들지 않게(규칙은 루트 CLAUDE.md)
   agentRules: false,
+  // 기존 사이트의 /favicon.svg 와 브라우저 기본 /favicon.ico → 앱 아이콘(src/app/icon.svg). WP 7.6 크롤·Lighthouse 콘솔 404
+  async redirects() {
+    return [
+      { source: '/favicon.svg', destination: '/icon.svg', statusCode: 301 },
+      { source: '/favicon.ico', destination: '/icon.svg', statusCode: 301 },
+    ];
+  },
   async headers() {
     return [
       {

@@ -4,8 +4,8 @@
 :root {
   color-scheme: light;
   --kr-font-sans:
-    'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, 'Apple SD Gothic Neo',
-    'Noto Sans KR', 'Malgun Gothic', sans-serif;
+    'Pretendard Variable', 'Pretendard Fallback', Pretendard, -apple-system, BlinkMacSystemFont, system-ui,
+    'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
   --kr-font-mono: ui-monospace, SFMono-Regular, 'JetBrains Mono', Menlo, Consolas, 'Noto Sans Mono CJK KR', monospace;
   --kr-text-xs: 0.75rem;
   --kr-text-xs-lh: 1.5;

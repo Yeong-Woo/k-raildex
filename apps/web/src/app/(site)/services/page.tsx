@@ -79,6 +79,7 @@ export default async function ServicesPage({ searchParams }: { searchParams: SP 
           <LinkTabs
             small
             label="권역"
+            anchor="area"
             current={area}
             items={areaCounts(inKind).map((a) => ({ ...a, label: areaLabel(a.value), href: link({ area: a.value }) }))}
           />

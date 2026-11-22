@@ -65,6 +65,44 @@ export function resolveRedirect(pathname: string, search: string, map: RedirectM
   return `${path}${path.includes('?') ? '&' : '?'}${s}`;
 }
 
+/** 기존 역 목록 개통 필터(`?status=`) 값 → 새 `?opened=` 값(기본 opened 는 쿼리에서 뺀다) */
+const LEGACY_STATION_STATUS: Record<string, string | null> = {
+  open: null,
+  '': 'all',
+  unopened: 'unopened',
+  operating: null,
+  suspended: null,
+  planned: 'unopened',
+  under_construction: 'unopened',
+  closed: 'closed',
+  abandoned: 'closed',
+};
+
+/**
+ * 기존 사이트에만 있던 경로·쿼리 이름 → 새 경로(WP 7.6 URL 전수 크롤, docs/legacy/url-crawl-2026-11-22.md). 바꿀 것이 없으면 null.
+ * - `/timeline/2000-2004/`(기존 5년 단위 연대) → `/timeline/2000s/`(10년 단위). 항목 앵커(사건 id)는 그대로 쓰인다
+ * - `/system-summary/`(기존 시스템 구조도 — 새 시스템에는 없음) → `/about/`
+ * - `/stations/?status=` · `/stations/region/<slug>/?status=`(기존 개통 필터) → `?opened=`
+ */
+export function legacyRouteRedirect(pathname: string, search: string): string | null {
+  let path = pathname;
+  const five = /^\/timeline\/(\d{4})-(\d{4})\/$/.exec(pathname);
+  if (five) path = `/timeline/${Math.floor(Number(five[1]) / 10) * 10}s/`;
+  else if (pathname === '/system-summary/') path = '/about/';
+  const qs = new URLSearchParams(search);
+  let qChanged = false;
+  if ((pathname === '/stations/' || pathname.startsWith('/stations/region/')) && qs.has('status')) {
+    const v = qs.get('status') ?? '';
+    qs.delete('status');
+    const opened = v in LEGACY_STATION_STATUS ? LEGACY_STATION_STATUS[v] : null;
+    if (opened && !qs.has('opened')) qs.set('opened', opened);
+    qChanged = true;
+  }
+  if (path === pathname && !qChanged) return null;
+  const s = qs.toString();
+  return s ? `${path}?${s}` : path;
+}
+
 /**
  * 옛 앵커 → 새 앵커(Q69 A). 페이지에 인라인으로 넣는 작은 스크립트 본문.
  * pairs = [옛 id, 새 id]. `#옛`, `#program-옛`(기존 계획 목록 차수 구역) 둘 다 본다.

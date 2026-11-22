@@ -5,3 +5,57 @@
 @import '@k-raildex/ui/base.css';
 @import './site.css';
 @source '../../../../packages/ui/src';
+
+/*
+ * Pretendard 가 오기 전 대체 글꼴의 글자 폭·높이를 맞춘다(WP 7.6 CLS — 글꼴 교체 때 탭·통계 줄바꿈이 달라져 본문이 밀렸다).
+ * - 한글·CJK: Noto Sans CJK KR·Apple SD Gothic Neo·맑은 고딕(글자 폭 0.92em) → Pretendard 0.864em 에 맞춰 94%. 굵기와 무관
+ * - 숫자·라틴: Arial 계열(Liberation Sans·Arimo 같은 폭) → 103%. Pretendard 는 굵을수록 라틴이 넓어져 600 이상은 109%
+ * - 굵기 범위가 같은 면끼리만 문자 범위로 합쳐지므로(Chrome) 한글 면도 같은 두 굵기 범위로 나눈다
+ * - 줄 높이가 normal 인 곳(단추·배지)도 같게 Pretendard hhea(ascent 0.952 / descent 0.241)를 size-adjust 로 나눠 준다
+ */
+@font-face {
+  font-family: 'Pretendard Fallback';
+  src:
+    local('Noto Sans CJK KR Regular'), local('NotoSansCJKkr-Regular'), local('Noto Sans KR Regular'),
+    local('NotoSansKR-Regular'), local('Apple SD Gothic Neo Regular'), local('AppleSDGothicNeo-Regular'),
+    local('Malgun Gothic'), local('MalgunGothicRegular');
+  font-weight: 100 599;
+  unicode-range: U+1100-11FF, U+2E80-9FFF, U+A960-A97F, U+AC00-D7FF, U+F900-FAFF, U+FF00-FFEF;
+  size-adjust: 94%;
+  ascent-override: 101.3%;
+  descent-override: 25.6%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: 'Pretendard Fallback';
+  src:
+    local('Noto Sans CJK KR Regular'), local('NotoSansCJKkr-Regular'), local('Noto Sans KR Regular'),
+    local('NotoSansKR-Regular'), local('Apple SD Gothic Neo Regular'), local('AppleSDGothicNeo-Regular'),
+    local('Malgun Gothic'), local('MalgunGothicRegular');
+  font-weight: 600 900;
+  unicode-range: U+1100-11FF, U+2E80-9FFF, U+A960-A97F, U+AC00-D7FF, U+F900-FAFF, U+FF00-FFEF;
+  size-adjust: 94%;
+  ascent-override: 101.3%;
+  descent-override: 25.6%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: 'Pretendard Fallback';
+  src: local('Arial'), local('ArialMT'), local('Liberation Sans'), local('LiberationSans'), local('Arimo');
+  font-weight: 100 599;
+  unicode-range: U+0000-2E7F;
+  size-adjust: 103%;
+  ascent-override: 92.4%;
+  descent-override: 23.4%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: 'Pretendard Fallback';
+  src: local('Arial'), local('ArialMT'), local('Liberation Sans'), local('LiberationSans'), local('Arimo');
+  font-weight: 600 900;
+  unicode-range: U+0000-2E7F;
+  size-adjust: 109%;
+  ascent-override: 87.3%;
+  descent-override: 22.1%;
+  line-gap-override: 0%;
+}

@@ -101,7 +101,7 @@ export const shadowTokens = {
 
 /** 글꼴 — Pretendard(SIL OFL 1.1)는 자가 호스팅(06 문서 4절). 없으면 시스템 한글 글꼴 */
 export const fontTokens = {
-  sans: "'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif",
+  sans: "'Pretendard Variable', 'Pretendard Fallback', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif",
   mono: "ui-monospace, SFMono-Regular, 'JetBrains Mono', Menlo, Consolas, 'Noto Sans Mono CJK KR', monospace",
 } as const;
 
@@ -298,6 +298,32 @@ export function contrastRatio(a: string, b: string): number {
  */
 export function readableOn(lineHex: string): '#FFFFFF' | '#111418' {
   return contrastRatio(lineHex, '#FFFFFF') >= contrastRatio(lineHex, '#111418') ? '#FFFFFF' : '#111418';
+}
+
+/**
+ * 노선 색 바탕 칩(작은 글자)의 바탕·글자색. 어느 글자색으로도 4.5:1 이 안 되는 중간 밝기 색(예 #957326 = 4.41:1)은
+ * 바탕만 글자 반대쪽(흰 글자면 검정, 어두운 글자면 흰색)으로 2%씩 섞어 4.5:1 을 맞춘다(WCAG 1.4.3, WP 7.6 접근성 점검).
+ * 지도 선·띠처럼 글자가 없는 곳은 원래 색을 그대로 쓴다.
+ */
+export function readableChip(lineHex: string): { background: string; color: '#FFFFFF' | '#111418' } {
+  const color = readableOn(lineHex);
+  if (contrastRatio(lineHex, color) >= 4.5) return { background: lineHex, color };
+  const [r, g, b] = hexToRgb(lineHex);
+  const toward = color === '#FFFFFF' ? 0 : 1;
+  const hex = (t: number) =>
+    `#${[r, g, b]
+      .map((c) =>
+        Math.round((c + (toward - c) * t) * 255)
+          .toString(16)
+          .padStart(2, '0'),
+      )
+      .join('')
+      .toUpperCase()}`;
+  for (let t = 0.02; t <= 0.5; t += 0.02) {
+    const bg = hex(t);
+    if (contrastRatio(bg, color) >= 4.5) return { background: bg, color };
+  }
+  return { background: hex(0.5), color };
 }
 
 /** 배색별 색 토큰 hex(지도·캔버스용) */

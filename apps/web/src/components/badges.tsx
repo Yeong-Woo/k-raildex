@@ -3,7 +3,7 @@
  * 라벨은 contracts 코드표에서만 가져온다.
  */
 import { codeLabel, type Code, type FuzzyDate, type PublicTarget } from '@k-raildex/contracts';
-import { STAGE_GROUP, STATUS_SHAPE, readableOn } from '@k-raildex/ui/tokens';
+import { STAGE_GROUP, STATUS_SHAPE, readableChip } from '@k-raildex/ui/tokens';
 import { dday, formatFuzzy, fuzzyDateTime, lineShortLabel } from '@/lib/format';
 import { paths } from '@/lib/urls';
 
@@ -126,10 +126,10 @@ export interface ChipLine {
   color: string | null;
 }
 
-/** 노선 칩: 노선 색 바탕 + 대비 큰 글자색(readableOn). 공식 색이 없으면 점선 칩. 이름은 늘 병기 */
+/** 노선 칩: 노선 색 바탕 + 대비 큰 글자색(readableChip — 4.5:1 이 안 되는 중간 밝기 색은 바탕을 살짝 짙게/옅게). 공식 색이 없으면 점선 칩. 이름은 늘 병기 */
 export function LineChip({ line, link = true, short }: { line: ChipLine; link?: boolean; short?: boolean }) {
   const mark = lineShortLabel(line.name_ko);
-  const style = line.color ? { background: line.color, color: readableOn(line.color) } : undefined;
+  const style = line.color ? readableChip(line.color) : undefined;
   const inner = (
     <>
       <span className="dot" style={style} aria-hidden="true">
@@ -151,7 +151,7 @@ export function LineChip({ line, link = true, short }: { line: ChipLine; link?: 
 /** 노선 표지(상세 머리의 원형 표지) */
 export function LineMark({ name, color }: { name: string; color: string | null }) {
   const style = color
-    ? { background: color, color: readableOn(color) }
+    ? readableChip(color)
     : {
         background: 'var(--kr-surface-muted)',
         border: '2px dashed var(--kr-border-strong)',

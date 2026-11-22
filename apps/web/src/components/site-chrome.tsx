@@ -38,7 +38,13 @@ export function SiteHeader() {
         </a>
         <NavLinks items={NAV} />
         <div className="header-tools">
-          <form className="search-btn header-search" action={paths.search()} method="get" role="search">
+          <form
+            className="search-btn header-search"
+            action={paths.search()}
+            method="get"
+            role="search"
+            aria-label="사이트 검색"
+          >
             <svg
               width="16"
               height="16"
@@ -70,7 +76,7 @@ export function SiteHeader() {
               <path d="m20 20-3.5-3.5" />
             </svg>
           </a>
-          <a className="btn" href={paths.futureMap()}>
+          <a className="btn" href={paths.futureMap()} aria-label="미래 지도">
             <svg
               width="16"
               height="16"

@@ -6,7 +6,7 @@
  */
 import { NextResponse, type NextRequest } from 'next/server';
 import { API_BASE, apiHeaders } from '@/lib/api-base';
-import { resolveRedirect, type RedirectEntry } from '@/lib/redirects';
+import { legacyRouteRedirect, resolveRedirect, type RedirectEntry } from '@/lib/redirects';
 
 const TTL_MS = 5 * 60_000;
 let cache: { at: number; map: Map<string, RedirectEntry> } | null = null;
@@ -34,11 +34,16 @@ async function redirectMap(): Promise<Map<string, RedirectEntry> | null> {
 
 export async function proxy(req: NextRequest) {
   const { pathname, search } = req.nextUrl;
+  // 기존 사이트에만 있던 경로·쿼리 이름(API 와 무관) → 그 결과에 옛 id 이동을 한 번 더 — 301 한 번으로 끝낸다
+  const legacy = legacyRouteRedirect(pathname, search);
+  const u = legacy ? new URL(legacy, req.nextUrl) : null;
+  const p = u ? u.pathname : pathname;
+  const s = u ? u.search : search;
   const map = await redirectMap();
-  if (!map || map.size === 0) return NextResponse.next();
-  const to = resolveRedirect(pathname, search, map);
-  if (!to) return NextResponse.next();
-  return NextResponse.redirect(new URL(to, req.nextUrl), 301);
+  const to = map && map.size > 0 ? resolveRedirect(p, s, map) : null;
+  const dest = to ?? legacy;
+  if (!dest) return NextResponse.next();
+  return NextResponse.redirect(new URL(dest, req.nextUrl), 301);
 }
 
 export const config = {

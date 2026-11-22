@@ -143,7 +143,7 @@ export default async function PlansPage({ searchParams }: { searchParams: SP }) 
           <LinkTabs items={stageTabs} current={stage} label="단계" small />
         </FilterRow>
         <FilterRow label="권역">
-          <LinkTabs items={areaTabs} current={area} label="권역" small />
+          <LinkTabs items={areaTabs} current={area} label="권역" small anchor="area" />
         </FilterRow>
         {scopeTabs.length > 2 ? (
           <FilterRow label="범위">

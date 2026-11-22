@@ -87,7 +87,7 @@ export async function StationList({
         </FilterRow>
         {showAreaTabs ? (
           <FilterRow label="권역">
-            <LinkTabs items={areaTabs} current={area} label="권역" small />
+            <LinkTabs items={areaTabs} current={area} label="권역" small anchor="area" />
           </FilterRow>
         ) : null}
         <FilterRow label="개통">

@@ -6,6 +6,7 @@ import {
   colorTokens,
   contrastRatio,
   oklchToHex,
+  readableChip,
   readableOn,
   renderTokensCss,
   STAGE_GROUP,
@@ -104,6 +105,15 @@ describe('design tokens', () => {
     for (const c of ['#004A85', '#00A23F', '#009BCE', '#9A6292', '#81BF48', '#F4A462']) {
       expect(contrastRatio(c, readableOn(c))).toBeGreaterThanOrEqual(4.5);
     }
+  });
+
+  it('line chips reach 4.5:1 even on mid-tone colors (bg nudged, others untouched)', () => {
+    for (const c of ['#217DCB', '#D93F5C', '#957326', '#6E7E31', '#004A85', '#00A23F', '#F4A462']) {
+      const { background, color } = readableChip(c);
+      expect(contrastRatio(background, color)).toBeGreaterThanOrEqual(4.5);
+    }
+    expect(readableChip('#004A85')).toEqual({ background: '#004A85', color: '#FFFFFF' });
+    expect(readableChip('#957326').background).not.toBe('#957326');
   });
 
   it('map palette (packages/map) follows the stage-group and status tokens', () => {

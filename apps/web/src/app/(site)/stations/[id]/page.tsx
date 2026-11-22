@@ -10,7 +10,7 @@ import { fmtKm, fmtMinute, serviceGroupOf, STOP_CLASS_LABEL, stopClassesOf } fro
 import { compareDayType } from '@/lib/patterns';
 import { clip, pageMeta } from '@/lib/site';
 import { attachTimetableNotes, groupSources } from '@/lib/sources';
-import { paths } from '@/lib/urls';
+import { firstParam, paths } from '@/lib/urls';
 
 type Params = Promise<{ id: string }>;
 
@@ -49,8 +49,12 @@ function Bars({ by, color }: { by: number[]; color: string }) {
   );
 }
 
-export default async function StationPage({ params }: { params: Params }) {
-  const { id } = await params;
+type SP = Promise<Record<string, string | string[] | undefined>>;
+
+export default async function StationPage({ params, searchParams }: { params: Params; searchParams: SP }) {
+  const [{ id }, sp] = await Promise.all([params, searchParams]);
+  // 기존 요일 탭 링크(`?day=saturday#tt-saturday`)는 그 요일을 펼친다
+  const daySel = firstParam(sp.day);
   const [s, lineIndex] = await Promise.all([getStation(id), getLineIndex()]);
   const path = paths.station(s.id);
   const src = groupSources(s.sources, s.id);
@@ -258,7 +262,12 @@ export default async function StationPage({ params }: { params: Params }) {
             ) : (
               <div className="surface">
                 {dayTypes.map((d, i) => (
-                  <details key={d} className="tt-dayblock" open={i === 0}>
+                  <details
+                    key={d}
+                    id={`tt-${d}`}
+                    className="tt-dayblock"
+                    open={daySel && (dayTypes as string[]).includes(daySel) ? d === daySel : i === 0}
+                  >
                     <summary
                       className="branch-head"
                       style={{ padding: 'var(--kr-space-2) var(--kr-space-4)', margin: 0, cursor: 'pointer' }}

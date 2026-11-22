@@ -62,7 +62,7 @@ export default async function TransferCentersPage({ searchParams }: { searchPara
           <LinkTabs items={kindTabs} current={kind} label="종류" small />
         </FilterRow>
         <FilterRow label="권역">
-          <LinkTabs items={areaTabs} current={area} label="권역" small />
+          <LinkTabs items={areaTabs} current={area} label="권역" small anchor="area" />
         </FilterRow>
       </div>
       <p className="muted num" style={{ fontSize: 'var(--kr-text-sm)' }}>

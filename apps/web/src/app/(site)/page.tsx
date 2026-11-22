@@ -58,11 +58,14 @@ export default async function HomePage() {
       />
       <section className="hero">
         <div className="container">
-          <h1>대한민국 철도의 지금과 앞으로</h1>
+          <h1>
+            대한민국 철도의 <br className="br-narrow" />
+            지금과 앞으로
+          </h1>
           <p>
             노선·역·운행 계통·열차와 계획 사업을 <b>출처와 함께</b> 정리합니다.
           </p>
-          <form className="bigsearch" action={paths.search()} method="get" role="search">
+          <form className="bigsearch" action={paths.search()} method="get" role="search" aria-label="홈 검색">
             <svg
               width="20"
               height="20"

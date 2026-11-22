@@ -11,14 +11,17 @@ export function LinkTabs({
   current,
   label,
   small,
+  anchor,
 }: {
   items: TabItem[];
   current: string;
   label: string;
   small?: boolean;
+  /** 목록 앵커 접두사 — `<접두사>-<현재 값>` id 를 단다(기존 `?area=all#area-all` 링크가 이 자리로 온다) */
+  anchor?: string;
 }) {
   return (
-    <ul className={`tabs${small ? ' small' : ''}`} aria-label={label}>
+    <ul className={`tabs${small ? ' small' : ''}`} aria-label={label} id={anchor ? `${anchor}-${current}` : undefined}>
       {items.map((t) => (
         <li key={t.value}>
           <a href={t.href} aria-current={t.value === current ? 'true' : undefined}>

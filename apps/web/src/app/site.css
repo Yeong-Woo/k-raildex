@@ -1545,8 +1545,29 @@ table.matrix th.pat {
   .hero {
     padding-top: var(--kr-space-8);
   }
+  /* 좁은 화면은 글자 폭과 무관하게 줄 수가 정해지게(WP 7.6 CLS — 글꼴 교체로 줄바꿈이 바뀌어 본문이 밀렸다) */
   .stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: var(--kr-space-4);
+  }
+  .tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    padding-bottom: 2px;
+  }
+  .tabs > li {
+    flex: none;
+  }
+}
+/* 좁은 화면에서만 줄을 바꾼다(홈 제목: 글꼴에 따라 한 줄/두 줄로 달라지지 않게) */
+.br-narrow {
+  display: none;
+}
+@media (max-width: 480px) {
+  .br-narrow {
+    display: inline;
   }
 }
 .tt-dayblock + .tt-dayblock {
@@ -1977,6 +1998,16 @@ table.matrix th.pat {
   inset: 0;
   background: var(--kr-surface-sunken);
 }
+.fmap-nogl {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: var(--kr-space-6);
+  text-align: center;
+  color: var(--kr-fg-muted);
+  font-size: var(--kr-text-sm);
+}
 .fmap-loading {
   display: grid;
   place-items: center;
@@ -2080,6 +2111,11 @@ table.matrix th.pat {
 }
 .maplibregl-ctrl-attrib {
   font-size: 11px;
+}
+/* 출처 문장 속 링크는 색만으로 구분하지 않는다(WCAG 1.4.1, axe link-in-text-block).
+   maplibre-gl.css 가 지도 청크와 함께 나중에 실려 같은 우선순위면 지므로 .fmap 을 앞에 붙인다 */
+.fmap .maplibregl-ctrl-attrib a {
+  text-decoration: underline;
 }
 @media (max-width: 860px) {
   .fmap {
