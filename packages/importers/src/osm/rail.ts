@@ -44,6 +44,12 @@ out body;`,
 area["ISO3166-1"="KR"]["admin_level"="2"]->.kr;
 rel(area.kr)["route"="tracks"];
 out body;`,
+  /** 노선 relation(route=tracks)의 구성 way 는 service=yard·spur 등(기지선·조차장선·인입선)이어도 받는다 — 시설 선로 노선(2026-11-22). 역 대피선(siding)·건넘선(crossover)은 노선 선형이 아니라 뺀다 */
+  ways_tracks_members_kr: `[out:json][timeout:600];
+area["ISO3166-1"="KR"]["admin_level"="2"]->.kr;
+rel(area.kr)["route"="tracks"]->.t;
+way(r.t)["railway"~"^(rail|construction)$"]["service"]["service"!~"^(siding|crossover)$"];
+out geom;`,
   ways_construction_kr: `[out:json][timeout:300];
 area["ISO3166-1"="KR"]["admin_level"="2"]->.kr;
 way(area.kr)["railway"="construction"][!"service"];
@@ -381,6 +387,8 @@ const WAY_TAGS = [
   'construction',
   'bridge',
   'tunnel',
+  /** 입체 구분(지하 −1·−2, 고가 1) — 겹친 노선이 공용 선로인지 층이 다른지 가리는 데 쓴다 */
+  'layer',
 ] as const;
 const REL_TAGS = ['type', 'route', 'name', 'name:ko', 'name:en', 'ref', 'colour', 'operator', 'network', 'from', 'to'];
 
@@ -420,7 +428,7 @@ function waysToFile(elements: OverpassElement[], extra: Partial<OsmWaysFile>): O
   return { features, ...extra };
 }
 
-/** Overpass 5회 호출 → raw 와 같은 입력 묶음 */
+/** Overpass 6회 호출 → raw 와 같은 입력 묶음 */
 export async function fetchOsmLive(
   opts: {
     endpoint?: string;
@@ -450,7 +458,11 @@ export async function fetchOsmLive(
       .sort()[0] ?? null;
   const hash = (...ks: (keyof typeof OSM_QUERIES)[]) => sha256(ks.map((k) => r[k].text).join('\n'));
   const waysMap = new Map<number, OverpassElement>();
-  for (const el of [...r.ways_capital.json.elements, ...r.ways_highspeed.json.elements])
+  for (const el of [
+    ...r.ways_capital.json.elements,
+    ...r.ways_highspeed.json.elements,
+    ...r.ways_tracks_members_kr.json.elements,
+  ])
     if (el.type === 'way') waysMap.set(el.id, el);
   const rels = new Map<number, OverpassElement>();
   for (const el of [...r.routes_capital.json.elements, ...r.routes_tracks_kr.json.elements])
@@ -469,13 +481,13 @@ export async function fetchOsmLive(
     });
   return {
     ways: {
-      name: 'overpass ways_capital+ways_highspeed',
+      name: 'overpass ways_capital+ways_highspeed+ways_tracks_members_kr',
       data: waysToFile([...waysMap.values()], {
         extracted_at: fetchedAt,
-        osm_base_timestamp: base('ways_capital', 'ways_highspeed'),
-        query: `${OSM_QUERIES.ways_capital}\n\n${OSM_QUERIES.ways_highspeed}`,
+        osm_base_timestamp: base('ways_capital', 'ways_highspeed', 'ways_tracks_members_kr'),
+        query: `${OSM_QUERIES.ways_capital}\n\n${OSM_QUERIES.ways_highspeed}\n\n${OSM_QUERIES.ways_tracks_members_kr}`,
       }),
-      sha256: hash('ways_capital', 'ways_highspeed'),
+      sha256: hash('ways_capital', 'ways_highspeed', 'ways_tracks_members_kr'),
     },
     construction: {
       name: 'overpass ways_construction_kr',

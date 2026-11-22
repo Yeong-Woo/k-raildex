@@ -312,6 +312,19 @@ describe('osm-rail 수집기(DB)', () => {
             ],
           }),
         };
+      if (query === OSM_QUERIES.ways_tracks_members_kr)
+        return {
+          status: 200,
+          text: JSON.stringify({
+            ...base,
+            elements: [
+              el(103, { railway: 'rail', service: 'yard', name: '시험기지선' }, [
+                [127.1, 37.45],
+                [127.12, 37.46],
+              ]),
+            ],
+          }),
+        };
       if (query === OSM_QUERIES.ways_construction_kr)
         return {
           status: 200,
@@ -348,11 +361,12 @@ describe('osm-rail 수집기(DB)', () => {
     };
     // 재시도 대기(기본 15초×n)를 줄여 부른다
     const input = await fetchOsmLive({ post, pauseMs: 0, retry: { attempts: 3, waitMs: 1 } });
-    expect(calls.length).toBe(6);
+    expect(calls.length).toBe(7);
     const ds = buildOsmDataset(input);
     expect(ds.ways.map((w) => [w.id, w.is_construction])).toEqual([
       [101, false],
       [102, true],
+      [103, false],
     ]);
     expect(ds.relations[0]!.tags).toEqual({ type: 'route', route: 'subway', name: '시험 1호선' });
     expect(ds.extracts.map((e) => e.overpass_query?.includes('area["ISO3166-1"="KR"]'))).toEqual([true, true, true]);
