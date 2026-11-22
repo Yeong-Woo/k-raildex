@@ -62,7 +62,7 @@ export async function mapAtLines(db: Queryable, q: MapAtQuery): Promise<FeatureC
             json_build_object('feature_id', m.feature_id, 'line_id', m.line_id, 'plan_id', m.plan_id, 'name_ko', m.name_ko,
               'status', m.status, 'stage', m.stage, 'line_style', m.line_style, 'color', m.color, 'color_basis', m.color_basis,
               'quality', m.quality, 'odbl', m.odbl, 'delayed', m.delayed,
-              'target_value', m.target_value, 'target_precision', m.target_precision) AS properties
+              'target_value', m.target_value, 'target_precision', m.target_precision, 'passenger', m.passenger) AS properties
        FROM map_at_lines($1::int, $2, $3) m
       ORDER BY m.plan_id NULLS FIRST, m.feature_id`,
     [q.year, q.stage_min, q.include_undated],

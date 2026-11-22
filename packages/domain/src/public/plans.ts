@@ -4,6 +4,7 @@
  */
 import type { PublicPlanDetail, PublicPlanListItem, PublicTransferCenterDetail } from '@k-raildex/contracts';
 import type { Queryable } from '../db';
+import { MILESTONE_AUTO_MARK } from '../quality';
 import {
   attachmentsOf,
   eventsOf,
@@ -34,6 +35,11 @@ const PLAN_LIST_EXTRA = `
   coalesce((SELECT json_agg(json_build_object('line_id', pl.line_id, 'role', pl.role) ORDER BY pl.line_id)
               FROM plan_line pl JOIN line l ON l.id = pl.line_id AND l.deleted_at IS NULL WHERE pl.plan_id = p.id), '[]'::json) AS lines,
   (SELECT count(*)::int FROM plan_station ps JOIN station s ON s.id = ps.station_id AND s.deleted_at IS NULL WHERE ps.plan_id = p.id) AS station_count`;
+
+/** 기대 일정 메모의 공개용 값: 관리용 검수 표시가 든 줄을 뺀다(Q119 A). 남는 것이 없으면 NULL */
+const markRe = MILESTONE_AUTO_MARK.replace(/[()]/g, '\\$&');
+const publicMilestoneNote = (col: string) =>
+  `nullif(btrim(regexp_replace(${col}, '[^\n]*${markRe}[^\n]*', '', 'g'), E' \n'), '')`;
 
 export interface PlanListQuery extends Page {
   program_id?: string;
@@ -114,7 +120,8 @@ export async function publicPlan(db: Queryable, id: string): Promise<PublicPlanD
       [id],
     ),
     db.query<Row & { source_id: string | null }>(
-      `SELECT m.stage, ${fz('m.expected')} AS expected, m.basis, ${fz('m.as_of')} AS as_of, m.source_id, m.note
+      `SELECT m.stage, ${fz('m.expected')} AS expected, m.basis, ${fz('m.as_of')} AS as_of, m.source_id,
+              ${publicMilestoneNote('m.note')} AS note
          FROM plan_milestone m WHERE m.plan_id = $1 ORDER BY m.stage, m.as_of_from DESC NULLS LAST, m.id DESC`,
       [id],
     ),

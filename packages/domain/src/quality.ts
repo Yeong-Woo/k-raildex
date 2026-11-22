@@ -9,6 +9,12 @@ import { DomainError } from './errors';
 import { entityLabels } from './list';
 import { ENTITY_SPECS } from './mapping';
 
+/**
+ * 이관 기대 일정 메모의 관리용 표시(Q100 A). 이 표시가 든 줄은 공개 응답에서 뺀다(Q119 A) —
+ * 검수하면서 메모를 고치면 품질 목록 X-milestone-auto 에서도 빠진다.
+ */
+export const MILESTONE_AUTO_MARK = '자동 선택(검수 필요)';
+
 export interface QualityRule {
   id: string;
   title: string;
@@ -184,7 +190,7 @@ export const QUALITY_RULES: readonly QualityRule[] = [
     sql: `SELECT 'plan' AS entity_type, m.plan_id AS entity_id, m.stage || ' ' || coalesce(m.expected_value, '') AS detail,
                  m.plan_id || m.id AS sort_key
             FROM plan_milestone m JOIN plan p ON p.id = m.plan_id AND p.deleted_at IS NULL
-           WHERE m.note LIKE '%자동 선택(검수 필요)%'`,
+           WHERE m.note LIKE '%${MILESTONE_AUTO_MARK}%'`,
   },
   {
     id: 'X-stage-override',
@@ -221,6 +227,44 @@ export const QUALITY_RULES: readonly QualityRule[] = [
                                JOIN stop_pattern_stop x ON x.pattern_id = sp.id
                                JOIN line_station ls ON ls.id = x.line_station_id
                               WHERE sp.service_id = sv.id AND sp.code = d->>'pattern' AND ls.station_id = d->>'station_id')`,
+  },
+  {
+    // Q120 A: 이관 때 계획에 걸린 운영 중 노선을 기계적으로 upgrades 로 묶었다(Q90 초안). 개량 대상이 아닌 "새 계통이 지나는
+    // 기존 노선"이 섞여 있다. 확인하면 역할을 고치거나(지우기 포함) 메모(note)에 근거를 적는다 → 목록에서 빠진다.
+    id: 'X-plan-line-role',
+    title: '계획 노선 역할 확인 필요(이관 upgrades, 메모 없음)',
+    sql: `SELECT 'plan' AS entity_type, pl.plan_id AS entity_id, pl.line_id || ' — ' || l.name_ko AS detail,
+                 p.name_ko || pl.plan_id || pl.line_id AS sort_key
+            FROM plan_line pl
+            JOIN plan p ON p.id = pl.plan_id AND p.deleted_at IS NULL
+            JOIN line l ON l.id = pl.line_id AND l.deleted_at IS NULL
+           WHERE pl.role = 'upgrades' AND pl.note IS NULL`,
+  },
+  {
+    // Q122 B: 150m 안의 이름이 다른 역 쌍(옛 이름 중복·근사 좌표 의심). 별개 역이면 한쪽 editor_note 에 상대 id 를 적는다
+    // (예: "별개 역 확인: stn-magok"), 같은 역이면 병합, 좌표가 틀렸으면 좌표를 고친다.
+    id: 'X-station-near-other-name',
+    title: '이름이 다른 역이 150m 안에 있음(같은 역·근사 좌표 확인)',
+    sql: `SELECT 'station' AS entity_type, a.id AS entity_id,
+                 b.id || ' ' || b.name_ko || ' 와 ' || round(ST_Distance(a.geom, b.geom)::numeric) || 'm' AS detail,
+                 a.name_ko || a.id AS sort_key
+            FROM station a JOIN station b ON b.id > a.id AND b.name_ko <> a.name_ko
+           WHERE a.deleted_at IS NULL AND b.deleted_at IS NULL AND a.geom IS NOT NULL AND b.geom IS NOT NULL
+             AND a.kind = 'station' AND b.kind = 'station'
+             AND a.merge_into_id IS NULL AND b.merge_into_id IS NULL
+             AND ST_DWithin(a.geom, b.geom, 150)
+             AND position(b.id IN coalesce(a.editor_note, '')) = 0
+             AND position(a.id IN coalesce(b.editor_note, '')) = 0`,
+  },
+  {
+    // Q123 B: 통합·합병(merged) 운영기관의 승계 사실에 법령·고시·공고 출처가 없다(C-1). M9·M10 조사 과제
+    id: 'X-operator-merge-source',
+    title: '운영기관 통합(merged)의 1차 출처(법령·고시·공고) 없음',
+    sql: `SELECT 'operator' AS entity_type, o.id AS entity_id, '승계 ' || coalesce(o.merged_into_id, '미상') AS detail, o.id AS sort_key
+            FROM operator o
+           WHERE o.deleted_at IS NULL AND o.status = 'merged'
+             AND NOT EXISTS (SELECT 1 FROM record_source rs JOIN source s ON s.id = rs.source_id AND s.deleted_at IS NULL
+                              WHERE rs.entity_id = o.id AND rs.field = 'merged_into_id' AND s.type IN ('law', 'notice'))`,
   },
   {
     id: 'X-source-license-unknown',

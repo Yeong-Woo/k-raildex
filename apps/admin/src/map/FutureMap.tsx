@@ -10,6 +10,7 @@ import { codeLabel, formatFuzzy, isCode, type FuzzyDate } from '@k-raildex/contr
 import {
   DISCLAIMER,
   futureLineLayers,
+  FREIGHT_LINE,
   futureStationLayers,
   GEOMETRY_QUALITY_LABELS,
   LINE_STYLES,
@@ -371,6 +372,12 @@ function Legend({ odbl }: { odbl: boolean }) {
             />
           </svg>
           {GEOMETRY_QUALITY_LABELS.schematic}
+        </li>
+        <li className="flex items-center gap-2">
+          <svg width="32" height="8" aria-hidden>
+            <line x1="0" y1="4" x2="32" y2="4" stroke={FREIGHT_LINE.color} strokeWidth={FREIGHT_LINE.width} />
+          </svg>
+          {FREIGHT_LINE.label}
         </li>
       </ul>
       <div className="mt-1 grid grid-cols-3 gap-x-1 gap-y-0.5">

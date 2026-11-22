@@ -57,6 +57,8 @@ export const publicMapLinesSchema = collection(
       delayed: z.boolean(),
       target_value: z.string().nullable(),
       target_precision: z.string().nullable(),
+      /** false = 여객 미취급(화물 전용) 노선 — 지도는 회색 가는 선(Q115 A) */
+      passenger: z.boolean(),
     })
     .strict(),
 );

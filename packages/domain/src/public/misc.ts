@@ -240,6 +240,8 @@ export interface TimelineQuery extends Page {
   area?: string;
   /** 파생 이벤트 포함(기본 true) */
   include_derived?: boolean;
+  /** true = 날짜 미상 사건만, false = 날짜 있는 사건만(Q117 A) */
+  undated?: boolean;
 }
 
 export async function publicTimeline(db: Queryable, q: TimelineQuery) {
@@ -251,6 +253,8 @@ export async function publicTimeline(db: Queryable, q: TimelineQuery) {
   if (q.type) where.push(`x.type = ${p(q.type)}`);
   if (q.target) where.push(`${p(q.target)} = ANY (x.targets)`);
   if (q.include_derived === false) where.push(`NOT x.derived`);
+  if (q.undated === true) where.push(`x.d IS NULL`);
+  if (q.undated === false) where.push(`x.d IS NOT NULL`);
   let areaCte = '';
   if (q.area) {
     // 권역: 수기 이벤트는 event_area, 그 밖은 대상 노선·역·계획·운행 계통의 권역

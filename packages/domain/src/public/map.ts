@@ -64,7 +64,8 @@ export async function publicMapLines(db: Queryable, q: PublicMapAt): Promise<Fea
               'status', CASE WHEN m.is_construction THEN 'under_construction' ELSE m.status END,
               'stage', NULL, 'line_style', 'solid', 'color', m.color,
               'color_basis', CASE WHEN m.color IS NULL THEN 'status' ELSE 'line' END,
-              'quality', 'osm', 'odbl', true, 'delayed', false, 'target_value', NULL, 'target_precision', NULL) AS properties
+              'quality', 'osm', 'odbl', true, 'delayed', false, 'target_value', NULL, 'target_precision', NULL,
+              'passenger', m.passenger_service) AS properties
        FROM mv_map_line m ORDER BY m.line_id, m.is_construction`,
   );
   return {

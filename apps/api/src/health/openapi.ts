@@ -364,7 +364,7 @@ export function buildOpenApi(): Json {
       '/v1/public/timeline',
       '연표(v_event_all)',
       'publicTimelineSchema',
-      ['decade', 'year', 'type', 'target', 'area', 'include_derived', 'limit', 'offset'],
+      ['decade', 'year', 'type', 'target', 'area', 'include_derived', 'undated', 'limit', 'offset'],
     ],
     ['/v1/public/trains', '열차번호대·차량번호대', 'publicTrainsSchema', []],
     ['/v1/public/train-classes', '열차 등급', 'publicTrainClassListSchema', []],

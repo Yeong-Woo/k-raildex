@@ -57,6 +57,12 @@ export const LINE_STYLES: Readonly<Record<LineStyle, { width: number; dasharray:
   dashed_thin: { width: 2, dasharray: [1.5, 1.5], label: '그 전 단계(가는 점선)' },
 };
 
+/** 여객 미취급(화물 전용) 노선: 회색 가는 선(Q115 A). 시점 지도에서 사라지면 "폐선"으로 오해하므로 그린다 */
+export const FREIGHT_LINE = { color: '#8A9099', width: 1.5, label: '여객 미취급(화물 전용)' } as const;
+
+/** 속성 passenger = false 인 선인가(속성이 없으면 여객선으로 본다) */
+export const isFreightExpression = (): unknown[] => ['==', ['get', 'passenger'], false];
+
 /** 역 상태 색(현재 지도) = 토큰 `status-*-mark`(라이트). 범례에는 모양(STATUS_SHAPE)과 라벨을 함께 */
 export const STATUS_COLORS: Readonly<Record<string, string>> = {
   operating: '#2A904B',
@@ -153,8 +159,8 @@ export function futureLineLayers(source: string): LayerSpec[] {
   return (Object.keys(LINE_STYLES) as LineStyle[]).map((style) => {
     const s = LINE_STYLES[style];
     const paint: Record<string, unknown> = {
-      'line-color': lineColorExpression(),
-      'line-width': s.width,
+      'line-color': ['case', isFreightExpression(), FREIGHT_LINE.color, lineColorExpression()],
+      'line-width': ['case', isFreightExpression(), FREIGHT_LINE.width, s.width],
       'line-opacity': ['case', ['==', ['get', 'quality'], 'schematic'], 0.75, 1],
     };
     if (s.dasharray) paint['line-dasharray'] = s.dasharray;

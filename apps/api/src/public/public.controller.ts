@@ -123,6 +123,8 @@ const timelineQuery = z.object({
   target: z.string().optional(),
   area,
   include_derived: optBool,
+  /** true = 날짜를 모르는 사건만(연표 "연도 미상", Q117 A) */
+  undated: optBool,
 });
 
 @Controller('v1/public')

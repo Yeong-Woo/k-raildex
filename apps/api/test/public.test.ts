@@ -116,6 +116,11 @@ beforeAll(async () => {
     `INSERT INTO timetable_entry (set_id, minute, dest_name, train_no, ord) VALUES ('tt-fx-a-weekday-down', 330, '다', '1001', 1),
        ('tt-fx-a-weekday-down', 345, '다', '1003', 2)`,
   );
+  // Q119 A: 관리용 검수 표시 줄은 공개 응답에서 빠진다
+  await c.query(
+    `UPDATE plan_milestone SET note = E'근거 메모\n기존 target_open 이관 — 출처는 계획 출처 중 공식 자료에서 자동 선택(검수 필요)'
+      WHERE plan_id = 'plan-fx-ext'`,
+  );
   await c.query(`SELECT refresh_derived()`);
 });
 afterAll(async () => t?.close());
@@ -219,6 +224,8 @@ describe('계획·상위 계획', () => {
     const p = await ok('/v1/public/plans/plan-fx-ext', publicPlanDetailSchema);
     expect(p.stage).toBe('construction');
     expect(p.milestones[0]).toMatchObject({ stage: 'opened', basis: 'press', expected: { value: '2029-H2' } });
+    expect(p.milestones.map((m) => m.note)).toContain('근거 메모');
+    expect(JSON.stringify(p.milestones)).not.toContain('검수 필요');
     expect(p.stage_events.map((e) => e.stage)).toEqual(['plan_listed', 'construction']);
     expect(p.lines).toEqual([expect.objectContaining({ line_id: 'line-fx-one', role: 'extends' })]);
     expect(p.refs[0]).toMatchObject({ program_id: 'pp-fx-national-rail-4', section: '다~라' });
@@ -266,6 +273,10 @@ describe('홈·목록 보조', () => {
     expect(tl.items.length).toBeGreaterThan(0);
     expect(tl.decades.length).toBeGreaterThan(0);
     await ok('/v1/public/timeline?area=capital', publicTimelineSchema);
+    const undated = await ok('/v1/public/timeline?undated=true', publicTimelineSchema);
+    expect(undated.items.every((e) => e.date === null)).toBe(true);
+    const dated = await ok('/v1/public/timeline?undated=false', publicTimelineSchema);
+    expect(dated.items.every((e) => e.date !== null)).toBe(true);
     await ok('/v1/public/trains', publicTrainsSchema);
     await ok('/v1/public/train-classes', publicTrainClassListSchema);
     await ok('/v1/public/numbers/search?n=K101', publicNumberSearchSchema);
@@ -303,6 +314,7 @@ describe('지도(6.5)', () => {
     const y2030 = await ok('/v1/public/map/lines.geojson?at=2030', publicMapLinesSchema);
     expect(y2030.at).toBe(2030);
     expect(y2030.features.map((f) => f.id)).toContain('plan:plan-fx-ext');
+    expect(y2030.features.find((f) => f.id === 'plan:plan-fx-ext')?.properties.passenger).toBe(true);
     const y2026 = await ok('/v1/public/map/lines.geojson?at=2026', publicMapLinesSchema);
     expect(y2026.features.map((f) => f.id)).not.toContain('plan:plan-fx-ext');
     const st2030 = await ok('/v1/public/map/stations.geojson?at=2030', publicMapStationsSchema);
