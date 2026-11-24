@@ -18,6 +18,7 @@ services:
       interval: 3s
       timeout: 3s
       retries: 20
+    restart: unless-stopped
 
   s3:
     image: chrislusf/seaweedfs:4.54
@@ -34,6 +35,7 @@ services:
       interval: 3s
       timeout: 3s
       retries: 40
+    restart: unless-stopped
 
   # 키 값은 저장소 루트 .env 에서 읽는다(pnpm stack:* 스크립트가 --env-file .env 를 넘김). 지도 키는 관리 앱 빌드 때 들어간다.
   # ---- 앱(프로필 app): pnpm stack:up — api·worker·관리 앱·공개 사이트를 컨테이너로 -----------------------------
@@ -90,6 +92,7 @@ services:
       interval: 5s
       timeout: 3s
       retries: 30
+    restart: unless-stopped
 
   worker:
     profiles: [app]
@@ -99,6 +102,7 @@ services:
     depends_on:
       migrate: { condition: service_completed_successfully }
       s3: { condition: service_healthy }
+    restart: unless-stopped
 
   admin:
     profiles: [app]
@@ -114,8 +118,10 @@ services:
       - '127.0.0.1:${ADMIN_PORT:-5202}:80'
     depends_on:
       api: { condition: service_healthy }
+    restart: unless-stopped
 
   # 공개 사이트(Next.js SSR, docs/06-public-web.md). 브라우저 → web → api(공개 API, 컨테이너 안 주소)
+  # 컨테이너 안 포트 5000 = Cloudflare 터널 공개 호스트 이름(k-raildex.com → http://web:5000, 대시보드 설정)과 맞춘 값
   web:
     profiles: [app]
     build: { context: .., dockerfile: docker/web.Dockerfile }
@@ -129,8 +135,9 @@ services:
       VWORLD_API_KEY: ${VWORLD_API_KEY:-}
       # OSM 교통 지도(Thunderforest Transport) 타일 키 — 배경 기본값. 없으면 OSM 표준
       THUNDERFOREST_API_KEY: ${THUNDERFOREST_API_KEY:-}
+      PORT: '5000'
     ports:
-      - '127.0.0.1:${WEB_PORT:-5203}:3000'
+      - '127.0.0.1:${WEB_PORT:-5203}:5000'
     depends_on:
       api: { condition: service_healthy }
     healthcheck:
@@ -139,11 +146,24 @@ services:
           'CMD',
           'node',
           '-e',
-          "fetch('http://127.0.0.1:3000/api/health/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+          "fetch('http://127.0.0.1:5000/api/health/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
         ]
       interval: 5s
       timeout: 3s
       retries: 30
+    restart: unless-stopped
+
+  # 외부 공개(2026-11-25 기존 시스템 교체): Cloudflare 터널 → 공개 사이트(web)만. 관리 앱·API·DB 는 터널에 넣지 않는다(C-9).
+  # 토큰은 .env 의 CLOUDFLARE_TUNNEL_TOKEN(원격 관리 터널, 공개 호스트 이름은 Cloudflare 대시보드). 토큰이 있으면 pnpm stack:up 이 프로필 tunnel 을 켠다
+  cloudflared:
+    profiles: [tunnel]
+    image: cloudflare/cloudflared:2026.10.1
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
+    depends_on:
+      web: { condition: service_healthy }
+    restart: unless-stopped
 
 volumes:
   db-data:
