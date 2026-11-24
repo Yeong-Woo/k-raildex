@@ -13,7 +13,7 @@ import { Badge, Button, Card, cn } from '@k-raildex/ui';
 import { Crosshair, ExternalLink, MapPin, X } from 'lucide-react';
 import { api, apiOptional, errorText, qs, type EntityResponse } from '../lib/api';
 import { RefInput } from '../form/widgets/RefInput';
-import { useGeoJsonLayer, useMapLibre, VWORLD_KEY, type FeatureCollection } from './useMap';
+import { useGeoJsonLayer, useMapLibre, type FeatureCollection } from './useMap';
 import { useFeaturePopup } from './FeaturePopup';
 
 interface StationData {
@@ -278,7 +278,7 @@ export function EditMap() {
               <span className="inline-block size-2.5 rounded-full border-2 border-[#F59E0B]" /> 근사 좌표(대표점)
             </li>
           </ul>
-          <p className="mt-1">배경: {VWORLD_KEY ? 'VWorld' : 'OpenStreetMap(VITE_VWORLD_API_KEY 없음)'}</p>
+          <p className="mt-1">배경 지도는 지도 오른쪽 위에서 고릅니다(OSM 교통 지도·OSM 표준·VWorld).</p>
           {lines.data?.attribution ? <p>{lines.data.attribution}</p> : null}
         </section>
       </aside>

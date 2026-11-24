@@ -46,24 +46,24 @@ flowchart LR
 
 ## 2. 기술 스택 (추천안, 확정은 리뷰 후)
 
-| 영역        | 선택                                                                                        | 근거                                     | 리뷰      |
-| ----------- | ------------------------------------------------------------------------------------------- | ---------------------------------------- | --------- |
-| 언어        | TypeScript 5.x (strict) 전 영역                                                             | 사용자 지정                              | —         |
-| 런타임      | Node.js 24 LTS                                                                              | 2026-11 기준 Active LTS                  | Q12 A     |
-| 패키지      | pnpm workspaces + Turborepo                                                                 | 기존 pnpm 승계, 빌드 캐시                | Q12 A     |
-| 공개 사이트 | **Next.js(App Router) SSR** + React 19                                                      | SEO·첫 화면 속도, API 비공개 유지(C-11)  | Q6 A      |
-| 관리 앱     | **Vite + React 19 SPA** + TanStack Router·Query·Table + React Hook Form                     | 내부용, SEO 불필요, 빠른 개발 루프       | Q7 A      |
-| UI          | Tailwind CSS v4 + shadcn/ui(Radix) 공용 디자인 시스템 `packages/ui`                         | 두 앱 일관성, 접근성 기본 제공           | Q8 A      |
-| 지도        | MapLibre GL JS + VWorld WMTS(대체 OSM 타일). 관리 앱 위성 비교만 Google Maps JavaScript API | 기존 결정 D16 승계, 구글은 관리 앱 전용  | Q13·Q68   |
-| BE          | NestJS 11+ (Fastify 어댑터)                                                                 | 사용자 지정                              | —         |
-| DB 접근     | **Drizzle ORM**(스키마 TS 정의·마이그레이션 `drizzle-kit`) + 필요한 곳 raw SQL              | SQL 친화, PostGIS 커스텀 타입, 타입 추론 | Q9 A      |
-| 계약(검증)  | **zod** 스키마를 `packages/contracts` 에 두고 BE(nestjs-zod)·FE(폼 검증) 공용, OpenAPI 생성 | 단일 정의                                | Q10·Q11 A |
-| API 형식    | REST + OpenAPI 3.1, 생성 TS 클라이언트                                                      | 에이전트(MCP) 도구 노출에도 유리         | Q10 A     |
-| DB          | PostgreSQL 17 + PostGIS 3.5 + pg_trgm (+ unaccent 불필요)                                   | 기존 승계                                | —         |
-| 작업 큐     | **pg-boss**(PostgreSQL 기반 큐)                                                             | 추가 인프라(Redis) 없음                  | Q14 A     |
-| 문서 저장소 | S3 호환 SeaweedFS 자가 호스팅(외부 복제 Cloudflare R2)                                      | 251MB+ 원문, git 밖으로                  | Q39 A     |
-| 테스트      | Vitest, Testcontainers(PostGIS), Playwright                                                 | 09 문서                                  | Q65 A     |
-| LLM(후순위) | Claude API(`claude-opus-5-5` 조사·추출, `claude-haiku-5-5` 분류), MCP 서버                  | 08 문서                                  | Q56 A     |
+| 영역        | 선택                                                                                                                                                                  | 근거                                     | 리뷰      |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- | --------- |
+| 언어        | TypeScript 5.x (strict) 전 영역                                                                                                                                       | 사용자 지정                              | —         |
+| 런타임      | Node.js 24 LTS                                                                                                                                                        | 2026-11 기준 Active LTS                  | Q12 A     |
+| 패키지      | pnpm workspaces + Turborepo                                                                                                                                           | 기존 pnpm 승계, 빌드 캐시                | Q12 A     |
+| 공개 사이트 | **Next.js(App Router) SSR** + React 19                                                                                                                                | SEO·첫 화면 속도, API 비공개 유지(C-11)  | Q6 A      |
+| 관리 앱     | **Vite + React 19 SPA** + TanStack Router·Query·Table + React Hook Form                                                                                               | 내부용, SEO 불필요, 빠른 개발 루프       | Q7 A      |
+| UI          | Tailwind CSS v4 + shadcn/ui(Radix) 공용 디자인 시스템 `packages/ui`                                                                                                   | 두 앱 일관성, 접근성 기본 제공           | Q8 A      |
+| 지도        | MapLibre GL JS + 배경 고르기(OSM 교통 지도(Thunderforest)·OSM 표준·VWorld 일반·위성, 기본 OSM 교통 지도 — 2026-11-24). 관리 앱 위성 비교만 Google Maps JavaScript API | 기존 결정 D16 승계, 구글은 관리 앱 전용  | Q13·Q68   |
+| BE          | NestJS 11+ (Fastify 어댑터)                                                                                                                                           | 사용자 지정                              | —         |
+| DB 접근     | **Drizzle ORM**(스키마 TS 정의·마이그레이션 `drizzle-kit`) + 필요한 곳 raw SQL                                                                                        | SQL 친화, PostGIS 커스텀 타입, 타입 추론 | Q9 A      |
+| 계약(검증)  | **zod** 스키마를 `packages/contracts` 에 두고 BE(nestjs-zod)·FE(폼 검증) 공용, OpenAPI 생성                                                                           | 단일 정의                                | Q10·Q11 A |
+| API 형식    | REST + OpenAPI 3.1, 생성 TS 클라이언트                                                                                                                                | 에이전트(MCP) 도구 노출에도 유리         | Q10 A     |
+| DB          | PostgreSQL 17 + PostGIS 3.5 + pg_trgm (+ unaccent 불필요)                                                                                                             | 기존 승계                                | —         |
+| 작업 큐     | **pg-boss**(PostgreSQL 기반 큐)                                                                                                                                       | 추가 인프라(Redis) 없음                  | Q14 A     |
+| 문서 저장소 | S3 호환 SeaweedFS 자가 호스팅(외부 복제 Cloudflare R2)                                                                                                                | 251MB+ 원문, git 밖으로                  | Q39 A     |
+| 테스트      | Vitest, Testcontainers(PostGIS), Playwright                                                                                                                           | 09 문서                                  | Q65 A     |
+| LLM(후순위) | Claude API(`claude-opus-5-5` 조사·추출, `claude-haiku-5-5` 분류), MCP 서버                                                                                            | 08 문서                                  | Q56 A     |
 
 ## 3. 저장소 구조
 

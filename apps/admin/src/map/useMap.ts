@@ -12,13 +12,25 @@ import {
 } from 'maplibre-gl';
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { basemapStyle, KOREA_CENTER, type LayerSpec } from '@k-raildex/map';
+import {
+  basemapStyle,
+  createBasemapControl,
+  KOREA_CENTER,
+  loadBasemapChoice,
+  resolveBasemap,
+  type BasemapKeys,
+  type LayerSpec,
+} from '@k-raildex/map';
 
 // 번들러가 워커 파일을 옮기므로 위치를 직접 알려 준다
 setWorkerUrl(workerUrl);
 
 export const VWORLD_KEY = (import.meta.env.VITE_VWORLD_API_KEY as string | undefined) || null;
 export const GOOGLE_MAPS_KEY = (import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined) || null;
+/** OSM "교통 지도"(Thunderforest Transport) 타일 키 — 없으면 그 배경은 목록에 없다 */
+export const THUNDERFOREST_KEY = (import.meta.env.VITE_THUNDERFOREST_API_KEY as string | undefined) || null;
+export const BASEMAP_KEYS: BasemapKeys = { vworldKey: VWORLD_KEY, thunderforestKey: THUNDERFOREST_KEY };
+const BASEMAP_PAINT = { 'raster-saturation': -0.4 };
 
 export type FeatureCollection = {
   type: 'FeatureCollection';
@@ -33,14 +45,24 @@ export function useMapLibre(opts: { satellite?: boolean } = {}) {
   const [map, setMap] = useState<MlMap | null>(null);
   useEffect(() => {
     if (!container.current) return;
+    // 배경: 기억한 값 → 기본(OSM 교통 지도, 키 없으면 OSM 표준). 위성 비교는 VWorld 위성(사용자 요청 2026-11-24)
+    const basemap = opts.satellite ? 'vworld-satellite' : resolveBasemap(loadBasemapChoice(), BASEMAP_KEYS);
     const m = new MlMap({
       container: container.current,
-      style: basemapStyle({ vworldKey: VWORLD_KEY, satellite: opts.satellite }) as unknown as StyleSpecification,
+      style: basemapStyle({ ...BASEMAP_KEYS, basemap }) as unknown as StyleSpecification,
       center: KOREA_CENTER,
       zoom: 7,
       attributionControl: false,
     });
     m.addControl(new AttributionControl({ compact: false }), 'bottom-right');
+    m.addControl(
+      createBasemapControl({
+        keys: BASEMAP_KEYS,
+        current: resolveBasemap(basemap, BASEMAP_KEYS),
+        paint: BASEMAP_PAINT,
+      }),
+      'top-right',
+    );
     m.addControl(new NavigationControl({ showCompass: false }), 'top-right');
     m.addControl(new ScaleControl({ unit: 'metric' }), 'bottom-left');
     m.on('load', () => {

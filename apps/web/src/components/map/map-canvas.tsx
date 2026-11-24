@@ -22,7 +22,13 @@ import {
 import 'maplibre-gl/dist/maplibre-gl.css';
 import {
   basemapStyle,
+  BASEMAPS,
+  createBasemapControl,
   FREIGHT_LINE,
+  loadBasemapChoice,
+  resolveBasemap,
+  swapBasemap,
+  type BasemapId,
   isFreightExpression,
   LINE_STYLES,
   STAGE_COLORS,
@@ -54,7 +60,6 @@ export interface MapView {
 
 const EMPTY: FC = { type: 'FeatureCollection', features: [] };
 const FONT = ['Pretendard Variable', 'Pretendard', 'sans-serif'];
-const OSM_ATTR = '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> 기여자';
 const ODBL_ATTR = '선형 일부 © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> 기여자(ODbL)';
 
 function matchPairs(table: Readonly<Record<string, string>>): unknown[] {
@@ -248,11 +253,16 @@ function createMap(container: HTMLElement, style: StyleSpecification, view: MapV
   });
 }
 
+/** 배경은 흐리게(철도 선이 주인공) */
+const BASEMAP_DIM = { 'raster-saturation': -0.75, 'raster-contrast': -0.15, 'raster-brightness-min': 0.18 };
+
 export default function MapCanvas({
   lines,
   stations,
   highlight,
   vworldKey,
+  thunderforestKey = null,
+  onBasemap,
   view,
   onPick,
   onReady,
@@ -261,6 +271,9 @@ export default function MapCanvas({
   stations: FC | null;
   highlight: MapHash;
   vworldKey: string | null;
+  thunderforestKey?: string | null;
+  /** 배경이 정해지거나 바뀔 때(출처 문구용) */
+  onBasemap?: (id: BasemapId) => void;
   /** 바뀌면 그 보기로 이동(수도권·전국 단추) */
   view: MapView & { seq: number };
   onPick: (picks: Pick[]) => void;
@@ -279,7 +292,11 @@ export default function MapCanvas({
   useEffect(() => {
     if (!el.current) return;
     setWorkerUrl(new URL('/api/map/worker/', window.location.origin).href);
-    const style = basemapStyle({ vworldKey }) as unknown as StyleSpecification;
+    // 배경: 기억한 값 → 기본(OSM 교통 지도, 키 없으면 OSM 표준). 사용자 요청 2026-11-24
+    const keys = { vworldKey, thunderforestKey };
+    let current = resolveBasemap(loadBasemapChoice(), keys);
+    onBasemap?.(current);
+    const style = basemapStyle({ ...keys, basemap: current }) as unknown as StyleSpecification;
     let m: MlMap;
     try {
       m = createMap(el.current, style, view);
@@ -290,37 +307,42 @@ export default function MapCanvas({
     }
     m.touchZoomRotate.disableRotation();
     m.addControl(new AttributionControl({ compact: true }), 'bottom-right');
+    m.addControl(
+      createBasemapControl({
+        keys,
+        current,
+        paint: BASEMAP_DIM,
+        onChange: (id) => {
+          current = id;
+          tileOk = false;
+          tileErr = 0;
+          swapped = false;
+          onBasemap?.(id);
+        },
+      }) as never,
+      'top-right',
+    );
     m.addControl(new NavigationControl({ showCompass: false }), 'top-right');
     m.addControl(new ScaleControl({ unit: 'metric' }), 'bottom-left');
 
-    // VWorld 키가 도메인에 묶여 타일이 거부되면 OSM 으로(성공한 타일이 하나도 없을 때만)
+    // 키가 필요한 배경(VWorld·Thunderforest)의 타일이 거부되면 OSM 표준으로(성공한 타일이 하나도 없을 때만)
     let tileOk = false;
     let tileErr = 0;
-    let swapped = !vworldKey;
+    let swapped = false;
     m.on('data', (e) => {
       if ((e as { sourceId?: string; tile?: unknown }).sourceId === 'basemap' && (e as { tile?: unknown }).tile)
         tileOk = true;
     });
     m.on('error', (e) => {
       const sid = (e as { sourceId?: string }).sourceId;
-      if (sid !== 'basemap' || swapped || tileOk) return;
+      const needsKey = BASEMAPS.find((b) => b.id === current)?.needs;
+      if (sid !== 'basemap' || swapped || tileOk || !needsKey) return;
       tileErr += 1;
       if (tileErr < 3) return;
       swapped = true;
-      const osm = basemapStyle({}) as unknown as { sources: { basemap: Record<string, unknown> } };
-      const before = m.getStyle().layers.find((l) => l.id !== 'basemap')?.id;
-      if (m.getLayer('basemap')) m.removeLayer('basemap');
-      m.removeSource('basemap');
-      m.addSource('basemap', { ...(osm.sources.basemap as object), attribution: OSM_ATTR } as never);
-      m.addLayer(
-        {
-          id: 'basemap',
-          type: 'raster',
-          source: 'basemap',
-          paint: { 'raster-saturation': -0.75, 'raster-contrast': -0.15, 'raster-brightness-min': 0.18 },
-        },
-        before,
-      );
+      current = 'osm-standard';
+      swapBasemap(m as never, current, keys, BASEMAP_DIM);
+      onBasemap?.(current);
     });
 
     m.on('load', () => {

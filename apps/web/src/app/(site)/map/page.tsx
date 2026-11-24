@@ -31,6 +31,7 @@ export default async function MapPage({ searchParams }: { searchParams: SP }) {
         initialStage={stage}
         timeline={timeline}
         vworldKey={process.env.VWORLD_API_KEY?.trim() || null}
+        thunderforestKey={process.env.THUNDERFOREST_API_KEY?.trim() || null}
       />
     </>
   );

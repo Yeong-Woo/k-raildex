@@ -8,6 +8,7 @@ RUN pnpm install --frozen-lockfile
 # 지도 키는 빌드 때 주입(도메인 제한 공개 키). 없으면 OSM 타일로 대체
 ARG VITE_VWORLD_API_KEY=
 ARG VITE_GOOGLE_MAPS_API_KEY=
+ARG VITE_THUNDERFOREST_API_KEY=
 RUN pnpm -F @k-raildex/admin build
 
 FROM nginx:1.28-alpine

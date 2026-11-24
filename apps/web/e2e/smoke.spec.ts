@@ -117,6 +117,32 @@ test('미래 지도: 캔버스, 연도 바꾸면 URL ?at= 이 바뀐다', async 
   await expect(page.getByText('개략 선형은 실제 위치와 다를 수 있습니다', { exact: false })).toBeVisible();
 });
 
+test('배경 지도 고르기: 기본 OSM(교통 지도 키 없으면 표준), 고르면 타일 주소가 바뀌고 기억한다', async ({ page }) => {
+  await page.goto('/map/?at=2030');
+  const pick = page.getByRole('combobox', { name: '배경 지도' });
+  await expect(pick).toBeVisible({ timeout: 30_000 });
+  const tiles = () =>
+    page.evaluate(() => {
+      const m = (
+        window as unknown as { __kraildexMap?: { getStyle(): { sources: Record<string, { tiles?: string[] }> } } }
+      ).__kraildexMap;
+      return m?.getStyle().sources.basemap?.tiles?.[0] ?? '';
+    });
+  await page.waitForFunction(() => !!(window as unknown as { __kraildexMap?: unknown }).__kraildexMap, null, {
+    timeout: 60_000,
+  });
+  expect(await tiles()).toMatch(/openstreetmap\.org|thunderforest\.com/);
+  const options = await pick.locator('option').allTextContents();
+  expect(options).toContain('OSM 표준');
+  if (options.includes('VWorld 일반')) {
+    await pick.selectOption({ label: 'VWorld 일반' });
+    await expect.poll(tiles).toContain('api.vworld.kr');
+    await page.reload();
+    await expect(page.getByRole('combobox', { name: '배경 지도' })).toHaveValue('vworld-base', { timeout: 30_000 });
+    await page.getByRole('combobox', { name: '배경 지도' }).selectOption({ label: 'OSM 표준' });
+  }
+});
+
 test('사이트맵·robots·Atom 200, 옛 id 는 301', async ({ request }) => {
   const sm = await request.get('/sitemap.xml');
   expect(sm.status()).toBe(200);

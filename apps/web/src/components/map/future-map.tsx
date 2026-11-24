@@ -10,7 +10,14 @@
 import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { codeLabel, isCode, type PublicTarget } from '@k-raildex/contracts';
-import { DISCLAIMER, FREIGHT_LINE, GEOMETRY_QUALITY_LABELS, STAGE_COLORS, STATUS_COLORS } from '@k-raildex/map';
+import {
+  DISCLAIMER,
+  FREIGHT_LINE,
+  GEOMETRY_QUALITY_LABELS,
+  STAGE_COLORS,
+  STATUS_COLORS,
+  type BasemapId,
+} from '@k-raildex/map';
 import { StageBadge } from '@/components/badges';
 import { formatFuzzy } from '@/lib/format';
 import {
@@ -95,12 +102,16 @@ export function FutureMap({
   initialStage,
   timeline: initialTimeline,
   vworldKey,
+  thunderforestKey,
 }: {
   initialAt: string | null;
   initialStage: StageKey;
   timeline: TimelineData;
   vworldKey: string | null;
+  /** OSM 교통 지도(Thunderforest) 타일 키 — 서버 환경 변수 THUNDERFOREST_API_KEY */
+  thunderforestKey: string | null;
 }) {
+  const [basemap, setBasemap] = useState<BasemapId | null>(null);
   const [stage, setStage] = useState<StageKey>(initialStage);
   const [timeline, setTimeline] = useState<TimelineData>(initialTimeline);
   const years = useMemo(
@@ -452,7 +463,11 @@ export function FutureMap({
 
           <p className="fp-disclaimer">
             {DISCLAIMER} 지리 지도만 제공합니다. 배경 지도{' '}
-            {vworldKey ? '© VWorld(국토교통부)' : '© OpenStreetMap 기여자'}
+            {basemap === 'vworld-base' || basemap === 'vworld-satellite'
+              ? '© VWorld(국토교통부)'
+              : basemap === 'osm-transport'
+                ? '© Thunderforest, 자료 © OpenStreetMap 기여자'
+                : '© OpenStreetMap 기여자'}
             {odbl ? ' · 철도 선형 일부 © OpenStreetMap 기여자(ODbL)' : ''}.
           </p>
         </div>
@@ -464,6 +479,8 @@ export function FutureMap({
           stations={data?.stations ?? null}
           highlight={hash}
           vworldKey={vworldKey}
+          thunderforestKey={thunderforestKey}
+          onBasemap={setBasemap}
           view={view}
           onPick={onPick}
         />

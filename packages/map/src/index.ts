@@ -14,6 +14,10 @@
  * 색은 선 모양(LINE_STYLES)·라벨과 함께 쓴다 — 색만으로 단계를 전달하지 않는다.
  * 값은 packages/ui 의 tokens.ts 와 교차 시험으로 맞춘다(packages/ui/test/tokens.test.ts).
  */
+import { basemapSource, defaultBasemap, resolveBasemap, type BasemapId, type BasemapKeys } from './basemap';
+
+export * from './basemap';
+
 export const STAGE_COLORS: Readonly<Record<string, string>> = {
   concept: '#7A8798',
   plan_listed: '#7A8798',
@@ -105,39 +109,24 @@ export interface RasterStyle {
   glyphs?: string;
 }
 
-export interface BasemapOptions {
-  /** VWorld 키가 있으면 VWorld WMTS, 없으면 OSM 표준 타일 */
-  vworldKey?: string | null | undefined;
-  /** VWorld 영상(위성) 배경 */
+export interface BasemapOptions extends BasemapKeys {
+  /** 배경 id(basemap.ts). 없으면 satellite → VWorld 위성, 아니면 기본 배경(OSM 교통 지도 → 키 없으면 OSM 표준) */
+  basemap?: BasemapId | string | null;
+  /** VWorld 영상(위성) 배경(위성 비교 화면) */
   satellite?: boolean;
 }
 
 /** 래스터 배경 지도 스타일 */
 export function basemapStyle(opts: BasemapOptions = {}): RasterStyle {
-  const key = opts.vworldKey?.trim();
-  const source = key
-    ? {
-        type: 'raster',
-        tiles: [
-          opts.satellite
-            ? `https://api.vworld.kr/req/wmts/1.0.0/${key}/Satellite/{z}/{y}/{x}.jpeg`
-            : `https://api.vworld.kr/req/wmts/1.0.0/${key}/Base/{z}/{y}/{x}.png`,
-        ],
-        tileSize: 256,
-        minzoom: 6,
-        maxzoom: 19,
-        attribution: '© VWorld(국토교통부)',
-      }
-    : {
-        type: 'raster',
-        tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-        tileSize: 256,
-        maxzoom: 19,
-        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      };
+  const id =
+    opts.basemap != null
+      ? resolveBasemap(opts.basemap, opts)
+      : opts.satellite
+        ? resolveBasemap('vworld-satellite', opts)
+        : defaultBasemap(opts);
   return {
     version: 8,
-    sources: { basemap: source },
+    sources: { basemap: basemapSource(id, opts) },
     layers: [{ id: 'basemap', type: 'raster', source: 'basemap', paint: { 'raster-saturation': -0.4 } }],
   };
 }
