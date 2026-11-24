@@ -117,10 +117,83 @@ test('미래 지도: 캔버스, 연도 바꾸면 URL ?at= 이 바뀐다', async 
   await expect(page.getByText('개략 선형은 실제 위치와 다를 수 있습니다', { exact: false })).toBeVisible();
 });
 
+test('지도에서 노선을 클릭하면 강조만 하고 확대·위치는 그대로, #line= 링크는 그 범위로 이동', async ({ page }) => {
+  type M = {
+    getZoom(): number;
+    getCenter(): { lng: number; lat: number };
+    project(c: [number, number]): { x: number; y: number };
+    queryRenderedFeatures(
+      o?: unknown,
+    ): {
+      layer: { id: string };
+      properties: Record<string, unknown>;
+      geometry: { type: string; coordinates: unknown };
+    }[];
+    loaded(): boolean;
+  };
+  await page.goto('/map/?at=2030');
+  await page.waitForFunction(
+    () => {
+      const m = (window as unknown as { __kraildexMap?: M }).__kraildexMap;
+      return !!m && m.queryRenderedFeatures().some((f) => f.layer.id.startsWith('line-'));
+    },
+    null,
+    { timeout: 60_000 },
+  );
+  // 화면 안 노선 선의 한 점(역이 없는 곳)을 고른다
+  const target = await page.evaluate(() => {
+    const m = (window as unknown as { __kraildexMap: M }).__kraildexMap;
+    const canvas = document.querySelector('[data-testid="future-map"] canvas') as HTMLCanvasElement;
+    const r = canvas.getBoundingClientRect();
+    for (const f of m.queryRenderedFeatures()) {
+      if (!f.layer.id.startsWith('line-')) continue;
+      const coords = (f.geometry.type === 'LineString' ? [f.geometry.coordinates] : f.geometry.coordinates) as [
+        number,
+        number,
+      ][][];
+      for (const part of coords)
+        for (const c of part.slice(1, -1)) {
+          const p = m.project(c);
+          if (p.x < 80 || p.y < 80 || p.x > r.width - 120 || p.y > r.height - 160) continue;
+          const hits = m.queryRenderedFeatures([
+            [p.x - 8, p.y - 8],
+            [p.x + 8, p.y + 8],
+          ] as never);
+          if (hits.some((h) => h.layer.id === 'station')) continue;
+          return { x: r.left + p.x, y: r.top + p.y, line: String(f.properties.line_id ?? f.properties.plan_id) };
+        }
+    }
+    return null;
+  });
+  expect(target).not.toBeNull();
+  const before = await page.evaluate(() => {
+    const m = (window as unknown as { __kraildexMap: M }).__kraildexMap;
+    return { z: m.getZoom(), c: m.getCenter() };
+  });
+  await page.mouse.click(target!.x, target!.y);
+  await page.waitForTimeout(600);
+  const after = await page.evaluate(() => {
+    const m = (window as unknown as { __kraildexMap: M }).__kraildexMap;
+    return { z: m.getZoom(), c: m.getCenter() };
+  });
+  expect(after.z).toBeCloseTo(before.z, 5);
+  expect(after.c.lng).toBeCloseTo(before.c.lng, 5);
+  expect(after.c.lat).toBeCloseTo(before.c.lat, 5);
+  // 링크로 들어오면 그 노선 범위로(전국 노선 — 기본 수도권 보기에서 축소된다)
+  await page.goto('/map/#line=line-gyeongbu');
+  await page.waitForFunction(
+    () => {
+      const m = (window as unknown as { __kraildexMap?: M }).__kraildexMap;
+      return !!m && m.getZoom() < 8.5;
+    },
+    null,
+    { timeout: 60_000 },
+  );
+});
+
 test('배경 지도 고르기: 기본 OSM(교통 지도 키 없으면 표준), 고르면 타일 주소가 바뀌고 기억한다', async ({ page }) => {
   await page.goto('/map/?at=2030');
   const pick = page.getByRole('combobox', { name: '배경 지도' });
-  await expect(pick).toBeVisible({ timeout: 30_000 });
   const tiles = () =>
     page.evaluate(() => {
       const m = (
@@ -132,6 +205,8 @@ test('배경 지도 고르기: 기본 OSM(교통 지도 키 없으면 표준), �
     timeout: 60_000,
   });
   expect(await tiles()).toMatch(/openstreetmap\.org|thunderforest\.com/);
+  // 키(VWorld·Thunderforest)가 하나도 없으면 고를 것이 OSM 표준뿐이라 선택 상자를 그리지 않는다
+  if (!(await pick.isVisible())) return;
   const options = await pick.locator('option').allTextContents();
   expect(options).toContain('OSM 표준');
   if (options.includes('VWorld 일반')) {

@@ -260,6 +260,7 @@ export default function MapCanvas({
   lines,
   stations,
   highlight,
+  follow = true,
   vworldKey,
   thunderforestKey = null,
   onBasemap,
@@ -270,6 +271,8 @@ export default function MapCanvas({
   lines: FC | null;
   stations: FC | null;
   highlight: MapHash;
+  /** false = 강조만 하고 지도는 그대로(지도 클릭으로 고른 경우) */
+  follow?: boolean;
   vworldKey: string | null;
   thunderforestKey?: string | null;
   /** 배경이 정해지거나 바뀔 때(출처 문구용) */
@@ -418,7 +421,7 @@ export default function MapCanvas({
     }
   }, [lines, stations]);
 
-  // 강조 + 처음 한 번 그 범위로 이동
+  // 강조 + 처음 한 번 그 범위로 이동(지도 클릭으로 고른 것은 이동하지 않음)
   useEffect(() => {
     const run = () => {
       const m = mapRef.current;
@@ -430,6 +433,11 @@ export default function MapCanvas({
       m.setFilter('hl-station', ['==', ['get', 'station_id'], highlight.station ?? '__none__'] as never);
       const key = `${highlight.line ?? ''}|${highlight.plan ?? ''}|${highlight.station ?? ''}`;
       if (key === '||' || fittedFor.current === key) return true;
+      // 지도에서 직접 고른 것은 확대·이동하지 않는다(사용자 요청 2026-11-24). 링크(#line=…)·패널 목록에서 고른 것만 그 범위로
+      if (!follow) {
+        fittedFor.current = key;
+        return true;
+      }
       if (highlight.station) {
         const s = stations?.features.find((f) => f.properties.station_id === highlight.station);
         if (s?.geometry) {
@@ -455,7 +463,7 @@ export default function MapCanvas({
       if (run()) clearInterval(t);
     }, 80);
     return () => clearInterval(t);
-  }, [highlight.line, highlight.plan, highlight.station, lines, stations]);
+  }, [highlight.line, highlight.plan, highlight.station, lines, stations, follow]);
 
   // 보기 이동(수도권·전국)
   useEffect(() => {

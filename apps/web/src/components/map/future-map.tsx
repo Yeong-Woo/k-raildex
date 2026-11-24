@@ -124,6 +124,8 @@ export function FutureMap({
   );
   const [at, setAt] = useState<MapAt>(() => parseAt(initialAt, years));
   const [hash, setHash] = useState<MapHash>({});
+  // 강조한 대상으로 지도를 옮길지: 링크·패널 목록 = 옮김, 지도 클릭(고르기 목록 포함) = 그대로(사용자 요청 2026-11-24)
+  const [follow, setFollow] = useState(true);
   const [data, setData] = useState<{ lines: FC; stations: FC } | null>(null);
   const [diff, setDiff] = useState<MapDiff | null>(null);
   const [loading, setLoading] = useState(true);
@@ -140,6 +142,7 @@ export function FutureMap({
   const [hashReady, setHashReady] = useState(false);
   useEffect(() => {
     const read = () => {
+      setFollow(true);
       setHash(parseHash(window.location.hash));
       setHashReady(true);
     };
@@ -255,10 +258,13 @@ export function FutureMap({
     return () => window.removeEventListener('keydown', onKey);
   }, [at, years, go]);
 
-  const setHashPart = (h: MapHash) => {
+  /** 패널 목록에서 고름 → 그 범위로 이동 */
+  const showOnMap = (h: MapHash) => {
+    setFollow(true);
     setHash(h);
   };
   const onPick = useCallback((list: Pick[]) => {
+    setFollow(false);
     setPicks(list);
     if (list.length === 1) {
       const p = list[0]!;
@@ -416,7 +422,7 @@ export function FutureMap({
                     <li key={p.id}>
                       <i style={{ background: STAGE_COLORS[p.stage] }} aria-hidden="true" />
                       <a href={`/plans/${encodeURIComponent(p.id)}/`}>{p.name_ko}</a>
-                      <button type="button" className="linkish" onClick={() => setHash({ plan: p.id })}>
+                      <button type="button" className="linkish" onClick={() => showOnMap({ plan: p.id })}>
                         지도에서
                       </button>
                       {p.delayed ? <span className="badge delayed">지연</span> : null}
@@ -433,7 +439,7 @@ export function FutureMap({
                     <li key={p.id}>
                       <i style={{ background: STAGE_COLORS[p.stage] }} aria-hidden="true" />
                       <a href={`/plans/${encodeURIComponent(p.id)}/`}>{p.name_ko}</a>
-                      <button type="button" className="linkish" onClick={() => setHash({ plan: p.id })}>
+                      <button type="button" className="linkish" onClick={() => showOnMap({ plan: p.id })}>
                         지도에서
                       </button>
                     </li>
@@ -442,7 +448,7 @@ export function FutureMap({
               </>
             ) : null}
             {diff ? (
-              <DiffList diff={diff} onShow={setHashPart} />
+              <DiffList diff={diff} onShow={showOnMap} />
             ) : at.mode !== 'current' ? (
               <p className="fp-hint">앞 칸과 비교하는 중…</p>
             ) : null}
@@ -478,6 +484,7 @@ export function FutureMap({
           lines={data?.lines ?? null}
           stations={data?.stations ?? null}
           highlight={hash}
+          follow={follow}
           vworldKey={vworldKey}
           thunderforestKey={thunderforestKey}
           onBasemap={setBasemap}
@@ -494,7 +501,8 @@ export function FutureMap({
           atYear={at.mode === 'year' ? at.year : null}
           onChoose={(h) => {
             setPicks([]);
-            setHashPart(h);
+            setFollow(false);
+            setHash(h);
           }}
           onClose={() => {
             setPicks([]);
