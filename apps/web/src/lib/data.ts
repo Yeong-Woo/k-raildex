@@ -173,6 +173,22 @@ export const getTimelineDecade = cache(async (decade: number) => {
   }
   return { items, total: first.total, decades: first.decades };
 });
+/** 날짜 미상 기록 전부(Q117 A, 공개 API `undated=true`). area = 권역 코드(기존 `?area=`) */
+export const getTimelineUndated = cache(async (area?: string) => {
+  const items: Awaited<ReturnType<typeof apiGet<typeof publicTimelineSchema>>>['items'] = [];
+  for (let offset = 0; ; offset += 500) {
+    const page = await apiGet('/timeline', publicTimelineSchema, {
+      query: { undated: 'true', limit: 500, offset, ...(area ? { area } : {}) },
+    });
+    items.push(...page.items);
+    if (page.items.length === 0 || items.length >= page.total) break;
+  }
+  return items;
+});
+/** 날짜 미상 기록 수(연대 줄의 "연도 미상" 칸) */
+export const getTimelineUndatedCount = cache(
+  async () => (await apiGet('/timeline', publicTimelineSchema, { query: { undated: 'true', limit: 1 } })).total,
+);
 /** 연대 목록만(항목 1건) */
 export const getTimelineDecades = cache(
   async () => (await apiGet('/timeline', publicTimelineSchema, { query: { limit: 1 } })).decades,

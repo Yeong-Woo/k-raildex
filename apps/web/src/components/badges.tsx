@@ -49,7 +49,10 @@ export function StageBadge({ stage }: { stage: Stage | null }) {
   );
 }
 
-/** 검수 상태: 검수 전·이의 있음은 점선 + 글자, 검수 완료는 실선 + ● */
+/**
+ * 검수 상태: 이의 있음은 점선 + 글자, 검수 완료(showVerified)는 실선 + ●.
+ * "검수 전"(unverified·auto)은 공개 사이트에 보이지 않는다 — 관리 앱에서만(Q112 C, 2026-11-22)
+ */
 export function ReviewBadge({ status, showVerified = false }: { status: Review; showVerified?: boolean }) {
   if (status === 'verified')
     return showVerified ? (
@@ -65,12 +68,7 @@ export function ReviewBadge({ status, showVerified = false }: { status: Review; 
         이의 있음
       </span>
     );
-  return (
-    <span className="badge review" title="자동 수집·이관 값이 섞여 있고 아직 사람이 검수하지 않았습니다">
-      <i className="shape shape-ring" aria-hidden="true" />
-      검수 전
-    </span>
-  );
+  return null;
 }
 
 /** 퍼지 날짜 표기 + 일 단위일 때만 D-day */

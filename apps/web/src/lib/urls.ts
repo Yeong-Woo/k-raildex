@@ -28,6 +28,8 @@ export const paths = {
   timeline: () => '/timeline/',
   /** 연대 페이지(예 2010 → /timeline/2010s/) */
   timelineDecade: (decade: number) => `/timeline/${decade}s/`,
+  /** 날짜를 모르는 기록(Q117 A) */
+  timelineUnknown: () => '/timeline/unknown/',
   trains: () => '/trains/',
   trainClasses: () => '/train-classes/',
   routeMaps: () => '/maps/',

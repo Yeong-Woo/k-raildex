@@ -2,7 +2,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { DecadeNav, TimelineBody } from '@/components/timeline';
-import { getTimelineDecade, getTimelineDecades } from '@/lib/data';
+import { getTimelineDecade, getTimelineDecades, getTimelineUndatedCount } from '@/lib/data';
 import { pageMeta } from '@/lib/site';
 import { firstParam, parseDecade, paths, withQuery } from '@/lib/urls';
 
@@ -25,7 +25,7 @@ export default async function DecadePage({ params, searchParams }: { params: Par
   const sp = await searchParams;
   const d = parseDecade(decade);
   if (d === null) notFound();
-  const decades = await getTimelineDecades();
+  const [decades, undated] = await Promise.all([getTimelineDecades(), getTimelineUndatedCount()]);
   if (!decades.some((x) => x.decade === d)) notFound();
   const page = await getTimelineDecade(d);
   const type = firstParam(sp.type) ?? 'all';
@@ -37,7 +37,7 @@ export default async function DecadePage({ params, searchParams }: { params: Par
           {d}~{d + 9}년의 철도 기록 {page.items.length.toLocaleString('ko-KR')}건. 최근 기록은{' '}
           <a href={paths.timeline()}>연표</a>.
         </p>
-        <DecadeNav decades={decades} current={d} />
+        <DecadeNav decades={decades} current={d} undated={undated} />
       </div>
       <TimelineBody
         events={page.items}

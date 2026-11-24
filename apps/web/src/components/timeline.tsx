@@ -7,7 +7,17 @@ import { FuzzyDateText } from './badges';
 import { FilterRow, LinkTabs } from './tabs';
 import { idPath, paths } from '@/lib/urls';
 
-export function DecadeNav({ decades, current }: { decades: { decade: number; count: number }[]; current: number }) {
+export function DecadeNav({
+  decades,
+  current,
+  undated = 0,
+}: {
+  decades: { decade: number; count: number }[];
+  /** 연대(숫자) 또는 'unknown'(연도 미상) */
+  current: number | 'unknown';
+  /** 날짜 미상 기록 수 — 0 이면 칸을 숨긴다 */
+  undated?: number;
+}) {
   return (
     <nav aria-label="연대">
       <ul className="tabs small">
@@ -23,6 +33,13 @@ export function DecadeNav({ decades, current }: { decades: { decade: number; cou
               </a>
             </li>
           ))}
+        {undated > 0 ? (
+          <li>
+            <a href={paths.timelineUnknown()} aria-current={current === 'unknown' ? 'true' : undefined}>
+              연도 미상<span className="count">{undated.toLocaleString('ko-KR')}</span>
+            </a>
+          </li>
+        ) : null}
       </ul>
     </nav>
   );

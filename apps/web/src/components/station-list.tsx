@@ -1,6 +1,8 @@
 /**
  * 역 목록 화면(역 목록 /stations/ 와 시·도·권역 /stations/region/[slug]/ 공용).
  * 정차 열차 기준 탭(?class=) + 권역(?area=) + 개통 필터(?opened=, 기본 개통) + 이름·역번호 찾기(?q=). 모두 링크·GET 폼(JS 없이 동작).
+ * 권역 탭이 있는 전체 목록은 기본 권역 = 수도권이고 권역 안은 쪽 나눔 없이 전부 그린다(Q113 C). "전체" 탭만 쪽 나눔.
+ * 찾기(?q=)에 권역을 따로 고르지 않았으면 전국에서 찾는다.
  */
 import type { StationItem } from '@/lib/data';
 import { getLineIndex, getRegionIndex } from '@/lib/data';
@@ -23,8 +25,10 @@ import { FilterRow, LinkTabs } from './tabs';
 
 type SP = Record<string, string | string[] | undefined>;
 
-/** 한 쪽에 보이는 역 수(가나다순). 전부 그리면 HTML 이 수 MB 가 되어 LCP 목표(NFR-WEB-001)를 넘는다 */
+/** "전체" 탭 한 쪽에 보이는 역 수(가나다순). 전국을 다 그리면 HTML 이 수 MB 가 되어 LCP 목표(NFR-WEB-001)를 넘는다 */
 const PAGE_SIZE = 150;
+/** 권역 탭이 있는 목록의 기본 권역(기존 사이트와 같음, Q113 C) */
+const DEFAULT_AREA = 'capital';
 
 export async function StationList({
   base,
@@ -38,12 +42,13 @@ export async function StationList({
   showAreaTabs?: boolean;
 }) {
   const cls = pickParam(sp.class, ['all', ...STOP_CLASS_ORDER] as const, 'all');
-  const area = pickParam(sp.area, ['all', ...codes.area.values] as const, 'all');
-  const opened = pickParam<OpenedFilter>(sp.opened, OPENED_FILTERS, 'opened');
   const q = (firstParam(sp.q) ?? '').slice(0, 50);
+  const defaultArea = showAreaTabs && !q ? DEFAULT_AREA : 'all';
+  const area = pickParam(sp.area, ['all', ...codes.area.values] as const, defaultArea);
+  const opened = pickParam<OpenedFilter>(sp.opened, OPENED_FILTERS, 'opened');
   const pageNo = Math.max(1, Number.parseInt(firstParam(sp.page) ?? '1', 10) || 1);
   const current = { class: cls, area, opened, q: q || undefined, page: undefined as string | undefined };
-  const defaults = { class: 'all', area: 'all', opened: 'opened' };
+  const defaults = { class: 'all', area: defaultArea, opened: 'opened' };
   const link = (change: Record<string, string | undefined>) => withQuery(base, current, change, defaults);
 
   const [lineIndex, regions] = await Promise.all([getLineIndex(), getRegionIndex()]);
@@ -55,8 +60,11 @@ export async function StationList({
     .filter(({ s }) => areaMatches(s.areas, area))
     .map(({ s }) => s)
     .sort(byKo);
-  const pages = Math.max(1, Math.ceil(shown.length / PAGE_SIZE));
-  const pageItems = shown.slice((Math.min(pageNo, pages) - 1) * PAGE_SIZE, Math.min(pageNo, pages) * PAGE_SIZE);
+  const paged = showAreaTabs && area === 'all';
+  const pages = paged ? Math.max(1, Math.ceil(shown.length / PAGE_SIZE)) : 1;
+  const pageItems = paged
+    ? shown.slice((Math.min(pageNo, pages) - 1) * PAGE_SIZE, Math.min(pageNo, pages) * PAGE_SIZE)
+    : shown;
 
   const classTabs = [
     { value: 'all', label: '전체', count: byText.length, href: link({ class: 'all' }) },
@@ -94,7 +102,7 @@ export async function StationList({
           <LinkTabs items={openedTabs} current={opened} label="개통 여부" small />
           <form method="get" action={base} role="search" style={{ display: 'flex', gap: 6, marginLeft: 'auto' }}>
             {cls !== 'all' ? <input type="hidden" name="class" value={cls} /> : null}
-            {area !== 'all' ? <input type="hidden" name="area" value={area} /> : null}
+            {area !== defaultArea ? <input type="hidden" name="area" value={area} /> : null}
             {opened !== 'opened' ? <input type="hidden" name="opened" value={opened} /> : null}
             <label htmlFor="stn-q" className="sr-only">
               목록에서 역 이름·역번호 찾기

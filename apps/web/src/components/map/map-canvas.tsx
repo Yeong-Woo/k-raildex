@@ -20,7 +20,15 @@ import {
   type StyleSpecification,
 } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { basemapStyle, LINE_STYLES, STAGE_COLORS, STAGE_FALLBACK_COLOR, STATUS_COLORS } from '@k-raildex/map';
+import {
+  basemapStyle,
+  FREIGHT_LINE,
+  isFreightExpression,
+  LINE_STYLES,
+  STAGE_COLORS,
+  STAGE_FALLBACK_COLOR,
+  STATUS_COLORS,
+} from '@k-raildex/map';
 import type { MapHash } from '@/lib/map-years';
 
 export interface FC {
@@ -96,18 +104,19 @@ function lineLayers(): LayerSpecification[] {
   for (const style of Object.keys(LINE_STYLES) as (keyof typeof LINE_STYLES)[]) {
     const s = LINE_STYLES[style];
     const paint: Record<string, unknown> = {
-      'line-color': LINE_COLOR,
+      // 여객 미취급(화물 전용) 노선은 회색 가는 선(Q115 A) — 현재·시점 지도 모두
+      'line-color': ['case', isFreightExpression(), FREIGHT_LINE.color, LINE_COLOR],
       // 계획 선은 단계 굵기, 기존 노선은 조금 가늘게
       'line-width': [
         'interpolate',
         ['linear'],
         ['zoom'],
         6,
-        ['case', isPlan, s.width * 0.8, 1.8],
+        ['case', isFreightExpression(), FREIGHT_LINE.width * 0.7, isPlan, s.width * 0.8, 1.8],
         9,
-        ['case', isPlan, s.width * 1.05, 2.8],
+        ['case', isFreightExpression(), FREIGHT_LINE.width, isPlan, s.width * 1.05, 2.8],
         13,
-        ['case', isPlan, s.width * 1.6, 4.5],
+        ['case', isFreightExpression(), FREIGHT_LINE.width * 1.6, isPlan, s.width * 1.6, 4.5],
       ],
       'line-opacity': ['case', isSchematic, 0.75, 0.95],
     };

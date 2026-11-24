@@ -10,7 +10,7 @@
 import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { codeLabel, isCode, type PublicTarget } from '@k-raildex/contracts';
-import { DISCLAIMER, GEOMETRY_QUALITY_LABELS, STAGE_COLORS, STATUS_COLORS } from '@k-raildex/map';
+import { DISCLAIMER, FREIGHT_LINE, GEOMETRY_QUALITY_LABELS, STAGE_COLORS, STATUS_COLORS } from '@k-raildex/map';
 import { StageBadge } from '@/components/badges';
 import { formatFuzzy } from '@/lib/format';
 import {
@@ -791,6 +791,7 @@ function Legend({ odbl }: { odbl: boolean }) {
     { w: 2, dash: '3 3', label: '그 전 단계(가는 점선)', color: STAGE_COLORS.feasibility! },
     { w: 2, dash: '3 3', label: '선형 미확정(개략)', color: '#7A8798', op: 0.75 },
     { w: 2.5, label: '운영 중(수도권 전철 공식 색, 그 밖 상태색)', color: STATUS_COLORS.operating! },
+    { w: FREIGHT_LINE.width, label: FREIGHT_LINE.label, color: FREIGHT_LINE.color },
   ];
   return (
     <>
