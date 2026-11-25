@@ -45,10 +45,16 @@ export const TimetableSetSchema = z
 // 행 순서 = 배열 순서(DB ord). 같은 분·다른 종착 행이 있을 수 있어 분·열차번호 중복을 막지 않는다(0016)
 export type TimetableSet = z.infer<typeof TimetableSetSchema>;
 
+/** 수집기 해석 문구 → 공개 사이트 짧은 표기(round-06 Q139 B) */
+export const DAY_NOTE_SHORT: Readonly<Record<string, string>> = {
+  '토요일·공휴일 공통 다이아': '토·공휴일 공통',
+  '내선/외선은 정차 순서(역번호 증가 = 내선)로 판정': '내·외선은 정차 순서로 추정',
+};
+
 /**
  * 세트 `day_note` 의 공개 표시(round-04 Q111 A). 수집기는 `원문 — 해석 — 해석…` 꼴로 쓴다
  * (예: `운행정보 요일구분 "토요일+공휴일" — 토요일·공휴일 공통 다이아`).
- * 공개 사이트는 해석(`shown`)만 시간표에 보이고 원문 표기(`original`)는 출처 절에 둔다.
+ * 공개 사이트는 해석(`shown`)을 짧게 다듬어(DAY_NOTE_SHORT) 시간표에 보이고, 원문 표기(`original`)는 관리 앱에만 둔다(round-06 Q139 B).
  */
 export function splitDayNote(note: string | null | undefined): { shown: string | null; original: string | null } {
   if (!note) return { shown: null, original: null };
@@ -58,7 +64,7 @@ export function splitDayNote(note: string | null | undefined): { shown: string |
     .filter(Boolean);
   const isOriginal = (p: string) => /^운행정보 요일구분 "/.test(p);
   const original = parts.filter(isOriginal);
-  const shown = parts.filter((p) => !isOriginal(p));
+  const shown = parts.filter((p) => !isOriginal(p)).map((p) => DAY_NOTE_SHORT[p] ?? p);
   return {
     shown: shown.length ? shown.join(' · ') : null,
     original: original.length ? original.join(' · ') : null,

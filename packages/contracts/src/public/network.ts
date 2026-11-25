@@ -163,7 +163,7 @@ export const publicTimetableSummarySchema = z
     day_type: z.enum(codes.dayType.values),
     direction: z.enum(codes.direction.values),
     direction_label: z.string().nullable(),
-    /** 요일 설명 해석 부분(splitDayNote shown, Q111 A) */
+    /** 요일 설명 해석 부분을 짧게(splitDayNote shown, Q111 A·Q139 B). 원문 요일구분은 공개하지 않음 */
     day_note: z.string().nullable(),
     data_as_of: z.string().nullable(),
     source_id: z.string().nullable(),
@@ -172,11 +172,6 @@ export const publicTimetableSummarySchema = z
     count: z.number().int(),
     by_hour: z.array(z.number().int()),
   })
-  .strict();
-
-/** 시간표 출처 절: 원문 요일구분 표기(splitDayNote original) */
-export const publicTimetableSourceNoteSchema = z
-  .object({ set_id: z.string(), source_id: z.string().nullable(), day_note_original: z.string() })
   .strict();
 
 export const publicStationDetailSchema = z
@@ -206,7 +201,6 @@ export const publicStationDetailSchema = z
     lines: z.array(publicStationLineSectionSchema),
     services: z.array(pubRefSchema.extend({ kind: z.string(), assumed: z.boolean() }).strict()),
     timetables: z.array(publicTimetableSummarySchema),
-    timetable_source_notes: z.array(publicTimetableSourceNoteSchema),
     plans: z.array(publicPlanLinkSchema),
     transfer_centers: z.array(pubRefSchema.extend({ status: z.string() }).strict()),
     events: z.array(pubEventSchema),
@@ -307,7 +301,6 @@ export const publicTimetableSchema = z
         })
         .strict(),
     ),
-    source_notes: z.array(publicTimetableSourceNoteSchema),
   })
   .strict();
 export type PublicTimetable = z.infer<typeof publicTimetableSchema>;

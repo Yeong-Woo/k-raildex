@@ -284,18 +284,12 @@ export async function publicStation(db: Queryable, id: string): Promise<PublicSt
     attachmentsOf(db, [id]),
     eventsOf(db, id),
   ]);
-  const notes: PublicStationDetail['timetable_source_notes'] = [];
-  const tts = timetables.rows.map((r) => {
-    const d = splitDayNote(r.day_note);
-    if (d.original) notes.push({ set_id: r.set_id, source_id: r.source_id, day_note_original: d.original });
-    return { ...r, day_note: d.shown };
-  });
+  const tts = timetables.rows.map((r) => ({ ...r, day_note: splitDayNote(r.day_note).shown }));
   return {
     ...(stn as unknown as PublicStationDetail),
     lines: lines.rows.map(({ line_station_id: _ls, ...r }) => r) as PublicStationDetail['lines'],
     services: services.rows as PublicStationDetail['services'],
     timetables: tts as PublicStationDetail['timetables'],
-    timetable_source_notes: notes,
     plans: plans.rows as PublicStationDetail['plans'],
     transfer_centers: centers.rows as PublicStationDetail['transfer_centers'],
     events,
@@ -412,11 +406,6 @@ export async function publicTimetable(db: Queryable, stationId: string): Promise
       ORDER BY x.line_id NULLS LAST, s.route_code NULLS LAST, s.day_type, s.direction, s.id`,
     [stationId],
   );
-  const notes: PublicTimetable['source_notes'] = [];
-  const sets = rows.map((r) => {
-    const d = splitDayNote(r.day_note);
-    if (d.original) notes.push({ set_id: r.set_id, source_id: r.source_id, day_note_original: d.original });
-    return { ...r, day_note: d.shown };
-  });
-  return { station: st.rows[0], sets: sets as PublicTimetable['sets'], source_notes: notes };
+  const sets = rows.map((r) => ({ ...r, day_note: splitDayNote(r.day_note).shown }));
+  return { station: st.rows[0], sets: sets as PublicTimetable['sets'] };
 }

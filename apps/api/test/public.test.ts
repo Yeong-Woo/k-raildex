@@ -187,13 +187,8 @@ describe('노선·역·운행 계통', () => {
       day_note: '평일 다이아',
       line_id: 'line-fx-one',
     });
-    expect(a.timetable_source_notes).toEqual([
-      {
-        set_id: 'tt-fx-a-weekday-down',
-        source_id: 'src-fixture-notice',
-        day_note_original: '운행정보 요일구분 "평일"',
-      },
-    ]);
+    // 원문 요일구분은 공개하지 않는다(Q139 B)
+    expect(a).not.toHaveProperty('timetable_source_notes');
     const d = await ok('/v1/public/stations/stn-fx-d', publicStationDetailSchema);
     expect(d.approximate).toBe(true);
     expect(d.target_open).toEqual({ value: '2029-H2', precision: 'half' });

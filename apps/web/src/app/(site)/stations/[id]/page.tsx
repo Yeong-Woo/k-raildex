@@ -9,7 +9,7 @@ import { getLineIndex, getStation, type StationDetail } from '@/lib/data';
 import { fmtKm, fmtMinute, serviceGroupOf, STOP_CLASS_LABEL, stopClassesOf } from '@/lib/format';
 import { compareDayType } from '@/lib/patterns';
 import { clip, pageMeta } from '@/lib/site';
-import { attachTimetableNotes, groupSources } from '@/lib/sources';
+import { groupSources } from '@/lib/sources';
 import { firstParam, paths } from '@/lib/urls';
 
 type Params = Promise<{ id: string }>;
@@ -58,7 +58,6 @@ export default async function StationPage({ params, searchParams }: { params: Pa
   const [s, lineIndex] = await Promise.all([getStation(id), getLineIndex()]);
   const path = paths.station(s.id);
   const src = groupSources(s.sources, s.id);
-  const orphanNotes = attachTimetableNotes(src, s.timetable_source_notes);
   const classes = stopClassesOf(
     s.services.map((x) => x.kind),
     s.line_classes,
@@ -305,11 +304,6 @@ export default async function StationPage({ params, searchParams }: { params: Pa
                 />
               </div>
             )}
-            {s.timetable_source_notes.length ? (
-              <p className="muted" style={{ fontSize: 'var(--kr-text-xs)' }}>
-                운행정보 요일구분 원문 표기는 <a href="#sources">출처</a> 절에 둡니다.
-              </p>
-            ) : null}
           </Section>
 
           <Section id="plans" title="관련 계획">
@@ -399,7 +393,7 @@ export default async function StationPage({ params, searchParams }: { params: Pa
           ) : null}
 
           <AttachmentsSection items={s.attachments} />
-          <SourcesSection groups={src} title={`${s.name_ko}역`} path={path} extraNotes={orphanNotes} />
+          <SourcesSection groups={src} title={`${s.name_ko}역`} path={path} />
         </div>
         <aside className="aside" aria-label="역 정보">
           <div className="panel">

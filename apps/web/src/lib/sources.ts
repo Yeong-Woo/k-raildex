@@ -21,7 +21,7 @@ export interface SourceGroup {
   locators: string[];
   notes: string[];
   documents: PublicDocument[];
-  /** 덧붙일 원문 표기(시간표 요일구분 원문 등, Q111 A) */
+  /** 덧붙일 원문 표기(지금은 쓰지 않음 — 시간표 요일구분 원문은 Q139 B 로 공개하지 않는다) */
   extra_notes: string[];
 }
 
@@ -62,31 +62,6 @@ export function groupSources(refs: readonly PublicSourceRef[], primaryEntityId?:
     for (const d of r.documents) if (!g.documents.some((x) => x.id === d.id)) g.documents.push(d);
   }
   return [...map.values()];
-}
-
-/**
- * 시간표 원문 요일구분(timetable_source_notes)을 해당 출처 항목에 붙인다(같은 원문 표기는 한 줄, 시간표 수를 덧붙임).
- * 출처 항목이 없는 것은 따로 돌려준다.
- */
-export function attachTimetableNotes(
-  groups: SourceGroup[],
-  notes: readonly { set_id: string; source_id: string | null; day_note_original: string }[],
-): string[] {
-  const buckets = new Map<string, { g: SourceGroup | undefined; text: string; n: number }>();
-  for (const n of notes) {
-    const g = n.source_id ? groups.find((x) => x.source_id === n.source_id) : undefined;
-    const key = `${g?.source_id ?? ''}\u0000${n.day_note_original}`;
-    const b = buckets.get(key) ?? { g, text: n.day_note_original, n: 0 };
-    b.n += 1;
-    buckets.set(key, b);
-  }
-  const orphan: string[] = [];
-  for (const b of buckets.values()) {
-    const text = `${b.text} (시간표 ${b.n}개)`;
-    if (b.g) b.g.extra_notes.push(text);
-    else orphan.push(text);
-  }
-  return orphan;
 }
 
 /** 출처 번호 찾기(핵심 수치 칸의 각주) */

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { PublicSourceRef } from '@k-raildex/contracts';
-import { attachTimetableNotes, groupSources, sourceNumberFor } from '../src/lib/sources';
+import { groupSources, sourceNumberFor } from '../src/lib/sources';
 
 const ref = (o: Partial<PublicSourceRef>): PublicSourceRef => ({
   entity_id: 'stn-a',
@@ -41,15 +41,5 @@ describe('groupSources', () => {
     expect(g[0]!.checked_at).toBe('2026-11-01');
     expect(sourceNumberFor(g, 'coord')).toBe(2);
     expect(sourceNumberFor(g, 'length_km')).toBeNull();
-  });
-  it('시간표 요일구분 원문은 해당 출처 항목에 붙인다(Q111 A)', () => {
-    const g = groupSources([ref({ source_id: 'src-kric' })]);
-    const orphan = attachTimetableNotes(g, [
-      { set_id: 'tt-1', source_id: 'src-kric', day_note_original: '운행정보 요일구분 "토요일+공휴일"' },
-      { set_id: 'tt-3', source_id: 'src-kric', day_note_original: '운행정보 요일구분 "토요일+공휴일"' },
-      { set_id: 'tt-2', source_id: 'src-none', day_note_original: '운행정보 요일구분 "평일"' },
-    ]);
-    expect(g[0]!.extra_notes).toEqual(['운행정보 요일구분 "토요일+공휴일" (시간표 2개)']);
-    expect(orphan).toEqual(['운행정보 요일구분 "평일" (시간표 1개)']);
   });
 });
