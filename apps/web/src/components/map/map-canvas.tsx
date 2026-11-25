@@ -88,8 +88,9 @@ function styleOf(): unknown[] {
     'case',
     isSchematic,
     'dashed_thin',
+    // 공사 중은 현재·시점 지도 모두 굵은 점선(계획 선형으로 그린 공사 중 노선 — 수서광주선 — 도 plan_id 가 있지만 점선)
     ['==', ['get', 'status'], 'under_construction'],
-    ['case', isPlan, ['get', 'line_style'], 'dashed_bold'],
+    'dashed_bold',
     ['==', ['get', 'status'], 'suspended'],
     'dashed_thin',
     ['get', 'line_style'],
