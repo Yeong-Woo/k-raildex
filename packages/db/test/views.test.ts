@@ -401,6 +401,30 @@ describe('시점별 지도(미래 지도)', () => {
     expect(await st(2030)).toEqual(['stn-a', 'stn-b', 'stn-c']);
   });
 
+  it('계획 하나가 노선 둘을 지으면 노선마다 이름·색이 따로 그려진다', async () => {
+    await db.query('BEGIN');
+    try {
+      await db.query(
+        `INSERT INTO osm.way (id, tags, is_construction, geom) VALUES
+           (9001, '{}', true, ST_GeomFromText('LINESTRING(127 37, 127.01 37.01)', 4326)),
+           (9002, '{}', true, ST_GeomFromText('LINESTRING(127.02 37, 127.03 37.01)', 4326))`,
+      );
+      await db.query(
+        `INSERT INTO line_osm_map (line_id, way_ids, include_construction) VALUES ('line-one', '{9001}', true), ('line-two', '{9002}', true)`,
+      );
+      await db.query(`INSERT INTO plan_line (plan_id, line_id, role) VALUES ('plan-ext', 'line-two', 'new')`);
+      const { rows } = await db.query(
+        `SELECT feature_id, name_ko, color_basis FROM map_at_lines(2030) WHERE plan_id = 'plan-ext' ORDER BY feature_id`,
+      );
+      expect(rows).toEqual([
+        { feature_id: 'plan:plan-ext', name_ko: '일호선', color_basis: 'extends_line' },
+        { feature_id: 'plan:plan-ext:line-two', name_ko: '이호선', color_basis: expect.any(String) },
+      ]);
+    } finally {
+      await db.query('ROLLBACK');
+    }
+  });
+
   it('역 위치: 현재 지도(mv_map_station, 근사 좌표 스냅)와 같은 점', async () => {
     await db.query('SELECT refresh_derived()');
     const { rows } = await db.query(

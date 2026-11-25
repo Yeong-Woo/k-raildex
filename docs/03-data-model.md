@@ -918,7 +918,7 @@ CREATE TABLE app_setting (key text PRIMARY KEY, value jsonb NOT NULL, updated_at
 
 1. **현재 운영 중**인 노선·노선별 역 전부에서 출발.
 2. 미개통 계획 P 의 개통 예정 시점 T = `v_plan_target_open`. T 의 시작 연도 ≤ Y 이면 P 를 적용한다(미정은 "목표 미정" 칸에서만, 목표가 지난 미개통은 현재 연도에 "지연" 표시).
-   - `plan_line role=new/extends`: 그 노선(공사 중·계획 상태)·노선별 역을 더한다. extends 는 연장 대상 노선의 색·이름으로 이어 그린다. new 도 노선 레코드가 있으면 노선 이름으로(계획 이름은 plan_id 로 정보 패널에, 0022).
+   - `plan_line role=new/extends`: 그 노선(공사 중·계획 상태)·노선별 역을 더한다. extends 는 연장 대상 노선의 색·이름으로 이어 그린다. new 도 노선 레코드가 있으면 노선 이름으로(계획 이름은 plan_id 로 정보 패널에, 0022). 계획 하나가 노선 여럿을 신설·연장하면(인덕원동탄선 사업 = 인덕원동탄선 + 서동탄~동탄 1호선 연장) 노선마다 따로 그리고 이름·색은 그 노선(새 노선의 `line.color` 도 쓴다), 첫 노선은 `plan:<계획>`, 나머지는 `plan:<계획>:<노선>`(0023).
    - `role=replaces`: 해당 노선(또는 from~to 구간)을 숨긴다. `plan_station role=closes`: 그 역을 숨긴다.
    - `role=upgrades`: 지도 변화 없음(정보 패널에만).
    - 노선 레코드가 아직 없는 계획(구상·계획 단계)은 `v_plan_shape` 선형과 `plan_station role=new` 역으로 그린다.
