@@ -1,6 +1,7 @@
 /**
  * 지도 편집(FR-ADM-070~072): 현재 노선·역 레이어, 역 찾기·클릭 → 표식 끌기 → 좌표 저장(coord_source manual),
- * 좌표 없는 역 패널(V-S02 + X-station-no-coord) → 지도에서 찍어 입력, 또는 다른 역을 골라 그 좌표를 가져온다
+ * 역 고르기 목록(ReviewPicker: 노선명 병기, 검수 필요 빨강·정상 초록 태그와 필터, 좌표 없음 필터) → 지도에서 찍어 입력,
+ * 또는 다른 역을 골라 그 좌표를 가져온다
  * (coord_source derived · coord_basis existing_station · coord_same_as_id = 그 역). OSM 선형은 그리기만 한다(저장 안 함).
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -10,12 +11,13 @@ import { toast } from 'sonner';
 import { Marker, type MapLayerMouseEvent } from 'maplibre-gl';
 import { codeLabel, isCode } from '@k-raildex/contracts';
 import { currentLineLayers, currentStationLayers, STATUS_COLORS } from '@k-raildex/map';
-import { Badge, Button, Card, cn } from '@k-raildex/ui';
+import { Button, Card } from '@k-raildex/ui';
 import { Copy, Crosshair, ExternalLink, MapPin, X } from 'lucide-react';
-import { api, apiOptional, errorText, qs, type EntityResponse } from '../lib/api';
+import { api, apiOptional, errorText, type EntityResponse } from '../lib/api';
 import { RefInput } from '../form/widgets/RefInput';
 import { useGeoJsonLayer, useMapLibre, type FeatureCollection } from './useMap';
 import { useFeaturePopup } from './FeaturePopup';
+import { ReviewIssues, ReviewPicker, ReviewTag, useReviewList } from './ReviewPicker';
 
 interface StationData {
   id: string;
@@ -27,15 +29,6 @@ interface StationData {
 type LngLat = { lng: number; lat: number };
 /** from = 좌표를 가져온 역(있으면 "기존 역 좌표"로 저장) */
 type Pending = LngLat & { from?: { id: string; name: string } };
-interface QualityItem {
-  entity_type: string;
-  entity_id: string;
-  label: string | null;
-  detail: string | null;
-}
-type QualityList = { items: QualityItem[]; total: number };
-/** 지도 편집의 "좌표 없는 역" 패널이 읽는 품질 규칙 */
-const MISSING_RULES = ['V-S02', 'X-station-no-coord'] as const;
 
 const round = (v: number) => Math.round(v * 1e6) / 1e6;
 
@@ -63,25 +56,8 @@ export function EditMap() {
     queryKey: ['map', 'current-lines'],
     queryFn: () => apiOptional<FeatureCollection>('/v1/admin/map/current-lines'),
   });
-  const missing = useQuery({
-    queryKey: ['quality', 'map-missing-coords'],
-    queryFn: async () => {
-      const lists = await Promise.all(
-        MISSING_RULES.map((r) => apiOptional<QualityList>(`/v1/admin/quality/${r}${qs({ limit: 200 })}`)),
-      );
-      if (lists.every((l) => l === null)) return null;
-      // 두 규칙에 다 걸린 역은 한 번만(V-S02 쪽 설명 우선)
-      const seen = new Map<string, QualityItem & { rule: string }>();
-      lists.forEach((l, i) =>
-        l?.items
-          .filter((it) => it.entity_type === 'station')
-          .forEach((it) => {
-            if (!seen.has(it.entity_id)) seen.set(it.entity_id, { ...it, rule: MISSING_RULES[i]! });
-          }),
-      );
-      return { items: [...seen.values()], total: seen.size };
-    },
-  });
+  const review = useReviewList('station');
+  const selectedItem = stationId ? review.data?.items.find((it) => it.id === stationId) : undefined;
   const station = useQuery({
     queryKey: ['entity', 'station', stationId],
     enabled: !!stationId,
@@ -212,15 +188,12 @@ export function EditMap() {
   return (
     <div className="absolute inset-0 flex">
       <aside className="flex w-80 shrink-0 flex-col gap-3 overflow-y-auto border-r border-border bg-bg-elevated p-3">
-        <div>
-          <label className="mb-1 block text-xs font-semibold text-fg-muted">역 찾기</label>
-          <RefInput target="station" value={null} onChange={(id) => id && select(id)} />
-        </div>
         {stationId ? (
           <Card className="p-3 text-sm" data-testid="map-selected-station">
             <div className="flex items-center gap-2">
               <MapPin className="size-4 text-danger" />
-              <strong>{data?.name_ko ?? stationId}</strong>
+              <strong className="min-w-0 truncate">{data?.name_ko ?? stationId}</strong>
+              {selectedItem ? <ReviewTag issues={selectedItem.issues} /> : null}
               <Link
                 to="/data/$type/$id"
                 params={{ type: 'station', id: stationId }}
@@ -238,6 +211,9 @@ export function EditMap() {
                 <X className="size-4" />
               </button>
             </div>
+            {selectedItem?.lines.length ? (
+              <p className="mt-0.5 text-[11px] text-fg-muted">{selectedItem.lines.join(' · ')}</p>
+            ) : null}
             {station.isLoading ? <p className="mt-2 text-fg-muted">불러오는 중…</p> : null}
             {data ? (
               <dl className="mt-2 grid grid-cols-[4.5rem_minmax(0,1fr)] gap-y-0.5 text-xs">
@@ -265,6 +241,7 @@ export function EditMap() {
                 ) : null}
               </dl>
             ) : null}
+            {selectedItem ? <ReviewIssues issues={selectedItem.issues} /> : null}
             <div className="mt-3 flex flex-wrap gap-2">
               <Button size="sm" disabled={!pending || save.isPending} onClick={() => save.mutate()}>
                 {save.isPending ? '저장 중…' : '좌표 저장'}
@@ -301,53 +278,26 @@ export function EditMap() {
                 <RefInput target="station" value={null} onChange={(id) => id && void takeFrom(id)} />
               </div>
             ) : null}
-            <p className="mt-2 text-[11px] text-fg-muted">
+            <details className="mt-2 text-[11px] text-fg-muted">
+              <summary className="cursor-pointer select-none">도움말</summary>
               표식을 끌거나 [지도에서 찍기] 뒤 지도를 클릭하면 새 좌표가 됩니다(저장하면 좌표 출처 = 수기 확인). [다른
               역 좌표 쓰기] 뒤 지도의 역 점을 클릭하거나 위 칸에서 찾으면 그 역 좌표를 덮어씁니다(좌표 출처 = 추정 ·
               기존 역 좌표, 좌표를 빌려 올 역 = 그 역). 덮어쓴 뒤 표식을 끌면 수기 확인으로 바뀝니다.
-            </p>
+            </details>
           </Card>
         ) : (
-          <p className="text-xs text-fg-muted">지도에서 역 점을 클릭하거나 위에서 찾으세요.</p>
+          <p className="text-xs text-fg-muted">아래 목록에서 고르거나 지도에서 역 점을 클릭하세요.</p>
         )}
-        {/* 목록은 남는 높이 안에서만 스크롤(범례와 겹치지 않게) */}
-        <section className="flex min-h-40 flex-1 flex-col">
-          <h2 className="mb-1 flex items-center gap-2 text-xs font-semibold text-fg-muted">
-            좌표 없는 역(V-S02·X-station-no-coord)
-            {missing.data ? <Badge tone={missing.data.total ? 'warn' : 'good'}>{missing.data.total}</Badge> : null}
-          </h2>
-          {missing.data === null ? (
-            <p className="text-xs text-fg-muted">품질 API 가 아직 없습니다.</p>
-          ) : missing.isLoading ? (
-            <p className="text-xs text-fg-muted">불러오는 중…</p>
-          ) : !missing.data?.items.length ? (
-            <p className="text-xs text-fg-muted">없음</p>
-          ) : (
-            <ul className="flex min-h-0 flex-1 flex-col overflow-y-auto text-sm" data-testid="missing-coords">
-              {missing.data.items.map((it) => (
-                <li key={it.entity_id}>
-                  <button
-                    type="button"
-                    className={cn(
-                      'flex w-full flex-col rounded px-2 py-1 text-left hover:bg-muted',
-                      it.entity_id === stationId && 'bg-muted',
-                    )}
-                    onClick={() => {
-                      select(it.entity_id);
-                      setPlacing(true);
-                    }}
-                  >
-                    <span>{it.label ?? it.entity_id}</span>
-                    <span className="text-[11px] text-fg-muted">
-                      {it.detail ?? it.entity_id}
-                      {it.rule === 'V-S02' ? '' : ' · 시설·폐역·공사 중'}
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+        {/* 목록은 남는 높이 안에서만 스크롤(범례와 겹치지 않게). 좌표 없는 역을 고르면 바로 찍기 모드 */}
+        <ReviewPicker
+          type="station"
+          selectedId={stationId}
+          className="min-h-72 flex-1"
+          onSelect={(it) => {
+            select(it.id);
+            if (it.has_geom === false) setPlacing(true);
+          }}
+        />
         <section className="shrink-0 border-t border-border pt-2 text-[11px] text-fg-muted">
           <div className="mb-1 font-semibold">범례</div>
           <ul className="grid grid-cols-2 gap-x-2 gap-y-0.5">

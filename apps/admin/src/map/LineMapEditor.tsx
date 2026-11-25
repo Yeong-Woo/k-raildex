@@ -1,5 +1,5 @@
 /**
- * 노선 편집(지도, FR-ADM-050·070): 노선을 고르면 그 노선을 강조하고 노선별 역(line_station)을 순서 번호로 보여 준다.
+ * 노선 편집(지도, FR-ADM-050·070): 노선 목록(ReviewPicker: 검수 필요 빨강·정상 초록 태그와 필터)에서 노선을 고르면 그 노선을 강조하고 노선별 역(line_station)을 순서 번호로 보여 준다.
  * 왼쪽 목록에서 순서(위로/아래로)·삭제·km 를 고치고, "지도에서 역 추가"를 켜면 역 점 클릭으로 역을 넣는다
  * (이웃 역 사이 경로가 가장 적게 늘어나는 자리, 좌표가 없으면 끝). 저장은 노선 상세 [역 순서] 탭과 같은
  * PUT /v1/admin/lines/:id/stations(도메인 적용기, 행 version 확인) — editors/useLineStations.
@@ -15,11 +15,12 @@ import { Badge, Button, Card, cn, Empty, Input, Label } from '@k-raildex/ui';
 import { AlertTriangle, ArrowDown, ArrowUp, MapPin, RotateCcw, Trash2 } from 'lucide-react';
 import { api, apiOptional, errorText, type EntityResponse } from '../lib/api';
 import { kmRegressions, type LsRow } from '../lib/line-stations';
-import { RefInput, useLabel } from '../form/widgets/RefInput';
+import { useLabel } from '../form/widgets/RefInput';
 import { newLineStationRow, useLineStations } from '../editors/useLineStations';
 import { bestInsertIndex, type Coord } from './geo';
 import { boundsOf, EMPTY_FC, useGeoJsonLayer, useMapLibre, type FeatureCollection } from './useMap';
 import { useFeaturePopup } from './FeaturePopup';
+import { ReviewIssues, ReviewPicker, ReviewTag, useReviewList } from './ReviewPicker';
 
 const DEFAULT_COLOR = '#2563EB';
 
@@ -118,6 +119,8 @@ export function LineMapEditor({
     enabled: !!lineId,
     queryFn: () => api<EntityResponse<LineData>>(`/v1/admin/line/${encodeURIComponent(lineId!)}`),
   });
+  const review = useReviewList('line');
+  const lineReview = lineId ? review.data?.items.find((it) => it.id === lineId) : undefined;
   const ls = useLineStations(lineId);
   const { rows, setRows } = ls;
 
@@ -270,19 +273,25 @@ export function LineMapEditor({
   return (
     <div className="absolute inset-0 flex">
       <aside className="flex w-96 shrink-0 flex-col gap-3 overflow-y-auto border-r border-border bg-bg-elevated p-3 text-sm">
-        <div>
+        <div className={cn('flex min-h-0 flex-col', lineId ? 'h-64 shrink-0' : 'flex-1')}>
           <Label>노선</Label>
-          <RefInput target="line" value={lineId} onChange={onLineChange} />
+          <ReviewPicker
+            type="line"
+            selectedId={lineId}
+            className="min-h-0 flex-1"
+            onSelect={(it) => onLineChange(it.id)}
+          />
         </div>
-        {!lineId ? <p className="text-xs text-fg-muted">편집할 노선을 고르세요.</p> : null}
         {lineId && line ? (
           <Card className="p-3" data-testid="lm-line-summary">
             <div className="flex items-center gap-2">
               <span className="inline-block h-1.5 w-4 rounded" style={{ background: color }} />
               <strong>{line.name_ko}</strong>
               <Badge>{isCode('status', line.status) ? codeLabel('status', line.status) : line.status}</Badge>
+              {lineReview ? <ReviewTag issues={lineReview.issues} className="ml-auto" /> : null}
             </div>
             <div className="mt-0.5 text-[11px] text-fg-muted">{lineId}</div>
+            {lineReview ? <ReviewIssues issues={lineReview.issues} /> : null}
             <div className="mt-2 flex flex-col gap-0.5 text-xs">
               <Link to="/data/$type/$id" params={{ type: 'line', id: lineId }} search={{}}>
                 노선 상세 편집 →

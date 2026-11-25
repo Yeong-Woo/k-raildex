@@ -82,3 +82,26 @@ test('위성 비교: 키가 없으면 안내', async ({ page }) => {
   await page.goto('/map?tab=satellite');
   await expect(page.getByTestId('satellite-placeholder')).toBeVisible();
 });
+
+test('지도 편집·노선 편집: 목록에서 고르기 — 노선명 병기, 검수 필요/정상 태그 필터', async ({ page }) => {
+  await page.goto('/map?tab=edit');
+  const list = page.getByTestId('review-list-station');
+  const row = list.getByTestId('review-row').filter({ hasText: 'stn-fx-e' });
+  await expect(row).toContainText('시험 2호선');
+  const picker = page.getByTestId('review-picker-station');
+  await picker.getByRole('button', { name: /^검수 필요/ }).click();
+  await expect(list.locator('[data-testid="review-tag"][data-state="ok"]')).toHaveCount(0);
+  await picker.getByRole('button', { name: /^정상/ }).click();
+  await expect(list.locator('[data-testid="review-tag"][data-state="issue"]')).toHaveCount(0);
+  await picker.getByRole('button', { name: /^전체/ }).click();
+  await picker.getByRole('textbox', { name: '역 검색' }).fill('stn-fx-c');
+  await list.getByTestId('review-row').first().click();
+  await expect(page).toHaveURL(/station=stn-fx-c/);
+  await expect(page.getByTestId('map-selected-station')).toContainText('다');
+
+  await page.goto('/map?tool=line');
+  const lines = page.getByTestId('review-list-line');
+  await lines.getByTestId('review-row').filter({ hasText: 'line-fx-two' }).click();
+  await expect(page.getByTestId('lm-line-summary')).toContainText('시험 2호선');
+  await expect(page.getByTestId('lm-line-summary').getByTestId('review-tag')).toBeVisible();
+});

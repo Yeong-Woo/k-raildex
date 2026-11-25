@@ -1,0 +1,231 @@
+/**
+ * 지도 편집·노선 편집의 고르기 목록(FR-ADM-070): 역·노선 전체를 보여 주고, 품질 규칙에 걸린 개체는 빨간 태그(검수 필요),
+ * 걸린 규칙이 없으면 초록 태그(정상). 검색·태그 필터. 역 이름 옆에 지나는 노선 이름을 함께 쓴다.
+ * 데이터: GET /v1/admin/quality/entities/:type (규칙 SQL 을 합친 것이라 품질 화면과 같은 결과)
+ */
+import { useQuery } from '@tanstack/react-query';
+import { Link } from '@tanstack/react-router';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { codeLabel, isCode } from '@k-raildex/contracts';
+import { cn, Input } from '@k-raildex/ui';
+import { Search } from 'lucide-react';
+import { api } from '../lib/api';
+
+export interface ReviewIssue {
+  rule: string;
+  title: string;
+  detail: string | null;
+}
+export interface ReviewListItem {
+  id: string;
+  name_ko: string;
+  lines: string[];
+  status: string | null;
+  kind: string | null;
+  has_geom: boolean | null;
+  station_count: number | null;
+  color: string | null;
+  issues: ReviewIssue[];
+}
+type Filter = 'all' | 'issue' | 'ok' | 'nogeom';
+
+export function useReviewList(type: 'station' | 'line') {
+  return useQuery({
+    queryKey: ['quality', 'entities', type],
+    queryFn: () => api<{ items: ReviewListItem[] }>(`/v1/admin/quality/entities/${type}`),
+    staleTime: 30_000,
+  });
+}
+
+/** 빨강 = 검수 필요(걸린 규칙 수), 초록 = 정상 */
+export function ReviewTag({ issues, className }: { issues: ReviewIssue[]; className?: string }) {
+  const bad = issues.length > 0;
+  return (
+    <span
+      data-testid="review-tag"
+      data-state={bad ? 'issue' : 'ok'}
+      title={bad ? issues.map((i) => `${i.rule} ${i.title}${i.detail ? ` — ${i.detail}` : ''}`).join('\n') : undefined}
+      className={cn(
+        'inline-flex shrink-0 items-center rounded px-1.5 py-px text-[10px] font-semibold whitespace-nowrap',
+        bad ? 'bg-danger-soft text-danger' : 'bg-good-soft text-good',
+        className,
+      )}
+    >
+      {bad ? `검수 ${issues.length}` : '정상'}
+    </span>
+  );
+}
+
+/** 선택한 개체에 걸린 규칙 목록(품질 화면 링크) */
+export function ReviewIssues({ issues }: { issues: ReviewIssue[] }) {
+  if (!issues.length) return null;
+  return (
+    <ul className="mt-2 flex flex-col gap-0.5 rounded border border-danger/30 bg-danger-soft/40 px-2 py-1 text-[11px]">
+      {issues.map((i, k) => (
+        <li key={k} className="min-w-0">
+          <Link to="/quality" search={{ rule: i.rule } as never} className="font-semibold text-danger underline">
+            {i.rule}
+          </Link>{' '}
+          {i.title}
+          {i.detail ? <span className="text-fg-muted"> — {i.detail}</span> : null}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+const norm = (s: string) => s.toLowerCase().replace(/\s+/g, '');
+
+export function ReviewPicker({
+  type,
+  selectedId,
+  onSelect,
+  className,
+}: {
+  type: 'station' | 'line';
+  selectedId: string | null;
+  onSelect: (item: ReviewListItem) => void;
+  className?: string;
+}) {
+  const list = useReviewList(type);
+  const [q, setQ] = useState('');
+  const [filter, setFilter] = useState<Filter>('all');
+  const items = list.data?.items ?? [];
+  const ul = useRef<HTMLUListElement | null>(null);
+
+  const counts = useMemo(() => {
+    let issue = 0;
+    let nogeom = 0;
+    for (const it of items) {
+      if (it.issues.length) issue++;
+      if (it.has_geom === false) nogeom++;
+    }
+    return { all: items.length, issue, ok: items.length - issue, nogeom };
+  }, [items]);
+
+  const shown = useMemo(() => {
+    const t = norm(q);
+    return items.filter((it) => {
+      if (filter === 'issue' && !it.issues.length) return false;
+      if (filter === 'ok' && it.issues.length) return false;
+      if (filter === 'nogeom' && it.has_geom !== false) return false;
+      if (!t) return true;
+      return norm(it.name_ko).includes(t) || it.id.includes(t) || it.lines.some((l) => norm(l).includes(t));
+    });
+  }, [items, q, filter]);
+
+  // 고른 행이 목록 안에 보이게(목록만 스크롤 — 페이지는 움직이지 않는다)
+  useEffect(() => {
+    const box = ul.current;
+    const el = selectedId ? box?.querySelector<HTMLElement>(`[data-id="${CSS.escape(selectedId)}"]`) : null;
+    if (!box || !el) return;
+    const top = el.offsetTop;
+    if (top < box.scrollTop || top + el.offsetHeight > box.scrollTop + box.clientHeight)
+      box.scrollTop = top - box.clientHeight / 2 + el.offsetHeight / 2;
+  }, [selectedId, shown.length]);
+
+  const chips: { key: Filter; label: string; tone: string }[] = [
+    { key: 'all', label: '전체', tone: '' },
+    { key: 'issue', label: '검수 필요', tone: 'text-danger' },
+    { key: 'ok', label: '정상', tone: 'text-good' },
+    ...(type === 'station' ? [{ key: 'nogeom' as const, label: '좌표 없음', tone: 'text-warn' }] : []),
+  ];
+
+  return (
+    <section className={cn('flex min-h-0 flex-col gap-1.5', className)} data-testid={`review-picker-${type}`}>
+      <div className="relative">
+        <Search className="pointer-events-none absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-fg-muted" />
+        <Input
+          className="h-8 pl-7 text-sm"
+          placeholder={type === 'station' ? '역 이름·노선 이름·id' : '노선 이름·id'}
+          aria-label={type === 'station' ? '역 검색' : '노선 검색'}
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+        />
+      </div>
+      <div className="flex flex-wrap gap-1" role="group" aria-label="태그 필터">
+        {chips.map((c) => (
+          <button
+            key={c.key}
+            type="button"
+            aria-pressed={filter === c.key}
+            onClick={() => setFilter(c.key)}
+            className={cn(
+              'rounded-full border px-2 py-0.5 text-[11px] whitespace-nowrap',
+              filter === c.key ? 'border-primary bg-primary/10 font-semibold' : 'border-border hover:bg-muted',
+              c.tone,
+            )}
+          >
+            {c.label} {counts[c.key]}
+          </button>
+        ))}
+      </div>
+      {list.isLoading ? (
+        <p className="text-xs text-fg-muted">불러오는 중…</p>
+      ) : list.error ? (
+        <p className="text-xs text-danger">목록을 불러오지 못했습니다.</p>
+      ) : !shown.length ? (
+        <p className="text-xs text-fg-muted">없음</p>
+      ) : (
+        <ul
+          ref={ul}
+          className="relative min-h-0 flex-1 overflow-y-auto rounded border border-border text-sm"
+          data-testid={`review-list-${type}`}
+        >
+          {shown.map((it) => (
+            <li key={it.id} data-id={it.id} className="border-t border-border first:border-t-0">
+              <button
+                type="button"
+                data-testid="review-row"
+                className={cn(
+                  'flex w-full min-w-0 items-center gap-1.5 px-2 py-1 text-left hover:bg-muted',
+                  it.id === selectedId && 'bg-muted',
+                )}
+                onClick={() => onSelect(it)}
+              >
+                {type === 'line' ? (
+                  <span
+                    className="inline-block h-1.5 w-3 shrink-0 rounded"
+                    style={{ background: it.color ?? 'var(--color-border)' }}
+                  />
+                ) : null}
+                <span className="min-w-0 flex-1">
+                  <span className="flex min-w-0 items-baseline gap-1">
+                    <span className="truncate font-medium">{it.name_ko}</span>
+                    {type === 'station' && it.lines.length ? (
+                      <span className="min-w-0 truncate text-[11px] text-fg-muted" title={it.lines.join(' · ')}>
+                        {it.lines.join(' · ')}
+                      </span>
+                    ) : null}
+                  </span>
+                  <span className="block truncate text-[10px] text-fg-muted">
+                    {it.id}
+                    {type === 'station'
+                      ? [
+                          it.kind && it.kind !== 'station' && isCode('stationKind', it.kind)
+                            ? codeLabel('stationKind', it.kind)
+                            : null,
+                          it.status && isCode('status', it.status) ? codeLabel('status', it.status) : null,
+                          it.has_geom === false ? '좌표 없음' : null,
+                        ]
+                          .filter(Boolean)
+                          .map((s) => ` · ${s}`)
+                          .join('')
+                      : [
+                          it.status && isCode('status', it.status) ? codeLabel('status', it.status) : null,
+                          `역 ${it.station_count ?? 0}개`,
+                        ]
+                          .filter(Boolean)
+                          .map((s) => ` · ${s}`)
+                          .join('')}
+                  </span>
+                </span>
+                <ReviewTag issues={it.issues} />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}

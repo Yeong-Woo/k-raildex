@@ -392,3 +392,72 @@ export async function qualityItems(
     offset: opts.offset,
   };
 }
+
+export interface ReviewIssue {
+  rule: string;
+  title: string;
+  detail: string | null;
+}
+export interface ReviewListItem {
+  id: string;
+  name_ko: string;
+  /** 역: 지나는 노선 이름(가나다순) · 노선: 비움 */
+  lines: string[];
+  status: string | null;
+  /** 역 종류(station·signal 등) · 노선: 노선 분류(category) */
+  kind: string | null;
+  /** 역: 좌표 있음 · 노선: 노선별 역 수 */
+  has_geom: boolean | null;
+  station_count: number | null;
+  color: string | null;
+  issues: ReviewIssue[];
+}
+
+/**
+ * 지도 편집·노선 편집의 고르기 목록(FR-ADM-070): 역·노선 전체 + 개체별 품질 규칙 걸림(빨강 = 검수 필요, 초록 = 걸린 규칙 없음).
+ * 규칙 SQL 을 그대로 합쳐 쓰므로 품질 대시보드와 항상 같은 결과다.
+ */
+export async function reviewList(db: Queryable, type: 'station' | 'line'): Promise<{ items: ReviewListItem[] }> {
+  const rules = QUALITY_RULES.filter((r) => r.sql);
+  const union = rules
+    .map(
+      (r) =>
+        `SELECT '${r.id}'::text AS rule, entity_type, entity_id, detail FROM (${r.sql}) q${r.id.replace(/\W/g, '_')}`,
+    )
+    .join('\nUNION ALL ');
+  // 노선별 역(line_station) 규칙(V-S04·V-S05 등)은 그 역·그 노선에 붙인다
+  const owner = type === 'station' ? 'station_id' : 'line_id';
+  const sqlIssues = `SELECT u.rule, CASE WHEN u.entity_type = 'line_station'
+                                     THEN (SELECT x.${owner} FROM line_station x WHERE x.id = u.entity_id) ELSE u.entity_id END AS entity_id,
+                            u.detail
+                       FROM (${union}) u WHERE u.entity_type IN ($1, 'line_station')`;
+  const { rows: issueRows } = await db.query<{ rule: string; entity_id: string | null; detail: string | null }>(
+    sqlIssues,
+    [type],
+  );
+  const titles = new Map(rules.map((r) => [r.id, r.title]));
+  const issues = new Map<string, ReviewIssue[]>();
+  for (const r of issueRows) {
+    if (!r.entity_id) continue;
+    const list = issues.get(r.entity_id) ?? [];
+    list.push({
+      rule: r.rule,
+      title: titles.get(r.rule) ?? r.rule,
+      detail: r.detail && r.detail.length ? r.detail : null,
+    });
+    issues.set(r.entity_id, list);
+  }
+  const sql =
+    type === 'station'
+      ? `SELECT s.id, s.name_ko, vs.status, s.kind, s.geom IS NOT NULL AS has_geom, NULL::int AS station_count, NULL::text AS color,
+                coalesce((SELECT array_agg(DISTINCT l.name_ko ORDER BY l.name_ko) FROM line_station x
+                            JOIN line l ON l.id = x.line_id AND l.deleted_at IS NULL
+                           WHERE x.station_id = s.id AND x.deleted_at IS NULL), '{}') AS lines
+           FROM station s LEFT JOIN v_station_status vs ON vs.station_id = s.id
+          WHERE s.deleted_at IS NULL ORDER BY s.name_ko, s.id`
+      : `SELECT l.id, l.name_ko, l.status, l.category AS kind, NULL::boolean AS has_geom, l.color, '{}'::text[] AS lines,
+                (SELECT count(*)::int FROM line_station x WHERE x.line_id = l.id AND x.deleted_at IS NULL) AS station_count
+           FROM line l WHERE l.deleted_at IS NULL ORDER BY l.name_ko, l.id`;
+  const { rows } = await db.query<Omit<ReviewListItem, 'issues'>>(sql);
+  return { items: rows.map((r) => ({ ...r, issues: issues.get(r.id) ?? [] })) };
+}

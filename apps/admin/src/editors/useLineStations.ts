@@ -66,6 +66,7 @@ export function useLineStations(lineId: string | null) {
       setServerErrors([]);
       await qc.invalidateQueries({ queryKey: ['line-stations', lineId] });
       await qc.invalidateQueries({ queryKey: ['entity'] });
+      await qc.invalidateQueries({ queryKey: ['quality'] });
     },
     onError: (e) => {
       toast.error(errorText(e));

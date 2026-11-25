@@ -22,6 +22,7 @@ import {
   MemoryObjectStore,
   qualityItems,
   qualitySummary,
+  reviewList,
   QUALITY_GUIDES,
   readEntity,
   renderPageImages,
@@ -349,6 +350,30 @@ describe('품질·지도(픽스처)', () => {
     expect((await qualityItems(db, 'V-S07', { limit: 10, offset: 0 })).items.map((i) => i.entity_id)).toEqual([
       'stn-q-dup',
     ]);
+  });
+
+  it('고르기 목록(지도 편집·노선 편집): 개체별 걸린 규칙, 노선별 역 규칙은 그 역·노선에', async () => {
+    const lines = await reviewList(db, 'line');
+    const s10 = await qualityItems(db, 'V-S10', { limit: 50, offset: 0 });
+    expect(
+      lines.items
+        .filter((i) => i.issues.some((x) => x.rule === 'V-S10'))
+        .map((i) => i.id)
+        .sort(),
+    ).toEqual(
+      s10.items
+        .filter((i) => i.entity_type === 'line')
+        .map((i) => i.entity_id)
+        .sort(),
+    );
+    // 위에서 ls-fx-two--fx-e 를 순서 미확인으로 바꿨다(V-S05 = line_station)
+    expect(lines.items.find((i) => i.id === 'line-fx-two')!.issues.map((x) => x.rule)).toContain('V-S05');
+    const st = await reviewList(db, 'station');
+    const e = st.items.find((i) => i.id === 'stn-fx-e')!;
+    expect(e.issues.map((x) => x.rule)).toContain('V-S05');
+    expect(e.lines).toContain('시험 2호선');
+    expect(st.items.some((i) => i.issues.length === 0)).toBe(true);
+    expect(st.items.find((i) => i.id === 'stn-q-dup')).toMatchObject({ name_ko: '나', has_geom: true });
   });
 
   it('이관 검수 목록: 폐기 근거 필요(Q101)·뺀 정차역(Q105)', async () => {
