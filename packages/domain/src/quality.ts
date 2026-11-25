@@ -23,6 +23,8 @@ export interface QualityRule {
   note?: string;
   /** (entity_type, entity_id, detail, sort_key) 를 내는 SQL. null 이면 항상 0건 */
   sql: string | null;
+  /** SQL 이 action_ref 열도 낸다(행 단위 처리 단추용 — V-S04 거리 확인의 앞 노선별 역 id) */
+  actionRef?: boolean;
 }
 
 export interface QualityItem {
@@ -30,6 +32,8 @@ export interface QualityItem {
   entity_id: string;
   label: string;
   detail: string | null;
+  /** 행 처리 단추에 쓰는 값(규칙별 의미, actionRef 규칙만) */
+  action_ref?: string | null;
 }
 
 /** REC(checked_at) 열이 있는 개체 테이블 */
@@ -85,9 +89,9 @@ export const QUALITY_RULES: readonly QualityRule[] = [
               JOIN line_station ls ON ls.id = sps.line_station_id AND ls.deleted_at IS NULL
              GROUP BY ls.station_id
           ), seqd AS (
-            SELECT x.id, x.line_id, x.seq, x.km, s.geom, x.station_id,
+            SELECT x.id, x.line_id, x.seq, x.km, s.geom, x.station_id, x.gap_confirmed_prev_id,
                    lag(x.id) OVER w AS prev_id, lag(x.km) OVER w AS prev_km, lag(s.geom) OVER w AS prev_geom,
-                   lag(x.station_id) OVER w AS prev_station_id
+                   lag(x.station_id) OVER w AS prev_station_id, lag(s.name_ko) OVER w AS prev_name
               FROM line_station x
               JOIN line l ON l.id = x.line_id AND l.deleted_at IS NULL
               JOIN station s ON s.id = x.station_id
@@ -95,6 +99,7 @@ export const QUALITY_RULES: readonly QualityRule[] = [
             WINDOW w AS (PARTITION BY x.line_id, coalesce(x.branch, '') ORDER BY x.seq)
           ), lim AS (
             SELECT d.*, ST_Distance(d.geom, d.prev_geom) AS dist,
+                   d.gap_confirmed_prev_id IS NOT DISTINCT FROM d.prev_id AS gap_ok,
                    CASE WHEN a.hs AND b.hs THEN 80000 WHEN a.station_id IS NOT NULL AND b.station_id IS NOT NULL THEN 50000
                         ELSE 30000 END AS max_m
               FROM seqd d
@@ -104,13 +109,15 @@ export const QUALITY_RULES: readonly QualityRule[] = [
           )
           SELECT 'line_station' AS entity_type, id AS entity_id,
                  concat_ws(', ',
-                   CASE WHEN dist > max_m
-                        THEN '앞 역(' || prev_id || ')과 ' || round((dist / 1000)::numeric, 1) || 'km(상한 ' || max_m / 1000 || 'km)' END,
+                   CASE WHEN dist > max_m AND NOT gap_ok
+                        THEN '앞 역 ' || prev_name || '(' || prev_id || ')과 ' || round((dist / 1000)::numeric, 1) || 'km(상한 ' || max_m / 1000 || 'km)' END,
                    CASE WHEN km IS NOT NULL AND prev_km IS NOT NULL AND km < prev_km
                         THEN 'km 역행(' || prev_km || ' → ' || km || ')' END) AS detail,
-                 line_id || lpad(seq::text, 5, '0') AS sort_key
+                 line_id || lpad(seq::text, 5, '0') AS sort_key,
+                 CASE WHEN dist > max_m AND NOT gap_ok THEN prev_id END AS action_ref
             FROM lim
-           WHERE dist > max_m OR (km IS NOT NULL AND prev_km IS NOT NULL AND km < prev_km)`,
+           WHERE (dist > max_m AND NOT gap_ok) OR (km IS NOT NULL AND prev_km IS NOT NULL AND km < prev_km)`,
+    actionRef: true,
   },
   {
     id: 'V-S05',
@@ -371,8 +378,13 @@ export async function qualityItems(
   const rule = { id: r.id, title: r.title, ...(r.note ? { note: r.note } : {}) };
   if (!r.sql) return { rule, items: [], total: 0, limit: opts.limit, offset: opts.offset };
   const total = await db.query<{ n: number }>(`SELECT count(*)::int AS n FROM (${r.sql}) q`);
-  const { rows } = await db.query<{ entity_type: EntityType; entity_id: string; detail: string | null }>(
-    `SELECT entity_type, entity_id, detail FROM (${r.sql}) q ORDER BY sort_key, entity_id LIMIT $1 OFFSET $2`,
+  const { rows } = await db.query<{
+    entity_type: EntityType;
+    entity_id: string;
+    detail: string | null;
+    action_ref?: string | null;
+  }>(
+    `SELECT entity_type, entity_id, detail${r.actionRef ? ', action_ref' : ''} FROM (${r.sql}) q ORDER BY sort_key, entity_id LIMIT $1 OFFSET $2`,
     [opts.limit, opts.offset],
   );
   const labels = await entityLabels(
@@ -386,6 +398,7 @@ export async function qualityItems(
       entity_id: x.entity_id,
       label: labels.get(x.entity_id)?.label ?? x.entity_id,
       detail: x.detail && x.detail.length ? x.detail : null,
+      ...(r.actionRef ? { action_ref: x.action_ref ?? null } : {}),
     })),
     total: total.rows[0]?.n ?? 0,
     limit: opts.limit,

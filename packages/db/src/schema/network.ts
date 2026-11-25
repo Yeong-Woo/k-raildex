@@ -139,6 +139,8 @@ export const lineStation = pgTable('line_station', {
   km: numeric('km', { precision: 7, scale: 2, mode: 'number' }),
   stationCode: text('station_code'),
   orderConfirmed: boolean('order_confirmed').notNull().default(true),
+  /** V-S04 거리 확인: 확인할 때의 앞 노선별 역 id(0030) */
+  gapConfirmedPrevId: text('gap_confirmed_prev_id'),
   nameKo: text('name_ko'),
   nameEn: text('name_en'),
   operatorId: text('operator_id').references(() => operator.id, { onUpdate: 'cascade' }),

@@ -2,12 +2,14 @@
  * 품질 대시보드(FR-ADM-090): Soft 규칙별 건수 → 규칙을 고르면 검수 매뉴얼(packages/domain quality-guide.ts)과
  * 대상 목록(쪽 넘김). 좌표·선형 규칙은 행마다 지도 도구로 바로 가는 단추를 둔다.
  */
-import { useQuery } from '@tanstack/react-query';
+import type { ReactNode } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useSearch } from '@tanstack/react-router';
 import { entityUiMeta, isCode, type EntityType } from '@k-raildex/contracts';
 import { Badge, Button, Card, CardHeader, cn, Empty } from '@k-raildex/ui';
-import { BookOpen } from 'lucide-react';
-import { apiOptional, errorText, qs } from '../lib/api';
+import { BookOpen, Check } from 'lucide-react';
+import { toast } from 'sonner';
+import { api, apiOptional, errorText, qs, type EntityResponse } from '../lib/api';
 import { toSlug } from '../lib/entity-types';
 
 export interface QualityGuide {
@@ -28,6 +30,8 @@ interface QualityItem {
   entity_id: string;
   label: string | null;
   detail: string | null;
+  /** 행 처리 단추 값(V-S04: 거리 초과일 때 앞 노선별 역 id) */
+  action_ref?: string | null;
 }
 
 const LIMIT = 50;
@@ -48,6 +52,44 @@ const ROW_TOOLS: Record<string, (it: QualityItem) => { label: string; href: stri
     it.entity_type === 'plan'
       ? { label: '계획 선형 편집', href: `/map?tool=geometry&plan=${encodeURIComponent(it.entity_id)}` }
       : { label: 'OSM 매핑 점검', href: `/map?tool=osm&line=${encodeURIComponent(it.entity_id)}` },
+};
+
+/**
+ * V-S04 [거리 맞음]: 앞 역과의 거리가 상한을 넘지만 실제로 맞는 구간이면 그때의 앞 노선별 역을 적는다
+ * (line_station.gap_confirmed_prev_id). 앞 역이 바뀌면 다시 목록에 나온다. km 역행 행에는 단추가 없다.
+ */
+function ConfirmGap({ it }: { it: QualityItem }) {
+  const qc = useQueryClient();
+  const m = useMutation({
+    mutationFn: async () => {
+      const path = `/v1/admin/line-station/${encodeURIComponent(it.entity_id)}`;
+      const cur = await api<EntityResponse<unknown>>(path);
+      return api(path, { method: 'PATCH', ifMatch: cur.version, json: { gap_confirmed_prev_id: it.action_ref } });
+    },
+    onSuccess: async () => {
+      toast.success('거리를 확인했습니다(앞 역이 바뀌면 다시 나옵니다)');
+      await qc.invalidateQueries({ queryKey: ['quality'] });
+    },
+    onError: (e) => toast.error(errorText(e)),
+  });
+  if (!it.action_ref) return null;
+  return (
+    <Button
+      size="sm"
+      variant="outline"
+      className="h-7 text-xs"
+      disabled={m.isPending}
+      title="지도·노선도로 확인했고 실제로 이 거리가 맞으면 누릅니다"
+      onClick={() => m.mutate()}
+    >
+      <Check className="size-3.5" /> {m.isPending ? '저장 중…' : '거리 맞음'}
+    </Button>
+  );
+}
+
+/** 행 단위 처리(규칙별) — 지도 도구 링크 옆 */
+const ROW_ACTIONS: Record<string, (it: QualityItem) => ReactNode> = {
+  'V-S04': (it) => <ConfirmGap it={it} />,
 };
 
 function GuidePanel({
@@ -124,6 +166,7 @@ export function Quality() {
   const current = rules.data?.rules.find((r) => r.id === rule);
   const total = items.data?.total ?? 0;
   const tool = rule ? ROW_TOOLS[rule] : undefined;
+  const action = rule ? ROW_ACTIONS[rule] : undefined;
 
   return (
     <div className="flex flex-col gap-4">
@@ -183,7 +226,7 @@ export function Quality() {
                         <th className="px-4 py-2 whitespace-nowrap">종류</th>
                         <th className="px-4 py-2">개체</th>
                         <th className="px-4 py-2">내용</th>
-                        {tool ? <th className="px-4 py-2" /> : null}
+                        {tool || action ? <th className="px-4 py-2" /> : null}
                       </tr>
                     </thead>
                     <tbody>
@@ -210,10 +253,11 @@ export function Quality() {
                               <code className="ml-2 text-xs text-fg-muted">{it.entity_id}</code>
                             </td>
                             <td className="px-4 py-1.5 text-xs break-words">{it.detail ?? ''}</td>
-                            {tool ? (
+                            {tool || action ? (
                               <td className="px-4 py-1.5 text-right whitespace-nowrap">
+                                {action?.(it)}
                                 {(() => {
-                                  const a = tool(it);
+                                  const a = tool?.(it);
                                   return a ? (
                                     <a href={a.href} className="text-xs text-primary hover:underline">
                                       {a.label}

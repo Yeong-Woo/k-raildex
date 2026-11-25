@@ -376,6 +376,69 @@ describe('품질·지도(픽스처)', () => {
     expect(st.items.find((i) => i.id === 'stn-q-dup')).toMatchObject({ name_ko: '나', has_geom: true });
   });
 
+  it('V-S04 거리 확인: 맞다고 확인하면 빠지고, 앞 역이 바뀌면 다시 나온다', async () => {
+    const hits = async () =>
+      (await qualityItems(db, 'V-S04', { limit: 50, offset: 0 })).items.filter(
+        (i) => i.entity_id === 'ls-fx-two--q-far',
+      );
+    await apply([
+      {
+        op: 'create',
+        entity_type: 'station',
+        data: {
+          id: 'stn-q-far',
+          name_ko: '먼역',
+          region_code: '41',
+          geom: { lat: 37.9, lng: 127.0 },
+          coord_source: 'official',
+          checked_at: '2026-01-01',
+          sources: SRC,
+        },
+      },
+      {
+        op: 'create',
+        entity_type: 'line_station',
+        data: { id: 'ls-fx-two--q-far', line_id: 'line-fx-two', station_id: 'stn-q-far', seq: 3, status: 'operating' },
+      },
+    ]);
+    const [h] = await hits();
+    expect(h).toMatchObject({
+      action_ref: 'ls-fx-two--fx-e',
+      detail: expect.stringContaining('앞 역 마(ls-fx-two--fx-e)과 55.'),
+    });
+    // 다른 앞 역으로 확인한 것은 효력 없음
+    await apply([
+      {
+        op: 'update',
+        entity_type: 'line_station',
+        id: 'ls-fx-two--q-far',
+        data: { gap_confirmed_prev_id: 'ls-fx-two--fx-a' },
+      },
+    ]);
+    expect(await hits()).toHaveLength(1);
+    await apply([
+      {
+        op: 'update',
+        entity_type: 'line_station',
+        id: 'ls-fx-two--q-far',
+        data: { gap_confirmed_prev_id: 'ls-fx-two--fx-e' },
+      },
+    ]);
+    expect(await hits()).toEqual([]);
+    expect((await reviewList(db, 'station')).items.find((i) => i.id === 'stn-q-far')!.issues).toEqual([]);
+    // km 역행은 확인해도 남는다(action_ref 없음)
+    await apply([
+      { op: 'update', entity_type: 'line_station', id: 'ls-fx-two--fx-e', data: { km: 10 } },
+      { op: 'update', entity_type: 'line_station', id: 'ls-fx-two--q-far', data: { km: 5 } },
+    ]);
+    const [k] = await hits();
+    expect(k).toMatchObject({ action_ref: null, detail: 'km 역행(10.00 → 5.00)' });
+    await apply([
+      { op: 'update', entity_type: 'line_station', id: 'ls-fx-two--fx-e', data: { km: null } },
+      { op: 'delete', entity_type: 'line_station', id: 'ls-fx-two--q-far' },
+    ]);
+  });
+
   it('이관 검수 목록: 폐기 근거 필요(Q101)·뺀 정차역(Q105)', async () => {
     const count = async (id: string) => (await qualitySummary(db)).rules.find((r) => r.id === id)!.count;
     expect(await count('X-plan-abandoned-evidence')).toBe(0);

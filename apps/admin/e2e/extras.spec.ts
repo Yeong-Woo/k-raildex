@@ -105,3 +105,33 @@ test('지도 편집·노선 편집: 목록에서 고르기 — 노선명 병기,
   await expect(page.getByTestId('lm-line-summary')).toContainText('시험 2호선');
   await expect(page.getByTestId('lm-line-summary').getByTestId('review-tag')).toBeVisible();
 });
+
+test('품질 V-S04: 거리 초과 행을 [거리 맞음]으로 확인하면 목록에서 빠진다', async ({ page }) => {
+  const api = process.env.E2E_API_URL;
+  const post = async (type: string, data: unknown) => {
+    const r = await page.request.post(`${api}/v1/admin/${type}`, { data });
+    expect(r.ok(), await r.text()).toBe(true);
+  };
+  await post('station', {
+    id: 'stn-e2e-far',
+    name_ko: '먼역',
+    region_code: '41',
+    geom: { lat: 37.9, lng: 127.0 },
+    coord_source: 'official',
+    checked_at: '2026-01-01',
+    sources: [{ source_id: 'src-fixture-notice' }],
+  });
+  await post('line-station', {
+    id: 'ls-fx-two--e2e-far',
+    line_id: 'line-fx-two',
+    station_id: 'stn-e2e-far',
+    seq: 9,
+    status: 'operating',
+  });
+  await page.goto('/quality?rule=V-S04');
+  const row = page.getByTestId('quality-items').locator('tr', { hasText: 'ls-fx-two--e2e-far' });
+  await expect(row).toContainText('상한');
+  await row.getByRole('button', { name: '거리 맞음' }).click();
+  await expect(toast(page, '거리를 확인했습니다')).toBeVisible();
+  await expect(page.getByTestId('quality-items').locator('tr', { hasText: 'ls-fx-two--e2e-far' })).toHaveCount(0);
+});

@@ -25,6 +25,8 @@ const shape = {
   km: nullish(z.number()),
   station_code: optText(),
   order_confirmed: z.boolean().default(true),
+  /** V-S04 거리 확인: 앞 역과의 거리가 상한을 넘지만 맞다고 확인할 때의 앞 노선별 역 id. 앞 역이 바뀌면 효력 없음 */
+  gap_confirmed_prev_id: nullish(idSchema('line_station')),
   /** 역 대표 이름과 다를 때만 */
   name_ko: nullish(z.string().min(1)),
   name_en: optText(),

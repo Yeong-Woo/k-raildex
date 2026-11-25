@@ -226,6 +226,9 @@ export const entityUiMeta: Readonly<Record<EntityType, EntityUiMeta>> = {
       km: f('영업거리(km)', W.num, 'basic'),
       station_code: f('역번호', W.text, 'basic'),
       order_confirmed: f('순서 확정', W.bool, 'basic'),
+      gap_confirmed_prev_id: f('앞 역 거리 확인', ref('line_station'), 'basic', {
+        help: '앞 역과의 거리가 V-S04 상한을 넘지만 맞다고 확인한 앞 노선별 역. 품질 화면 [거리 맞음]으로 채운다',
+      }),
       name_ko: f('노선별 이름', W.text, 'basic', { help: '역 대표 이름과 다를 때만' }),
       name_en: f('노선별 영문 이름', W.text, 'basic'),
       operator_id: f('운영기관', ref('operator'), 'class', { help: '비우면 노선 운영기관' }),

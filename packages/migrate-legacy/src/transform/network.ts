@@ -202,6 +202,7 @@ export function transformNetwork(input: NetworkInput, report: MigrationReport): 
         km: a.r.km ?? null,
         station_code: a.r.station_code ?? null,
         order_confirmed: a.r.order_confirmed ?? true,
+        gap_confirmed_prev_id: null,
         name_ko: null,
         name_en: null,
         operator_id: null,

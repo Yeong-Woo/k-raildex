@@ -363,6 +363,7 @@ CREATE TABLE line_station (
   km              numeric(7,2),
   station_code    text,                      -- 이 노선의 역번호(K409, D011, 133)
   order_confirmed boolean NOT NULL DEFAULT true,
+  gap_confirmed_prev_id text,                -- V-S04 거리 확인: 확인할 때의 앞 노선별 역 id(앞 역이 바뀌면 효력 없음, 0030)
   name_ko         text,                      -- 역 대표 이름과 다를 때만(노선별 표기)
   name_en         text,
   operator_id     text REFERENCES operator(id),   -- 이 노선 구간 운영기관(노선 운영기관과 다를 때 필수 아님 → NULL 이면 노선 운영기관)
@@ -978,7 +979,7 @@ FK 전부, CHECK(코드값·좌표 범위·퍼지 날짜·범위·자기 참조 
 | V-S01 | 출처가 `wiki` 뿐                                                                                                                                                   |
 | V-S02 | 운영 중 여객역인데 좌표 없음 / 시·도 미상                                                                                                                          |
 | V-S03 | 좌표가 시·도 경계 밖(경계 데이터 확보 시)                                                                                                                          |
-| V-S04 | 같은 노선 인접 역 거리 초과 또는 km 역행 — 상한: 양 끝이 고속열차(high_speed 계통 정차 패턴) 정차역이면 80km, 고속·일반열차(intercity) 정차역이면 50km, 그 밖 30km |
+| V-S04 | 같은 노선 인접 역 거리 초과 또는 km 역행 — 상한: 양 끝이 고속열차(high_speed 계통 정차 패턴) 정차역이면 80km, 고속·일반열차(intercity) 정차역이면 50km, 그 밖 30km. 거리 초과는 검수자가 맞다고 확인하면(`gap_confirmed_prev_id` = 그때의 앞 노선별 역) 빠진다. km 역행은 빠지지 않는다 |
 | V-S05 | `order_confirmed=false`                                                                                                                                            |
 | V-S06 | 동명 역 1km 이내 별개 역(병합 후보)                                                                                                                                |
 | V-S07 | `checked_at` 1년 이상                                                                                                                                              |
