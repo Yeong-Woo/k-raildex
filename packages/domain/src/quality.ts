@@ -241,6 +241,28 @@ export const QUALITY_RULES: readonly QualityRule[] = [
            WHERE pl.role = 'upgrades' AND pl.note IS NULL`,
   },
   {
+    // 2026-11-25 사용자 지시: 공사 중인데 미래 선형이 없는 것 정리. OSM 공사 중 선형·계획 선형(공식·도면 추출)이 없어
+    // 지도에 그릴 수 없는 공사 중 노선과 시공 단계 계획(신설·연장이거나 노선 연결 없음). OSM 에 그려지면 노선 OSM 대응(way_ids 등)에,
+    // 공식 도면이 있으면 계획 선형(traced/official)에 넣으면 빠진다. 개략(schematic)만 있는 계획도 포함.
+    id: 'X-construction-no-geometry',
+    title: '공사 중인데 지도 선형 없음(OSM 공사 선형·계획 선형 필요)',
+    sql: `SELECT 'line' AS entity_type, l.id AS entity_id, l.name_ko AS detail, '1' || l.name_ko AS sort_key
+            FROM line l
+           WHERE l.deleted_at IS NULL AND l.status = 'under_construction'
+             AND NOT EXISTS (SELECT 1 FROM osm.v_line_geometry g WHERE g.line_id = l.id)
+          UNION ALL
+          SELECT 'plan', p.id, p.name_ko || CASE WHEN sh.quality = 'schematic' THEN ' (개략 선형만)' ELSE '' END, '2' || p.name_ko
+            FROM plan p
+            JOIN v_plan_stage st ON st.plan_id = p.id AND st.stage = 'construction'
+            LEFT JOIN v_plan_shape sh ON sh.plan_id = p.id
+           WHERE p.deleted_at IS NULL
+             AND (sh.plan_id IS NULL OR sh.quality = 'schematic')
+             AND (EXISTS (SELECT 1 FROM plan_line pl WHERE pl.plan_id = p.id AND pl.role IN ('new', 'extends'))
+                  OR NOT EXISTS (SELECT 1 FROM plan_line pl WHERE pl.plan_id = p.id))
+             AND NOT EXISTS (SELECT 1 FROM plan_line pl JOIN osm.v_line_geometry g ON g.line_id = pl.line_id AND g.is_construction
+                              WHERE pl.plan_id = p.id AND pl.role IN ('new', 'extends'))`,
+  },
+  {
     // Q122 B: 150m 안의 이름이 다른 역 쌍(옛 이름 중복·근사 좌표 의심). 별개 역이면 한쪽 editor_note 에 상대 id 를 적는다
     // (예: "별개 역 확인: stn-magok"), 같은 역이면 병합, 좌표가 틀렸으면 좌표를 고친다.
     id: 'X-station-near-other-name',
