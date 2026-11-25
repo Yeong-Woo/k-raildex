@@ -16,6 +16,7 @@ export * from './documents';
 export * from './attachments';
 export * from './revert';
 export * from './quality';
+export * from './quality-guide';
 export * from './map';
 export * from './bulk';
 export * from './external-api';

@@ -22,6 +22,7 @@ import {
   MemoryObjectStore,
   qualityItems,
   qualitySummary,
+  QUALITY_GUIDES,
   readEntity,
   renderPageImages,
   revertChangeset,
@@ -310,6 +311,10 @@ describe('품질·지도(픽스처)', () => {
     const s = await qualitySummary(db);
     const count = (id: string) => s.rules.find((r) => r.id === id)!.count;
     expect(s.rules.find((r) => r.id === 'V-S03')).toMatchObject({ count: 0, note: expect.any(String) });
+    // 검수 매뉴얼(2026-11-26): 모든 규칙에 있고, 매뉴얼만 있고 규칙이 없는 것도 없다
+    expect(s.rules.filter((r) => !r.guide || !r.guide.steps.length).map((r) => r.id)).toEqual([]);
+    expect(Object.keys(QUALITY_GUIDES).sort()).toEqual(s.rules.map((r) => r.id).sort());
+    expect(s.guide_common.length).toBeGreaterThan(0);
     expect(count('V-S10')).toBe(2);
     expect(count('V-S11')).toBe(1);
     expect(count('V-S12')).toBe(1);

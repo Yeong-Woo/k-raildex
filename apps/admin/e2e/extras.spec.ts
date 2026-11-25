@@ -43,6 +43,8 @@ test('품질 화면과 대시보드 품질 요약', async ({ page }) => {
   await page.goto('/quality');
   await page.getByTestId('quality-rules').getByRole('button').filter({ hasText: 'V-S10' }).click();
   await expect(page.getByTestId('quality-items')).toBeVisible();
+  // 규칙별 검수 매뉴얼(2026-11-26)
+  await expect(page.getByTestId('quality-guide')).toContainText('빠지는 조건');
 });
 
 test('미래 지도: 연도에 맞는 계획이 나오고 계획 편집으로 갈 수 있다', async ({ page }) => {
@@ -50,8 +52,9 @@ test('미래 지도: 연도에 맞는 계획이 나오고 계획 편집으로 �
   test.skip(r.status() === 404, '지도 API 없음');
   await page.goto('/map?tab=future&at=2040');
   const plans = page.getByTestId('future-plans');
-  await expect(plans).toContainText('시험 1호선 연장');
-  await plans.getByRole('button', { name: /시험 1호선 연장/ }).click();
+  // 연장 계획은 연장되는 노선 이름으로 보인다(0023 map_at — 계획 이름 "시험 1호선 연장" 아님)
+  await expect(plans).toContainText('시험 1호선');
+  await plans.getByRole('button', { name: /시험 1호선/ }).click();
   await page
     .getByTestId('future-selected')
     .getByRole('link', { name: /계획 편집/ })

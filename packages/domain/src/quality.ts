@@ -8,6 +8,7 @@ import type { Queryable } from './db';
 import { DomainError } from './errors';
 import { entityLabels } from './list';
 import { ENTITY_SPECS } from './mapping';
+import { QUALITY_GUIDE_COMMON, QUALITY_GUIDES, type QualityGuide } from './quality-guide';
 
 /**
  * 이관 기대 일정 메모의 관리용 표시(Q100 A). 이 표시가 든 줄은 공개 응답에서 뺀다(Q119 A) —
@@ -332,19 +333,26 @@ export function qualityRule(id: string): QualityRule {
 }
 
 /** 규칙별 건수 */
-export async function qualitySummary(
-  db: Queryable,
-): Promise<{ rules: { id: string; title: string; count: number; note?: string }[] }> {
-  const rules: { id: string; title: string; count: number; note?: string }[] = [];
+export async function qualitySummary(db: Queryable): Promise<{
+  rules: { id: string; title: string; count: number; note?: string; guide: QualityGuide | null }[];
+  guide_common: readonly string[];
+}> {
+  const rules: { id: string; title: string; count: number; note?: string; guide: QualityGuide | null }[] = [];
   for (const r of QUALITY_RULES) {
     let count = 0;
     if (r.sql) {
       const { rows } = await db.query<{ n: number }>(`SELECT count(*)::int AS n FROM (${r.sql}) q`);
       count = rows[0]?.n ?? 0;
     }
-    rules.push({ id: r.id, title: r.title, count, ...(r.note ? { note: r.note } : {}) });
+    rules.push({
+      id: r.id,
+      title: r.title,
+      count,
+      ...(r.note ? { note: r.note } : {}),
+      guide: QUALITY_GUIDES[r.id] ?? null,
+    });
   }
-  return { rules };
+  return { rules, guide_common: QUALITY_GUIDE_COMMON };
 }
 
 /** 규칙 하나의 대상 목록 */
