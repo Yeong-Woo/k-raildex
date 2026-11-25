@@ -19,6 +19,7 @@ import {
   publicLines,
   publicMapLines,
   publicMapPlans,
+  publicMapService,
   publicMapStations,
   publicMapTimeline,
   publicNumberSearch,
@@ -322,6 +323,12 @@ export class PublicController {
       include_undated: boolParam.parse(q.include_undated),
     };
     return this.cache.serve(req, rep, () => publicMapPlans(this.db, query), { kind: 'map', contentType: GEOJSON });
+  }
+
+  /** 운행 계통 선형(지도 강조, FR-WEB-029) */
+  @Get('map/services/:id.geojson')
+  async mapService(@Req() req: Req_, @Res() rep: Rep, @Param('id') id: string) {
+    return this.cache.serve(req, rep, () => publicMapService(this.db, id), { id, kind: 'mv', contentType: GEOJSON });
   }
 
   @Get('map/timeline')

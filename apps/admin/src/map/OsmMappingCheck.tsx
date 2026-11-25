@@ -212,6 +212,7 @@ export function OsmMappingCheck({
     include_construction: true,
     share_with: [],
     way_ids: [],
+    connect_terminals: false,
     note: null,
   };
   const save = useMutation({

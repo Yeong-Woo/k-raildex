@@ -1887,6 +1887,17 @@ table.matrix th.pat {
   color: var(--kr-fg-muted);
   margin: var(--kr-space-2) 0 0;
 }
+.fp-select {
+  width: 100%;
+  min-height: 36px;
+  padding: 0 8px;
+  font: inherit;
+  font-size: var(--kr-text-sm);
+  color: var(--kr-fg);
+  background: var(--kr-surface);
+  border: 1px solid var(--kr-border);
+  border-radius: var(--kr-radius-sm);
+}
 .fp-radios {
   display: grid;
   gap: 6px;

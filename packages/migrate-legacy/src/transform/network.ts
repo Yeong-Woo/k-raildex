@@ -390,6 +390,7 @@ export function transformNetwork(input: NetworkInput, report: MigrationReport): 
         include_construction: true,
         share_with: osm.m.share_with ?? [],
         way_ids: osm.m.ways ?? [],
+        connect_terminals: false,
         note: notes.filter(Boolean).join('\n') || null,
       };
     }

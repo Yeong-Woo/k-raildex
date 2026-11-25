@@ -80,3 +80,28 @@ export const publicMapPlansSchema = collection(
     })
     .strict(),
 );
+
+/** 운행 계통 선형(지도 "운행 계통" 강조, FR-WEB-029). 계통이 다니는 구간을 노선 선형에서 자른 파생 값 */
+export const publicMapServiceSchema = z
+  .object({
+    type: z.literal('FeatureCollection'),
+    service_id: z.string(),
+    attribution: z.string().optional(),
+    features: z.array(
+      featureSchema(
+        z
+          .object({
+            service_id: z.string(),
+            name_ko: z.string(),
+            kind: z.string(),
+            color: z.string().nullable(),
+            /** operating = 정차 구간, under_construction·planned = 운행 예정 노선(정차역 없음) */
+            status: z.string(),
+            /** true = 선형이 없어 역 사이 직선 */
+            approximate: z.boolean(),
+          })
+          .strict(),
+      ),
+    ),
+  })
+  .strict();

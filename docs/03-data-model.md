@@ -414,6 +414,7 @@ CREATE TABLE line_osm_map (
   include_construction boolean NOT NULL DEFAULT true,   -- 공사 중 way 포함(미래 지도)
   way_ids bigint[] NOT NULL DEFAULT '{}',                -- 개별 지정 way(relation·이름으로 잡히지 않는 짧은 구간, 0020)
   share_with text[] NOT NULL DEFAULT '{}',              -- 공용 구간: 이 노선 후보 way 를 여기 적힌 노선이 먼저 차지해도 함께 배정(0019)
+  connect_terminals boolean NOT NULL DEFAULT false,    -- OSM 선형이 끝 역 앞에서 끊겼을 때 본선 첫·끝 역(자체 좌표)까지 직선으로 잇는다(표시만, 5 m~2 km, 0025)
   note text
 );
 ```
@@ -927,6 +928,15 @@ CREATE TABLE app_setting (key text PRIMARY KEY, value jsonb NOT NULL, updated_at
 5. 역 위치는 현재 지도와 같은 점: 근사 좌표 역(`coord_basis` 있음)은 `mv_map_station` 의 노선 선형 스냅 점(저장 안 함, OSM 표기, 0022).
 6. 여객 미취급(화물 전용) 운영 노선도 넣는다(`map_at_lines.passenger = false`, 화면은 회색 가는 선 — 현재 → 미래 전환 때 "폐선" 오해 방지, Q115 A, 0021).
 7. 포함 범위 필터(Q88): 기본은 **개통 예정(기대 일정)이 있는 계획** + 공사 중 노선. 단계 필터(기본계획 이상 / 예비타당성 이상 / 전체)로 좁히거나 넓힌다. 휴면·폐기 제외.
+
+### 6-2. 운행 계통 선형 `mv_service_geometry` (FR-WEB-029, 0026)
+
+운행 계통은 선형을 갖지 않는다(물리 노선 ≠ 운행 계통). 지도 강조용으로 노선 선형에서 잘라 파생한다(물리화 뷰, `refresh_derived`).
+
+1. 계통 노선(`service_line`)마다 정차 패턴(모든 패턴 합)에 들어간 노선별 역을 **노선 순서**(`seq`, 같은 `branch` 끼리)로 정렬해 이웃한 두 역을 잇는다(패턴 순서가 아닌 노선 순서 — 분기 계통도 맞게).
+2. 두 역(점 = `mv_map_station`)이 같은 선형 조각 위(300 m 안)면 그 사이를 자르고(`mv_service_segment`), 다른 조각이면 두 조각을 가까운 끝까지 이어 붙인다. 조각이 없으면 두 역 근처 통로(역 사이 거리 25%, 최소 1 km) 안의 노선 선형, 그것도 없으면 직선(`approximate`, 흐리게).
+3. 정차역이 하나도 없는 계통 노선(운행 예정 연장 — 1호선 연장 등)은 노선 선형 전체를 노선 상태(공사 중 등)로.
+4. 공개 API `GET /v1/public/map/services/{id}.geojson` — 계통·상태·approximate 별 MultiLineString. OSM 유래라 ODbL 표기.
 
 ## 7. 검색
 

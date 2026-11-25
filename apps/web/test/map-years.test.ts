@@ -77,6 +77,8 @@ describe('단계 필터·URL', () => {
   });
   it('해시 #line= #station= #plan=', () => {
     expect(parseHash('#plan=plan-gtx-c')).toEqual({ plan: 'plan-gtx-c' });
+    expect(parseHash('#service=svc-sudogwon-1')).toEqual({ service: 'svc-sudogwon-1' });
+    expect(hashString({ service: 'svc-sudogwon-1' })).toBe('service=svc-sudogwon-1');
     expect(parseHash('#line=line-seoul-2&station=stn-x&foo=1')).toEqual({ line: 'line-seoul-2', station: 'stn-x' });
     expect(parseHash('')).toEqual({});
     expect(hashString({ station: 'stn-x', line: 'line-a' })).toBe('line=line-a&station=stn-x');

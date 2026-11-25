@@ -1,7 +1,8 @@
 'use client';
 /**
  * 지도·미래 지도(docs/06 3절 FR-WEB-020~028, 4-1절 시안): 왼쪽 패널(좁은 화면은 아래 시트) + 지도 + 지도 아래 연도 띠 + 계획 정보 창.
- * - 현재/미래 전환, 연도(올해 ~ 가장 늦은 개통 예정 + "목표 미정"), URL `?at=2030|future&stage=`, 해시 `#line= #station= #plan=`
+ * - 현재/미래 전환, 연도(올해 ~ 가장 늦은 개통 예정 + "목표 미정"), URL `?at=2030|future&stage=`, 해시 `#line= #station= #plan= #service=`
+ * - 운행 계통(FR-WEB-029): 패널에서 고르거나 노선 정보 창의 "지나는 운행 계통"에서 고르면 계통이 다니는 구간 전체를 강조
  * - ←/→ 키·‹ › 단추·연도 막대로 연도 이동(끌기 대체 수단)
  * - 데이터는 web Route Handler(/api/map/*)만 부른다(FR-WEB-002). 연도·단계별 응답을 메모리에 둔다(연도 전환 < 300ms)
  * - 지도 아래(패널) 목록: 선택 연도에 생기는·사라지는 노선·역(지도 대체 정보, FR-WEB-026)
@@ -47,6 +48,20 @@ const MapCanvas = dynamic(() => import('./map-canvas'), {
   ssr: false,
   loading: () => <div className="fmap-canvas fmap-loading">지도를 불러오는 중…</div>,
 });
+
+/** 지도 "운행 계통" 고르기용(서버가 공개 API 목록에서 줄여 넘김) */
+export interface MapService {
+  id: string;
+  name_ko: string;
+  kind: string;
+  color: string | null;
+  status: string;
+  line_ids: string[];
+}
+
+/** 고르기 목록 묶음 순서 */
+const SERVICE_KIND_ORDER = ['wide_area', 'metro', 'high_speed', 'intercity', 'tourist'];
+const serviceKindLabel = (k: string) => (isCode('serviceKind', k) ? codeLabel('serviceKind', k) : k);
 
 export interface TimelineData {
   stage_min: string;
@@ -101,12 +116,14 @@ export function FutureMap({
   initialAt,
   initialStage,
   timeline: initialTimeline,
+  services = [],
   vworldKey,
   thunderforestKey,
 }: {
   initialAt: string | null;
   initialStage: StageKey;
   timeline: TimelineData;
+  services?: MapService[];
   vworldKey: string | null;
   /** OSM 교통 지도(Thunderforest) 타일 키 — 서버 환경 변수 THUNDERFOREST_API_KEY */
   thunderforestKey: string | null;
@@ -132,6 +149,8 @@ export function FutureMap({
   const [error, setError] = useState<string | null>(null);
   const [picks, setPicks] = useState<Pick[]>([]);
   const [plan, setPlan] = useState<PlanSummary | null | 'loading'>(null);
+  // 운행 계통 선형(#service=)
+  const [serviceFc, setServiceFc] = useState<FC | null | 'loading'>(null);
   const [view, setView] = useState<MapView & { seq: number }>({ ...VIEWS.capital, seq: 0 });
   // 아래 시트(좁은 화면)는 접고 시작한다 — 처음 값은 CSS 가 정하게 두어(sheet-open 없음) 그린 뒤 접히며 생기는 밀림(CLS)이 없다
   const [sheet, setSheet] = useState(false);
@@ -235,6 +254,37 @@ export function FutureMap({
     };
   }, [hash.plan]);
 
+  // 운행 계통 선형(#service=)
+  useEffect(() => {
+    if (!hash.service) {
+      setServiceFc(null);
+      return;
+    }
+    setServiceFc('loading');
+    let alive = true;
+    getJson<FC | null>(`/api/map/service/${encodeURIComponent(hash.service)}/`)
+      .then((fc) => alive && setServiceFc(fc))
+      .catch(() => alive && setServiceFc(null));
+    return () => {
+      alive = false;
+    };
+  }, [hash.service]);
+  const serviceGroups = useMemo(() => {
+    const by = new Map<string, MapService[]>();
+    for (const s of services) by.set(s.kind, [...(by.get(s.kind) ?? []), s]);
+    const kinds = [...by.keys()].sort(
+      (a, b) => (SERVICE_KIND_ORDER.indexOf(a) + 1 || 99) - (SERVICE_KIND_ORDER.indexOf(b) + 1 || 99),
+    );
+    return kinds.map((k) => ({
+      kind: k,
+      items: by
+        .get(k)!
+        .slice()
+        .sort((a, b) => a.name_ko.localeCompare(b.name_ko, 'ko')),
+    }));
+  }, [services]);
+  const selService = hash.service ? services.find((s) => s.id === hash.service) : undefined;
+
   const go = useCallback(
     (next: MapAt) => {
       if (next.mode === 'year') lastFutureYear.current = next.year;
@@ -336,6 +386,35 @@ export function FutureMap({
               ))}
             </div>
           </section>
+
+          {services.length ? (
+            <section className="fp-sec">
+              <h2 className="fp-h">
+                <label htmlFor="fmap-service">운행 계통</label>
+              </h2>
+              <select
+                id="fmap-service"
+                className="fp-select"
+                value={hash.service ?? ''}
+                onChange={(e) => showOnMap(e.target.value ? { service: e.target.value } : {})}
+              >
+                <option value="">고르지 않음</option>
+                {serviceGroups.map((g) => (
+                  <optgroup key={g.kind} label={serviceKindLabel(g.kind)}>
+                    {g.items.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name_ko}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+              <p className="fp-hint">
+                고른 계통이 다니는 구간 전체를 강조합니다(여러 노선에 걸친 구간 포함). 노선을 누르면 그 노선을 지나는
+                계통도 고를 수 있습니다.
+              </p>
+            </section>
+          ) : null}
 
           <section className="fp-sec">
             <h2 className="fp-h">
@@ -483,6 +562,7 @@ export function FutureMap({
         <MapCanvas
           lines={data?.lines ?? null}
           stations={data?.stations ?? null}
+          service={serviceFc === 'loading' ? null : serviceFc}
           highlight={hash}
           follow={follow}
           vworldKey={vworldKey}
@@ -497,6 +577,9 @@ export function FutureMap({
           planLine={selPlanLine}
           line={selLine}
           station={selStation}
+          service={selService}
+          serviceFc={serviceFc}
+          services={services}
           hash={hash}
           atYear={at.mode === 'year' ? at.year : null}
           onChoose={(h) => {
@@ -635,6 +718,9 @@ function InfoCard({
   planLine,
   line,
   station,
+  service,
+  serviceFc,
+  services,
   hash,
   atYear,
   onChoose,
@@ -645,6 +731,9 @@ function InfoCard({
   planLine: Record<string, unknown> | undefined;
   line: Record<string, unknown> | undefined;
   station: Record<string, unknown> | undefined;
+  service: MapService | undefined;
+  serviceFc: FC | null | 'loading';
+  services: MapService[];
   hash: MapHash;
   atYear: number | null;
   onChoose: (h: MapHash) => void;
@@ -683,9 +772,39 @@ function InfoCard({
         </ul>
       </section>
     );
-  if (!hash.plan && !hash.line && !hash.station) return null;
+  if (!hash.plan && !hash.line && !hash.station && !hash.service) return null;
   let body: React.ReactNode = null;
-  if (hash.plan) {
+  if (hash.service) {
+    const planned =
+      serviceFc && serviceFc !== 'loading' && serviceFc.features.some((f) => f.properties.status !== 'operating');
+    body = (
+      <>
+        <p className="eyebrow">운행 계통</p>
+        <h2 className="info-title">
+          <i className="dot" style={{ background: service?.color || '#F5B700' }} aria-hidden="true" />{' '}
+          {service?.name_ko ?? hash.service}
+        </h2>
+        {service ? <p className="fp-hint">{serviceKindLabel(service.kind)}</p> : null}
+        {serviceFc === 'loading' ? (
+          <p className="fp-hint">운행 구간을 불러오는 중…</p>
+        ) : !serviceFc || serviceFc.features.length === 0 ? (
+          <p className="fp-hint">지도에 그릴 운행 구간이 없습니다.</p>
+        ) : (
+          <p className="fp-hint">
+            실선 = 지금 정차하며 다니는 구간{planned ? ' · 점선 = 운행 예정 노선(공사 중·계획)' : ''}. 선형은 노선
+            선형에서 잘라 낸 것입니다.
+          </p>
+        )}
+        <a
+          className="btn"
+          href={`/services/${encodeURIComponent(hash.service)}/`}
+          style={{ width: '100%', justifyContent: 'center' }}
+        >
+          운행 계통 상세 보기
+        </a>
+      </>
+    );
+  } else if (hash.plan) {
     if (plan === 'loading') body = <p className="fp-hint">계획 정보를 불러오는 중…</p>;
     else if (!plan) body = <p className="fp-hint">계획 정보를 찾지 못했습니다.</p>;
     else {
@@ -764,6 +883,7 @@ function InfoCard({
         ) : (
           <p className="fp-hint">이 보기에는 선이 없습니다.</p>
         )}
+        <LineServices lineId={hash.line} services={services} onChoose={onChoose} />
         <a
           className="btn"
           href={`/lines/${encodeURIComponent(hash.line)}/`}
@@ -806,6 +926,35 @@ function InfoCard({
       </div>
       {body}
     </section>
+  );
+}
+
+/** 노선 정보 창: 이 노선을 지나는 운행 계통 — 누르면 계통 전체 구간 강조 */
+function LineServices({
+  lineId,
+  services,
+  onChoose,
+}: {
+  lineId: string;
+  services: MapService[];
+  onChoose: (h: MapHash) => void;
+}) {
+  const list = services.filter((s) => s.line_ids.includes(lineId));
+  if (!list.length) return null;
+  return (
+    <>
+      <h3 className="fp-sub">지나는 운행 계통 {list.length}</h3>
+      <ul className="fp-list">
+        {list.map((s) => (
+          <li key={s.id}>
+            <i style={{ background: s.color || '#F5B700' }} aria-hidden="true" />
+            <button type="button" className="linkish" onClick={() => onChoose({ service: s.id })}>
+              {s.name_ko}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </>
   );
 }
 

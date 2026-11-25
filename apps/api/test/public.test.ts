@@ -6,6 +6,7 @@ import {
   publicLineListSchema,
   publicMapLinesSchema,
   publicMapPlansSchema,
+  publicMapServiceSchema,
   publicMapStationsSchema,
   publicMapTimelineSchema,
   publicPlanDetailSchema,
@@ -332,6 +333,14 @@ describe('지도(6.5)', () => {
     expect((await get('/v1/public/map/lines.geojson?at=abc')).statusCode).toBe(422);
     const r = await get('/v1/public/map/lines.geojson?at=2030');
     expect(r.headers['content-type']).toContain('application/geo+json');
+  });
+
+  it('운행 계통 선형: 계통마다 FeatureCollection, 없는 계통은 404', async () => {
+    await t.fx.client.query('SELECT refresh_derived()');
+    const svc = await ok('/v1/public/map/services/svc-fx-one.geojson', publicMapServiceSchema);
+    expect(svc.service_id).toBe('svc-fx-one');
+    for (const f of svc.features) expect(f.properties.service_id).toBe('svc-fx-one');
+    expect((await get('/v1/public/map/services/svc-none.geojson')).statusCode).toBe(404);
   });
 });
 

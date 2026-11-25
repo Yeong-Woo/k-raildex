@@ -5,7 +5,7 @@
  */
 import type { Metadata } from 'next';
 import { FutureMap } from '@/components/map/future-map';
-import { getMapTimeline } from '@/lib/data';
+import { getMapTimeline, getServices } from '@/lib/data';
 import { parseStageKey, STAGE_MIN } from '@/lib/map-years';
 import { pageMeta } from '@/lib/site';
 import { firstParam } from '@/lib/urls';
@@ -21,7 +21,18 @@ type SP = Promise<Record<string, string | string[] | undefined>>;
 export default async function MapPage({ searchParams }: { searchParams: SP }) {
   const sp = await searchParams;
   const stage = parseStageKey(firstParam(sp.stage));
-  const timeline = await getMapTimeline(STAGE_MIN[stage]);
+  const [timeline, allServices] = await Promise.all([getMapTimeline(STAGE_MIN[stage]), getServices()]);
+  // 지도 "운행 계통" 고르기(FR-WEB-029): 폐지 계통 제외, 고르기·노선 정보 창에 필요한 값만
+  const services = allServices
+    .filter((s) => s.status !== 'closed')
+    .map((s) => ({
+      id: s.id,
+      name_ko: s.name_ko,
+      kind: s.kind,
+      color: s.color,
+      status: s.status,
+      line_ids: s.line_ids,
+    }));
   const at = firstParam(sp.at) ?? null;
   return (
     <>
@@ -30,6 +41,7 @@ export default async function MapPage({ searchParams }: { searchParams: SP }) {
         initialAt={at}
         initialStage={stage}
         timeline={timeline}
+        services={services}
         vworldKey={process.env.VWORLD_API_KEY?.trim() || null}
         thunderforestKey={process.env.THUNDERFOREST_API_KEY?.trim() || null}
       />

@@ -389,6 +389,12 @@ export function buildOpenApi(): Json {
       ['at', 'stage_min', 'include_undated'],
     ],
     ['/v1/public/map/timeline', '연도 슬라이더(연도별 개통 예정 계획)', 'publicMapTimelineSchema', ['stage_min']],
+    [
+      '/v1/public/map/services/{id}.geojson',
+      '운행 계통 선형(정차 구간 + 운행 예정 노선, ODbL)',
+      'publicMapServiceSchema',
+      [],
+    ],
     ['/v1/public/documents/{id}', '공개 원문 다운로드(publishable·공개 라이선스, 아니면 404)', null, ['disposition']],
     ['/v1/public/documents/{id}/info', '공개 원문 정보', 'publicDocumentInfoSchema', []],
     [

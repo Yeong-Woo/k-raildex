@@ -122,6 +122,7 @@ export const lineOsmMap = pgTable('line_osm_map', {
     .array()
     .notNull()
     .default(sql`'{}'`),
+  connectTerminals: boolean('connect_terminals').notNull().default(false),
   note: text('note'),
 });
 

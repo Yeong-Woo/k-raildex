@@ -142,3 +142,25 @@ export async function publicMapTimeline(db: Queryable, stageMin: Code<'planStage
     undated_plans: undated,
   };
 }
+
+/** 운행 계통 선형(mv_service_geometry, docs/03-data-model.md 6-2절). 없는 계통이면 null */
+export async function publicMapService(db: Queryable, id: string) {
+  const svc = await db.query<{ id: string }>(`SELECT id FROM service WHERE id = $1 AND deleted_at IS NULL`, [id]);
+  if (!svc.rows[0]) return null;
+  const { rows } = await db.query<FRow>(
+    `SELECT g.service_id || ':' || g.status || CASE WHEN g.approximate THEN ':approx' ELSE '' END AS id,
+            ST_AsGeoJSON(g.geom, 6)::json AS geometry,
+            json_build_object('service_id', s.id, 'name_ko', s.name_ko, 'kind', s.kind, 'color', s.color,
+              'status', g.status, 'approximate', g.approximate) AS properties
+       FROM mv_service_geometry g JOIN service s ON s.id = g.service_id
+      WHERE g.service_id = $1
+      ORDER BY g.status <> 'operating', g.approximate`,
+    [id],
+  );
+  return {
+    type: 'FeatureCollection' as const,
+    service_id: id,
+    ...(rows.length ? { attribution: OSM_ATTRIBUTION } : {}),
+    features: collect(rows),
+  };
+}

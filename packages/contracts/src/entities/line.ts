@@ -42,6 +42,8 @@ export const lineOsmMapSchema = z
     share_with: z.array(idSchema('line')).default([]),
     /** relation·이름으로 잡히지 않는 개별 way(OSM way id) */
     way_ids: z.array(z.number().int().positive()).default([]),
+    /** OSM 선형이 끝 역 앞에서 끊겼을 때 첫·끝 역(자체 좌표)까지 직선으로 잇는다(표시만, 0025) */
+    connect_terminals: z.boolean().default(false),
     note: optText(),
   })
   .strict();

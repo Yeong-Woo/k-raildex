@@ -6,6 +6,7 @@
  *   개략(schematic) 선형은 가는 점선 + 흐리게(FR-WEB-024). 색 없는 계획은 선 위에 이름 라벨(FR-WEB-023)
  * - 글자: style glyphs 없이 로컬 글꼴(자가 호스팅 Pretendard)로 그린다 — 외부 글꼴 서버 없음
  * - 강조: #line= #station= #plan= (부모가 넘긴 highlight)
+ * - 운행 계통(#service=, FR-WEB-029): 계통 선형(정차 구간 실선 · 운행 예정 노선 점선)을 계통 색으로 위에 그리고 나머지 선은 흐리게
  */
 import { useEffect, useRef, useState } from 'react';
 import {
@@ -123,7 +124,7 @@ function lineLayers(): LayerSpecification[] {
         13,
         ['case', isFreightExpression(), FREIGHT_LINE.width * 1.6, isPlan, s.width * 1.6, 4.5],
       ],
-      'line-opacity': ['case', isSchematic, 0.75, 0.95],
+      'line-opacity': LINE_OPACITY,
     };
     if (s.dasharray) paint['line-dasharray'] = s.dasharray;
     layers.push({
@@ -200,6 +201,53 @@ function stationLayers(): LayerSpecification[] {
   ];
 }
 
+const SERVICE_FALLBACK_COLOR = '#F5B700';
+const SERVICE_COLOR = [
+  'case',
+  ['!=', ['coalesce', ['get', 'color'], ''], ''],
+  ['get', 'color'],
+  SERVICE_FALLBACK_COLOR,
+];
+const isServiceRun = ['==', ['get', 'status'], 'operating'];
+
+/** 운행 계통 강조 층(노선 위, 역 아래) */
+function serviceLayers(): LayerSpecification[] {
+  const width = (k: number) => ['interpolate', ['linear'], ['zoom'], 6, 2.6 * k, 9, 4 * k, 13, 7 * k];
+  return [
+    {
+      id: 'svc-casing',
+      type: 'line',
+      source: 'service',
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': '#FFFFFF', 'line-width': width(1.9), 'line-opacity': 0.9 },
+    },
+    {
+      id: 'svc-line',
+      type: 'line',
+      source: 'service',
+      filter: isServiceRun,
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: {
+        'line-color': SERVICE_COLOR,
+        'line-width': width(1.15),
+        // 선형이 없어 역 사이를 직선으로 이은 구간은 흐리게
+        'line-opacity': ['case', ['==', ['get', 'approximate'], true], 0.55, 1],
+      },
+    },
+    {
+      id: 'svc-line-planned',
+      type: 'line',
+      source: 'service',
+      filter: ['!', isServiceRun],
+      layout: { 'line-cap': 'butt', 'line-join': 'round' },
+      paint: { 'line-color': SERVICE_COLOR, 'line-width': width(1.15), 'line-dasharray': [1.6, 1.1] },
+    },
+  ] as unknown as LayerSpecification[];
+}
+
+const LINE_OPACITY = ['case', isSchematic, 0.75, 0.95];
+const LINE_OPACITY_DIM = ['case', isSchematic, 0.2, 0.28];
+
 const PICK_LAYERS = ['station', 'line-solid', 'line-dashed_bold', 'line-dashed_thin'];
 
 function boundsOf(features: FC['features']): [[number, number], [number, number]] | null {
@@ -259,6 +307,7 @@ const BASEMAP_DIM = { 'raster-saturation': -0.75, 'raster-contrast': -0.15, 'ras
 export default function MapCanvas({
   lines,
   stations,
+  service = null,
   highlight,
   follow = true,
   vworldKey,
@@ -270,6 +319,8 @@ export default function MapCanvas({
 }: {
   lines: FC | null;
   stations: FC | null;
+  /** 강조할 운행 계통 선형(#service=) */
+  service?: FC | null;
   highlight: MapHash;
   /** false = 강조만 하고 지도는 그대로(지도 클릭으로 고른 경우) */
   follow?: boolean;
@@ -357,7 +408,9 @@ export default function MapCanvas({
       }
       m.addSource('lines', { type: 'geojson', data: EMPTY as never, attribution: ODBL_ATTR });
       m.addSource('stations', { type: 'geojson', data: EMPTY as never });
+      m.addSource('service', { type: 'geojson', data: EMPTY as never });
       for (const l of lineLayers()) m.addLayer(l);
+      for (const l of serviceLayers()) m.addLayer(l);
       for (const l of stationLayers()) m.addLayer(l);
       readyRef.current = true;
       mapRef.current = m;
@@ -420,6 +473,33 @@ export default function MapCanvas({
       return () => clearInterval(t);
     }
   }, [lines, stations]);
+
+  // 운행 계통 강조: 계통 선형을 위에, 나머지 선은 흐리게. 패널에서 고른 것만 그 범위로 이동
+  const fittedService = useRef<string>('');
+  useEffect(() => {
+    const run = () => {
+      const m = mapRef.current;
+      if (!m) return false;
+      const fc = highlight.service ? (service ?? EMPTY) : EMPTY;
+      (m.getSource('service') as GeoJSONSource | undefined)?.setData(fc as never);
+      const dim = !!highlight.service && fc.features.length > 0;
+      for (const style of Object.keys(LINE_STYLES))
+        if (m.getLayer(`line-${style}`))
+          m.setPaintProperty(`line-${style}`, 'line-opacity', (dim ? LINE_OPACITY_DIM : LINE_OPACITY) as never);
+      if (!highlight.service) fittedService.current = '';
+      else if (dim && fittedService.current !== highlight.service) {
+        fittedService.current = highlight.service;
+        const b = follow ? boundsOf(fc.features) : null;
+        if (b) m.fitBounds(b, { padding: { top: 60, bottom: 140, left: 60, right: 60 }, maxZoom: 12, duration: 0 });
+      }
+      return true;
+    };
+    if (run()) return;
+    const t = setInterval(() => {
+      if (run()) clearInterval(t);
+    }, 80);
+    return () => clearInterval(t);
+  }, [highlight.service, service, follow]);
 
   // 강조 + 처음 한 번 그 범위로 이동(지도 클릭으로 고른 것은 이동하지 않음)
   useEffect(() => {

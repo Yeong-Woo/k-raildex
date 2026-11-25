@@ -117,14 +117,33 @@ test('미래 지도: 캔버스, 연도 바꾸면 URL ?at= 이 바뀐다', async 
   await expect(page.getByText('개략 선형은 실제 위치와 다를 수 있습니다', { exact: false })).toBeVisible();
 });
 
+test('운행 계통: 패널에서 고르면 계통 구간 강조(#service=), 노선 정보 창에 지나는 계통', async ({ page }) => {
+  await page.goto('/map/#service=svc-sudogwon-1');
+  await expect(page.locator('[data-testid="future-map"] canvas')).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId('future-selected')).toContainText('수도권 전철 1호선', { timeout: 30_000 });
+  await page.waitForFunction(
+    () => {
+      const m = (window as unknown as { __kraildexMap?: { querySourceFeatures(id: string): unknown[] } }).__kraildexMap;
+      return !!m && m.querySourceFeatures('service').length > 0;
+    },
+    null,
+    { timeout: 60_000 },
+  );
+  await expect(page.getByLabel('운행 계통')).toHaveValue('svc-sudogwon-1');
+  await page.getByLabel('운행 계통').selectOption('');
+  await expect(page).not.toHaveURL(/service=/);
+  await page.goto('/map/#line=line-gyeongin');
+  await expect(page.getByTestId('future-selected')).toContainText('지나는 운행 계통', { timeout: 30_000 });
+  await page.getByTestId('future-selected').getByRole('button', { name: '수도권 전철 1호선' }).click();
+  await expect(page).toHaveURL(/#service=svc-sudogwon-1/);
+});
+
 test('지도에서 노선을 클릭하면 강조만 하고 확대·위치는 그대로, #line= 링크는 그 범위로 이동', async ({ page }) => {
   type M = {
     getZoom(): number;
     getCenter(): { lng: number; lat: number };
     project(c: [number, number]): { x: number; y: number };
-    queryRenderedFeatures(
-      o?: unknown,
-    ): {
+    queryRenderedFeatures(o?: unknown): {
       layer: { id: string };
       properties: Record<string, unknown>;
       geometry: { type: string; coordinates: unknown };
