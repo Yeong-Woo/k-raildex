@@ -119,7 +119,7 @@ export default async function LinePage({ params }: { params: Params }) {
             {l.line_role ? <span className="badge outline">{codeLabel('lineRole', l.line_role)}</span> : null}
             {!l.passenger_service ? <span className="badge outline">여객 미취급</span> : null}
             {l.region_names.length ? (
-              <span className="badge outline">{l.region_names.map((r) => r.name_ko).join(' · ')}</span>
+              <span className="badge outline badge-long">{l.region_names.map((r) => r.name_ko).join(' · ')}</span>
             ) : null}
             <ReviewBadge status={l.review_status} />
           </>

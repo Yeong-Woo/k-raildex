@@ -100,7 +100,12 @@ export async function StationList({
         ) : null}
         <FilterRow label="개통">
           <LinkTabs items={openedTabs} current={opened} label="개통 여부" small />
-          <form method="get" action={base} role="search" style={{ display: 'flex', gap: 6, marginLeft: 'auto' }}>
+          <form
+            method="get"
+            action={base}
+            role="search"
+            style={{ display: 'flex', gap: 6, marginLeft: 'auto', flex: '0 1 22rem', maxWidth: '100%' }}
+          >
             {cls !== 'all' ? <input type="hidden" name="class" value={cls} /> : null}
             {area !== defaultArea ? <input type="hidden" name="area" value={area} /> : null}
             {opened !== 'opened' ? <input type="hidden" name="opened" value={opened} /> : null}
@@ -113,7 +118,7 @@ export async function StationList({
               defaultValue={q}
               placeholder="이름·역번호로 좁히기"
               className="search-btn"
-              style={{ minWidth: '12rem', background: 'var(--kr-surface)', color: 'var(--kr-fg)' }}
+              style={{ flex: 1, minWidth: 0, background: 'var(--kr-surface)', color: 'var(--kr-fg)' }}
             />
             <button className="btn" type="submit">
               좁히기

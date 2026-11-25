@@ -305,6 +305,16 @@ kbd {
   color: var(--kr-good);
   border: 1px solid color-mix(in oklab, var(--kr-good) 45%, transparent);
 }
+.badge {
+  max-width: 100%;
+}
+/* 긴 값(여러 시·도 등)은 줄을 바꾼다 */
+.badge.badge-long {
+  white-space: normal;
+  line-height: 1.4;
+  padding-block: 3px;
+  border-radius: var(--kr-radius-md);
+}
 .badge.outline {
   background: transparent;
   border-color: var(--kr-border);
@@ -659,7 +669,8 @@ details.more > .body {
 
 @media (max-width: 1023px) {
   .two-col {
-    grid-template-columns: 1fr;
+    /* minmax(0, …): 넓은 표(정차 패턴 비교 등)가 칸을 늘리지 않고 .table-wrap 안에서 가로로 넘기게 */
+    grid-template-columns: minmax(0, 1fr);
   }
   .aside {
     position: static;
@@ -1821,7 +1832,11 @@ table.matrix th.pat {
   flex-wrap: wrap;
 }
 .prog-group .tabs {
-  flex: 1;
+  flex: 1 1 0;
+  min-width: 0;
+  /* 차수 묶음(국가철도망·시·도 도시철도망…)은 좁은 화면에서도 줄을 바꾼다(가로 한 줄로 늘어지지 않게) */
+  flex-wrap: wrap;
+  overflow-x: visible;
 }
 
 /* ================================================================ 지도·미래 지도(WP 7.3, 시안 future-map) */
@@ -2003,6 +2018,8 @@ table.matrix th.pat {
   position: relative;
   min-width: 0;
   min-height: 0;
+  /* 연도 띠 막대가 좁은 화면에서 페이지를 가로로 늘리지 않게(띠 안에서만 넘김) */
+  overflow: clip;
 }
 .fmap-canvas {
   position: absolute;

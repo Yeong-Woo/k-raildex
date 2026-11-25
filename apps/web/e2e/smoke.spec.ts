@@ -251,3 +251,24 @@ test('사이트맵·robots·Atom 200, 옛 id 는 301', async ({ request }) => {
   expect(r.status()).toBe(301);
   expect(r.headers()['location']).toContain('program=pp-national-rail-4');
 });
+
+test('좁은 화면(360px)에서 가로 스크롤이 생기지 않는다', async ({ browser }) => {
+  const ctx = await browser.newContext({ viewport: { width: 360, height: 800 }, isMobile: true, hasTouch: true });
+  const page = await ctx.newPage();
+  for (const path of [
+    '/plans/',
+    '/plans/?tab=metro',
+    '/lines/line-gyeongbu/',
+    '/services/svc-sudogwon-1/',
+    '/stations/',
+    '/map/',
+  ]) {
+    await page.goto(path, { waitUntil: 'networkidle' });
+    const [sw, w] = await page.evaluate(() => [
+      document.documentElement.scrollWidth,
+      document.documentElement.clientWidth,
+    ]);
+    expect(sw, path).toBeLessThanOrEqual(w + 1);
+  }
+  await ctx.close();
+});
