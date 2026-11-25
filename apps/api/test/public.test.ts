@@ -348,7 +348,7 @@ describe('캐시·인증·원문(6.6)', () => {
   it('ETag = 데이터 판: If-None-Match 이면 304, 쓰기 뒤에는 새 판', async () => {
     const r1 = await get('/v1/public/lines/line-fx-one');
     const etag = r1.headers.etag as string;
-    expect(etag).toMatch(/^W\/"v\d+-\d{4}-\d{2}-\d{2}"$/);
+    expect(etag).toMatch(/^W\/"v\d+-s\d+o\d+-\d{4}-\d{2}-\d{2}"$/);
     expect(r1.headers['x-data-version']).toBeDefined();
     expect(r1.headers['cache-control']).toContain('max-age=30');
     const r2 = await get('/v1/public/lines/line-fx-one', { 'if-none-match': etag });
@@ -358,6 +358,16 @@ describe('캐시·인증·원문(6.6)', () => {
     expect(r3.statusCode).toBe(200);
     expect(r3.headers.etag).not.toBe(etag);
     expect(r3.json().description).toBe('설명 갱신');
+    // 데이터 판이 그대로여도 규칙(마이그레이션)이 바뀌면 옛 ETag 는 304 가 아니다
+    const r4 = await get('/v1/public/lines/line-fx-one');
+    await t.fx.client.query(`INSERT INTO schema_migration (name, sha256) VALUES ('9999_test_rule.sql', 'x')`);
+    try {
+      const r5 = await get('/v1/public/lines/line-fx-one', { 'if-none-match': r4.headers.etag as string });
+      expect(r5.statusCode).toBe(200);
+      expect(r5.headers.etag).not.toBe(r4.headers.etag);
+    } finally {
+      await t.fx.client.query(`DELETE FROM schema_migration WHERE name = '9999_test_rule.sql'`);
+    }
     // 검색(물리화 뷰)은 본문 해시 ETag
     const s1 = await get('/v1/public/search?q=103');
     expect(s1.headers.etag).toMatch(/^W\/"h[0-9a-f]+"$/);

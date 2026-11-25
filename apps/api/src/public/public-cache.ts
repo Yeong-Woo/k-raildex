@@ -1,6 +1,6 @@
 /**
  * 공개 API 응답 캐시·조건부 요청(docs/04-api.md 5절 "캐시").
- * - ETag = 데이터 판(data_version 최대값) + DB 날짜(파생 연표·지연 여부가 날짜에 따라 바뀐다). If-None-Match 가 같으면
+ * - ETag = 데이터 판(data_version 최대값) + 규칙 판(적용 마이그레이션 수·OSM 추출 판) + DB 날짜(파생 연표·지연 여부가 날짜에 따라 바뀐다). If-None-Match 가 같으면
  *   읽기 모델을 만들지 않고 304.
  * - 물리화 뷰(mv_search·mv_map_*)를 읽는 응답은 판이 오른 뒤 worker 가 갱신하기까지 몇 초 늦을 수 있어 본문 해시를 ETag 로
  *   쓰고 메모 수명을 짧게 둔다.
@@ -114,8 +114,9 @@ export class PublicCache {
     opts: ServeOptions = {},
   ): Promise<FastifyReply> {
     const kind = opts.kind ?? 'data';
-    const { version, today } = await dataVersion(this.dbs.db);
-    const dvTag = `W/"v${version}-${today}"`;
+    const { version, rules, today } = await dataVersion(this.dbs.db);
+    // 마이그레이션(지도·뷰 규칙)·OSM 추출만 바뀌어도 옛 응답이 304 로 남지 않게 rules 를 넣는다
+    const dvTag = `W/"v${version}-${rules}-${today}"`;
     const conditional = inm(req);
     void reply
       .header('x-data-version', String(version))
@@ -124,7 +125,7 @@ export class PublicCache {
     if (kind !== 'mv' && (conditional.includes(dvTag) || conditional.includes('*')))
       return reply.header('etag', dvTag).status(304).send();
 
-    const key = `${req.url}|${version}|${today}`;
+    const key = `${req.url}|${version}|${rules}|${today}`;
     let entry = this.memo.get(key);
     if (!entry) {
       const result = await fn(version);

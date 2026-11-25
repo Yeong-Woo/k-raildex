@@ -88,11 +88,19 @@ export const URL_PATH_SQL = (type: string, id: string): string => `CASE ${type}
   WHEN 'source' THEN '/sources/#' || ${id} WHEN 'event' THEN '/timeline/#' || ${id} END`;
 
 /** 현재 데이터 판(data_version 최대값)과 DB 기준 오늘 날짜 — 공개 응답 ETag 의 재료 */
-export async function dataVersion(db: Queryable): Promise<{ version: number; today: string }> {
-  const { rows } = await db.query<{ v: number; today: string }>(
-    `SELECT coalesce((SELECT max(version) FROM data_version), 0)::int AS v, current_date::text AS today`,
+/**
+ * 공개 응답 캐시 열쇠. version = 데이터 판, rules = 데이터 판이 오르지 않고도 응답을 바꾸는 것
+ * (적용한 마이그레이션 수 = 뷰·지도 규칙, OSM 추출 판 = 노선 선형). 둘 중 하나라도 바뀌면 ETag 가 바뀐다.
+ */
+export async function dataVersion(db: Queryable): Promise<{ version: number; rules: string; today: string }> {
+  const { rows } = await db.query<{ v: number; s: number; o: string; today: string }>(
+    `SELECT coalesce((SELECT max(version) FROM data_version), 0)::int AS v,
+            (SELECT count(*) FROM schema_migration)::int AS s,
+            coalesce((SELECT max(id) FROM osm.extract), 0)::text AS o,
+            current_date::text AS today`,
   );
-  return { version: rows[0]!.v, today: rows[0]!.today };
+  const r = rows[0]!;
+  return { version: r.v, rules: `s${r.s}o${r.o}`, today: r.today };
 }
 
 // ------------------------------------------------------------------ 없는 id 해석(FR-API-007)
