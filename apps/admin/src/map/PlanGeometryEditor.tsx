@@ -656,7 +656,7 @@ export function PlanGeometryEditor({
                 onChange={(v) => update((d) => ({ ...d, source_id: v }))}
               />
             </div>
-            <div className="grid grid-cols-[6rem_1fr] items-center gap-2">
+            <div className="grid grid-cols-[6rem_minmax(0,1fr)] items-center gap-2">
               <Label htmlFor="geom-accuracy">정확도(m)</Label>
               <Input
                 id="geom-accuracy"

@@ -176,7 +176,7 @@ function JobDrawer({ id, onClose }: { id: string; onClose: () => void }) {
           <Empty>{errorText(q.error)}</Empty>
         ) : j ? (
           <div className="flex flex-col gap-3">
-            <dl className="grid grid-cols-[7rem_1fr] gap-x-3 gap-y-1 text-xs">
+            <dl className="grid grid-cols-[7rem_minmax(0,1fr)] gap-x-3 gap-y-1 text-xs">
               <dt className="text-fg-muted">id</dt>
               <dd>
                 <code>{j.id}</code>

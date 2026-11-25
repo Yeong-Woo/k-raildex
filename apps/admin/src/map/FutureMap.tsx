@@ -292,7 +292,7 @@ function SelectedPanel({ p, onClose }: { p: LineProps; onClose: () => void }) {
           닫기
         </button>
       </div>
-      <dl className="mt-1 grid grid-cols-[4.5rem_1fr] gap-y-0.5 text-xs">
+      <dl className="mt-1 grid grid-cols-[4.5rem_minmax(0,1fr)] gap-y-0.5 text-xs">
         <dt className="text-fg-muted">단계</dt>
         <dd>{stageLabel(p.stage)}</dd>
         <dt className="text-fg-muted">개통 예정</dt>

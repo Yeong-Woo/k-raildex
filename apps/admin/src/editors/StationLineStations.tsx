@@ -101,7 +101,7 @@ function LineStationCard({ data }: { data: Obj }) {
           <ExternalLink className="size-3.5" />
         </Link>
       </div>
-      <dl className="grid grid-cols-[6rem_1fr] gap-y-0.5">
+      <dl className="grid grid-cols-[6rem_minmax(0,1fr)] gap-y-0.5">
         <dt className="text-fg-muted">노선별 이름</dt>
         <dd>{data.name_ko ? String(data.name_ko) : <span className="text-fg-muted">역 이름과 같음</span>}</dd>
         <dt className="text-fg-muted">순서</dt>

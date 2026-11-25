@@ -65,9 +65,11 @@ export function RefInput({
 
   if (value) {
     return (
-      <div className="flex h-9 items-center gap-2 rounded-md border border-border px-2 text-sm">
-        <span className="truncate">{label.data?.label ?? value}</span>
-        <span className="truncate text-xs text-fg-muted">{value}</span>
+      <div className="flex h-9 min-w-0 items-center gap-2 rounded-md border border-border px-2 text-sm">
+        <span className="min-w-0 truncate" title={label.data?.label ?? value}>
+          {label.data?.label ?? value}
+        </span>
+        <span className="min-w-0 shrink-[2] truncate text-xs text-fg-muted">{value}</span>
         {label.data?.deleted ? <Badge tone="danger">휴지통</Badge> : null}
         <Link
           to="/data/$type/$id"

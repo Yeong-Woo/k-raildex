@@ -61,7 +61,7 @@ export function ValidationPanel() {
           <Empty>아직 전체 검증 결과가 없습니다</Empty>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_22rem]" data-testid="validation-result">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]" data-testid="validation-result">
           <Card className="self-start">
             <CardHeader
               title={

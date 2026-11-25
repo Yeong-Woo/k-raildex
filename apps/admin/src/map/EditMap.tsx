@@ -240,7 +240,7 @@ export function EditMap() {
             </div>
             {station.isLoading ? <p className="mt-2 text-fg-muted">불러오는 중…</p> : null}
             {data ? (
-              <dl className="mt-2 grid grid-cols-[4.5rem_1fr] gap-y-0.5 text-xs">
+              <dl className="mt-2 grid grid-cols-[4.5rem_minmax(0,1fr)] gap-y-0.5 text-xs">
                 <dt className="text-fg-muted">좌표</dt>
                 <dd>{data.geom ? `${data.geom.lat}, ${data.geom.lng}` : '없음'}</dd>
                 <dt className="text-fg-muted">좌표 출처</dt>

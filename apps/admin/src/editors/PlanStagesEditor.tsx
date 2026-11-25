@@ -63,7 +63,7 @@ export function PlanStagesEditor({
           <h4 className="text-xs font-semibold text-fg-muted">단계 이력(지난 사실 · 날짜·출처 필수)</h4>
           {events.map((e, i) => (
             <div key={i} className="rounded-md border border-border p-2" data-testid="stage-event-row">
-              <div className="grid grid-cols-[1fr_7rem_8rem_auto] items-center gap-1.5">
+              <div className="grid grid-cols-[minmax(0,1fr)_7rem_8rem_auto] items-center gap-1.5">
                 <Select
                   className="h-8 text-xs"
                   aria-label="단계"
@@ -98,7 +98,7 @@ export function PlanStagesEditor({
                   <Trash2 className="size-3.5" />
                 </Button>
               </div>
-              <div className="mt-1.5 grid grid-cols-[1fr_1fr] gap-1.5">
+              <div className="mt-1.5 grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-1.5">
                 <RefInput
                   target="source"
                   value={e.source_id ?? null}
@@ -148,7 +148,7 @@ export function PlanStagesEditor({
           <h4 className="text-xs font-semibold text-fg-muted">기대 일정(앞으로의 예정 · 공식·보도 근거만, Q94)</h4>
           {milestones.map((m, i) => (
             <div key={i} className="rounded-md border border-border p-2" data-testid="milestone-row">
-              <div className="grid grid-cols-[1fr_8rem_6rem_auto] items-center gap-1.5">
+              <div className="grid grid-cols-[minmax(0,1fr)_8rem_6rem_auto] items-center gap-1.5">
                 <Select
                   className="h-8 text-xs"
                   aria-label="예정 단계"
@@ -189,7 +189,7 @@ export function PlanStagesEditor({
                   <Trash2 className="size-3.5" />
                 </Button>
               </div>
-              <div className="mt-1.5 grid grid-cols-[8rem_1fr] items-center gap-1.5">
+              <div className="mt-1.5 grid grid-cols-[8rem_minmax(0,1fr)] items-center gap-1.5">
                 <FuzzyCell
                   label="발표 시점"
                   className="h-9 px-1.5 text-xs"

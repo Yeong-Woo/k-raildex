@@ -270,7 +270,7 @@ export function OsmMappingCheck({
                 <ExternalLink className="size-3.5" />
               </Link>
             </div>
-            <dl className="mt-1 grid grid-cols-[6.5rem_1fr] gap-y-0.5 text-xs">
+            <dl className="mt-1 grid grid-cols-[6.5rem_minmax(0,1fr)] gap-y-0.5 text-xs">
               <dt className="text-fg-muted">배정 way</dt>
               <dd data-testid="osm-assigned-count">
                 {line.data.features.filter((f) => f.properties?.kind === 'osm_way').length}
@@ -374,7 +374,7 @@ export function OsmMappingCheck({
                 <X className="size-4" />
               </button>
             </div>
-            <dl className="grid grid-cols-[4.5rem_1fr] gap-y-0.5 text-xs">
+            <dl className="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-y-0.5 text-xs">
               <dt className="text-fg-muted">이름</dt>
               <dd>{pp.name ?? '-'}</dd>
               <dt className="text-fg-muted">ref</dt>

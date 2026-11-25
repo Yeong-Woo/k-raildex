@@ -239,7 +239,7 @@ export function External() {
           새 엔드포인트
         </Button>
       </div>
-      <div className="grid gap-3 lg:grid-cols-[18rem_1fr]">
+      <div className="grid gap-3 lg:grid-cols-[18rem_minmax(0,1fr)]">
         <div className="flex flex-col gap-3">
           <Card data-testid="external-catalog">
             <CardHeader title="카탈로그" />

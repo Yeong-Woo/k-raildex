@@ -108,11 +108,12 @@ function QualityCard() {
               key={r.id}
               to="/quality"
               search={{ rule: r.id }}
-              className="flex items-center gap-2 rounded-md border border-border p-2 text-sm hover:bg-muted"
+              className="flex items-start gap-2 rounded-md border border-border p-2 text-sm hover:bg-muted"
             >
-              <span className="min-w-0 flex-1 truncate" title={r.title}>
-                <code className="mr-1 text-xs text-fg-muted">{r.id}</code>
-                {r.title}
+              {/* id 는 한 줄, 제목은 두 줄까지(긴 X- id 가 제목을 다 가리지 않게) */}
+              <span className="min-w-0 flex-1" title={r.title}>
+                <code className="block truncate text-[11px] text-fg-muted">{r.id}</code>
+                <span className="line-clamp-2 leading-snug">{r.title}</span>
               </span>
               <Badge tone={r.count === 0 ? 'good' : 'warn'}>{r.count.toLocaleString()}</Badge>
             </Link>
