@@ -72,6 +72,10 @@ export const getAreas = cache(async () => (await apiGet('/areas', publicAreasSch
 
 export const getLines = cache(() => apiGetAll<LineItem>('/lines', publicLineListSchema));
 export const getStations = cache(() => apiGetAll<StationItem>('/stations', publicStationListSchema));
+/** 시설(신호장·차량기지 등) 포함 — 역 목록 "시설" 필터(?kind=with|only, Q130 A) */
+export const getStationsWithFacilities = cache(() =>
+  apiGetAll<StationItem>('/stations', publicStationListSchema, { include_facilities: true }),
+);
 export const getServices = cache(() => apiGetAll<ServiceItem>('/services', publicServiceListSchema));
 
 export const getLine = cache((id: string) =>
@@ -163,11 +167,13 @@ export const getTransferCenter = cache((id: string) =>
 
 export const getUpcoming = cache(() => apiGet('/upcoming', publicUpcomingSchema));
 export const getClosed = cache(() => apiGet('/closed', publicClosedSchema));
-export const getTimelineDecade = cache(async (decade: number) => {
-  const first = await apiGet('/timeline', publicTimelineSchema, { query: { decade, limit: 500, offset: 0 } });
+/** area = 권역 코드(기존 `?area=`, Q130 A) */
+export const getTimelineDecade = cache(async (decade: number, area?: string) => {
+  const a = area ? { area } : {};
+  const first = await apiGet('/timeline', publicTimelineSchema, { query: { decade, limit: 500, offset: 0, ...a } });
   const items = [...first.items];
   for (let offset = 500; items.length < first.total; offset += 500) {
-    const page = await apiGet('/timeline', publicTimelineSchema, { query: { decade, limit: 500, offset } });
+    const page = await apiGet('/timeline', publicTimelineSchema, { query: { decade, limit: 500, offset, ...a } });
     if (page.items.length === 0) break;
     items.push(...page.items);
   }

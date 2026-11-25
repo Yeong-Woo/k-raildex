@@ -35,7 +35,13 @@ const lineCommon = {
 };
 
 export const publicLineListItemSchema = z
-  .object({ ...lineCommon, station_count: z.number().int(), target_open: pubFuzzy })
+  .object({
+    ...lineCommon,
+    station_count: z.number().int(),
+    target_open: pubFuzzy,
+    /** 여객 취급 여부(false = 화물 전용 등, 노선 목록 "여객 미취급" 탭 — round-06 Q130 A) */
+    passenger: z.boolean(),
+  })
   .strict();
 export const publicLineListSchema = pubList(publicLineListItemSchema);
 export type PublicLineListItem = z.infer<typeof publicLineListItemSchema>;

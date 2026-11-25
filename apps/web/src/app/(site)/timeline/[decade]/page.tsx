@@ -1,10 +1,10 @@
 /** 연표 연대 페이지(`/timeline/2010s/`, 기존 Q87 B). 최신 연대는 `/timeline/` 이 맡는다 */
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { DecadeNav, TimelineBody } from '@/components/timeline';
+import { DecadeNav, TimelineAreaTabs, TimelineBody, TIMELINE_AREAS } from '@/components/timeline';
 import { getTimelineDecade, getTimelineDecades, getTimelineUndatedCount } from '@/lib/data';
 import { pageMeta } from '@/lib/site';
-import { firstParam, parseDecade, paths, withQuery } from '@/lib/urls';
+import { firstParam, parseDecade, paths, pickParam, withQuery } from '@/lib/urls';
 
 type Params = Promise<{ decade: string }>;
 type SP = Promise<Record<string, string | string[] | undefined>>;
@@ -27,8 +27,11 @@ export default async function DecadePage({ params, searchParams }: { params: Par
   if (d === null) notFound();
   const [decades, undated] = await Promise.all([getTimelineDecades(), getTimelineUndatedCount()]);
   if (!decades.some((x) => x.decade === d)) notFound();
-  const page = await getTimelineDecade(d);
+  const area = pickParam(sp.area, TIMELINE_AREAS, 'all');
+  const page = await getTimelineDecade(d, area === 'all' ? undefined : area);
   const type = firstParam(sp.type) ?? 'all';
+  const link = (change: Record<string, string>) =>
+    withQuery(paths.timelineDecade(d), { area, type }, change, { type: 'all', area: 'all' });
   return (
     <div className="container" style={{ paddingBottom: 'var(--kr-space-12)' }}>
       <div className="page-head">
@@ -39,11 +42,8 @@ export default async function DecadePage({ params, searchParams }: { params: Par
         </p>
         <DecadeNav decades={decades} current={d} undated={undated} />
       </div>
-      <TimelineBody
-        events={page.items}
-        type={type}
-        typeHref={(t) => withQuery(paths.timelineDecade(d), {}, { type: t }, { type: 'all' })}
-      />
+      <TimelineAreaTabs area={area} href={(a) => link({ area: a })} />
+      <TimelineBody events={page.items} type={type} typeHref={(t) => link({ type: t })} />
     </div>
   );
 }

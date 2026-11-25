@@ -1,9 +1,9 @@
 /** 연표(P2 `/timeline/`): 최신 10년. 지난 연대는 `/timeline/<연대>s/` */
 import type { Metadata } from 'next';
-import { DecadeNav, TimelineBody } from '@/components/timeline';
+import { DecadeNav, TimelineAreaTabs, TimelineBody, TIMELINE_AREAS } from '@/components/timeline';
 import { getTimelineDecade, getTimelineDecades, getTimelineUndatedCount } from '@/lib/data';
 import { pageMeta } from '@/lib/site';
-import { firstParam, paths, withQuery } from '@/lib/urls';
+import { firstParam, paths, pickParam, withQuery } from '@/lib/urls';
 
 export const metadata: Metadata = pageMeta(
   '연표',
@@ -17,8 +17,11 @@ export default async function TimelinePage({ searchParams }: { searchParams: SP 
   const sp = await searchParams;
   const [decades, undated] = await Promise.all([getTimelineDecades(), getTimelineUndatedCount()]);
   const latest = Math.max(...decades.map((d) => d.decade), new Date().getFullYear() - (new Date().getFullYear() % 10));
-  const page = await getTimelineDecade(latest);
+  const area = pickParam(sp.area, TIMELINE_AREAS, 'all');
+  const page = await getTimelineDecade(latest, area === 'all' ? undefined : area);
   const type = firstParam(sp.type) ?? 'all';
+  const link = (change: Record<string, string>) =>
+    withQuery(paths.timeline(), { area, type }, change, { type: 'all', area: 'all' });
   return (
     <div className="container" style={{ paddingBottom: 'var(--kr-space-12)' }}>
       <div className="page-head">
@@ -29,11 +32,8 @@ export default async function TimelinePage({ searchParams }: { searchParams: SP 
         </p>
         <DecadeNav decades={decades} current={latest} undated={undated} />
       </div>
-      <TimelineBody
-        events={page.items}
-        type={type}
-        typeHref={(t) => withQuery(paths.timeline(), {}, { type: t }, { type: 'all' })}
-      />
+      <TimelineAreaTabs area={area} href={(a) => link({ area: a })} />
+      <TimelineBody events={page.items} type={type} typeHref={(t) => link({ type: t })} />
     </div>
   );
 }

@@ -1,10 +1,9 @@
 /** 연표 "연도 미상"(`/timeline/unknown/`, Q117 A): 날짜를 모르는 기록. 기존 `?area=`(권역) 그대로 받는다 */
 import type { Metadata } from 'next';
-import { DecadeNav, TimelineBody } from '@/components/timeline';
+import { DecadeNav, TimelineAreaTabs, TimelineBody, TIMELINE_AREAS } from '@/components/timeline';
 import { getTimelineDecades, getTimelineUndated } from '@/lib/data';
 import { pageMeta } from '@/lib/site';
 import { firstParam, paths, pickParam, withQuery } from '@/lib/urls';
-import { codes } from '@k-raildex/contracts';
 
 export const metadata: Metadata = pageMeta(
   '연표 — 연도 미상',
@@ -16,7 +15,7 @@ type SP = Promise<Record<string, string | string[] | undefined>>;
 
 export default async function TimelineUnknownPage({ searchParams }: { searchParams: SP }) {
   const sp = await searchParams;
-  const area = pickParam(sp.area, ['all', ...codes.area.values] as const, 'all');
+  const area = pickParam(sp.area, TIMELINE_AREAS, 'all');
   const [decades, items] = await Promise.all([
     getTimelineDecades(),
     getTimelineUndated(area === 'all' ? undefined : area),
@@ -33,10 +32,14 @@ export default async function TimelineUnknownPage({ searchParams }: { searchPara
         </p>
         <DecadeNav decades={decades} current="unknown" undated={undated} />
       </div>
+      <TimelineAreaTabs
+        area={area}
+        href={(a) => withQuery(paths.timelineUnknown(), { area, type }, { area: a }, { type: 'all', area: 'all' })}
+      />
       <TimelineBody
         events={items}
         type={type}
-        typeHref={(t) => withQuery(paths.timelineUnknown(), { area }, { type: t }, { type: 'all', area: 'all' })}
+        typeHref={(t) => withQuery(paths.timelineUnknown(), { area, type }, { type: t }, { type: 'all', area: 'all' })}
       />
     </div>
   );

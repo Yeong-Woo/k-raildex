@@ -6,6 +6,27 @@ import { codeLabel, compareFuzzy, type PublicEvent } from '@k-raildex/contracts'
 import { FuzzyDateText } from './badges';
 import { FilterRow, LinkTabs } from './tabs';
 import { idPath, paths } from '@/lib/urls';
+import { areaLabel } from '@/lib/filters';
+import { codes } from '@k-raildex/contracts';
+
+export const TIMELINE_AREAS = ['all', ...codes.area.values] as const;
+
+/** 권역 필터(기존 `?area=`, round-06 Q130 A). 대상 노선·역·계획·운행 계통의 권역 또는 사건에 적은 권역 */
+export function TimelineAreaTabs({ area, href }: { area: string; href: (area: string) => string }) {
+  return (
+    <div className="filters">
+      <FilterRow label="권역">
+        <LinkTabs
+          small
+          label="권역"
+          anchor="area"
+          current={area}
+          items={TIMELINE_AREAS.map((a) => ({ value: a, label: areaLabel(a), href: href(a) }))}
+        />
+      </FilterRow>
+    </div>
+  );
+}
 
 export function DecadeNav({
   decades,

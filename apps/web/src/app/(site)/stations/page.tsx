@@ -21,7 +21,8 @@ export default async function StationsPage({ searchParams }: { searchParams: SP 
         <h1>역</h1>
         <p className="lead">
           여객역 목록입니다. 구분은 그 역에 서는 열차(운행 계통) 기준이고, 정차 정보가 없으면 지나는 노선의 법적 분류로
-          봅니다. 신호장·차량기지 같은 시설은 빼고, 아직 개통하지 않은 역은 &quot;미개통&quot; 탭에 따로 둡니다.
+          봅니다. 신호장·차량기지 같은 시설은 기본으로 빼고("시설" 필터로 볼 수 있음), 아직 개통하지 않은 역은
+          &quot;미개통&quot; 탭에 따로 둡니다.
         </p>
         <nav aria-label="시·도별 역 목록" className="chips" style={{ marginTop: 'var(--kr-space-3)' }}>
           {areas

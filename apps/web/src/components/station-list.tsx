@@ -3,9 +3,10 @@
  * 정차 열차 기준 탭(?class=) + 권역(?area=) + 개통 필터(?opened=, 기본 개통) + 이름·역번호 찾기(?q=). 모두 링크·GET 폼(JS 없이 동작).
  * 권역 탭이 있는 전체 목록은 기본 권역 = 수도권이고 권역 안은 쪽 나눔 없이 전부 그린다(Q113 C). "전체" 탭만 쪽 나눔.
  * 찾기(?q=)에 권역을 따로 고르지 않았으면 전국에서 찾는다.
+ * 시설(?kind=with 시설 포함 / only 시설만, 기존 사이트 주소, Q130 A)은 권역 탭이 있는 전체 목록에서만.
  */
 import type { StationItem } from '@/lib/data';
-import { getLineIndex, getRegionIndex } from '@/lib/data';
+import { getLineIndex, getRegionIndex, getStationsWithFacilities } from '@/lib/data';
 import {
   areaCounts,
   areaLabel,
@@ -29,10 +30,12 @@ type SP = Record<string, string | string[] | undefined>;
 const PAGE_SIZE = 150;
 /** 권역 탭이 있는 목록의 기본 권역(기존 사이트와 같음, Q113 C) */
 const DEFAULT_AREA = 'capital';
+const KINDS = ['without', 'with', 'only'] as const;
+const KIND_LABEL: Record<(typeof KINDS)[number], string> = { without: '여객역만', with: '시설 포함', only: '시설만' };
 
 export async function StationList({
   base,
-  items,
+  items: passengerItems,
   sp,
   showAreaTabs = true,
 }: {
@@ -41,14 +44,19 @@ export async function StationList({
   sp: SP;
   showAreaTabs?: boolean;
 }) {
+  const kind = showAreaTabs ? pickParam(sp.kind, KINDS, 'without') : 'without';
+  const items =
+    kind === 'without'
+      ? passengerItems
+      : (await getStationsWithFacilities()).filter((s) => kind === 'with' || s.kind !== 'station');
   const cls = pickParam(sp.class, ['all', ...STOP_CLASS_ORDER] as const, 'all');
   const q = (firstParam(sp.q) ?? '').slice(0, 50);
   const defaultArea = showAreaTabs && !q ? DEFAULT_AREA : 'all';
   const area = pickParam(sp.area, ['all', ...codes.area.values] as const, defaultArea);
   const opened = pickParam<OpenedFilter>(sp.opened, OPENED_FILTERS, 'opened');
   const pageNo = Math.max(1, Number.parseInt(firstParam(sp.page) ?? '1', 10) || 1);
-  const current = { class: cls, area, opened, q: q || undefined, page: undefined as string | undefined };
-  const defaults = { class: 'all', area: defaultArea, opened: 'opened' };
+  const current = { class: cls, area, opened, kind, q: q || undefined, page: undefined as string | undefined };
+  const defaults = { class: 'all', area: defaultArea, opened: 'opened', kind: 'without' };
   const link = (change: Record<string, string | undefined>) => withQuery(base, current, change, defaults);
 
   const [lineIndex, regions] = await Promise.all([getLineIndex(), getRegionIndex()]);
@@ -86,6 +94,7 @@ export async function StationList({
     count: o === 'all' ? items.length : items.filter((s) => openedOf(s.status) === o).length,
     href: link({ opened: o }),
   }));
+  const kindTabs = KINDS.map((k) => ({ value: k, label: KIND_LABEL[k], href: link({ kind: k }) }));
 
   return (
     <>
@@ -96,6 +105,11 @@ export async function StationList({
         {showAreaTabs ? (
           <FilterRow label="권역">
             <LinkTabs items={areaTabs} current={area} label="권역" small anchor="area" />
+          </FilterRow>
+        ) : null}
+        {showAreaTabs ? (
+          <FilterRow label="시설">
+            <LinkTabs items={kindTabs} current={kind} label="신호장·차량기지 등 시설" small />
           </FilterRow>
         ) : null}
         <FilterRow label="개통">
@@ -109,6 +123,7 @@ export async function StationList({
             {cls !== 'all' ? <input type="hidden" name="class" value={cls} /> : null}
             {area !== defaultArea ? <input type="hidden" name="area" value={area} /> : null}
             {opened !== 'opened' ? <input type="hidden" name="opened" value={opened} /> : null}
+            {kind !== 'without' ? <input type="hidden" name="kind" value={kind} /> : null}
             <label htmlFor="stn-q" className="sr-only">
               목록에서 역 이름·역번호 찾기
             </label>

@@ -16,7 +16,13 @@ export const metadata: Metadata = pageMeta(
 );
 
 type SP = Promise<Record<string, string | string[] | undefined>>;
-const CLASSES = ['all', ...codes.railClass.values] as const;
+// 'freight' = 여객 미취급 노선(기존 `/lines/?class=freight#class-freight`, Q130 A). 법적 분류 묶음에서는 뺀다
+const CLASSES = ['all', ...codes.railClass.values, 'freight'] as const;
+type LineClass = (typeof CLASSES)[number];
+const classLabel = (c: LineClass) =>
+  c === 'all' ? '전체' : c === 'freight' ? '여객 미취급' : codeLabel('railClass', c);
+const inClassOf = (l: { rail_class: string; passenger: boolean }, c: LineClass) =>
+  c === 'all' || (c === 'freight' ? !l.passenger : l.passenger && l.rail_class === c);
 const STATUSES = ['all', ...codes.status.values] as const;
 
 export default async function LinesPage({ searchParams }: { searchParams: SP }) {
@@ -31,13 +37,13 @@ export default async function LinesPage({ searchParams }: { searchParams: SP }) 
 
   const [all, regions] = await Promise.all([getLines(), getRegionIndex()]);
   const base = all.filter((l) => (!wide || l.is_wide_area) && (status === 'all' || l.status === status));
-  const inClass = base.filter((l) => cls === 'all' || l.rail_class === cls);
+  const inClass = base.filter((l) => inClassOf(l, cls));
   const shown = inClass.filter((l) => areaMatches(l.areas, area)).sort(byKo);
 
   const classTabs = CLASSES.map((c) => ({
     value: c,
-    label: c === 'all' ? '전체' : codeLabel('railClass', c),
-    count: c === 'all' ? base.length : base.filter((l) => l.rail_class === c).length,
+    label: classLabel(c),
+    count: base.filter((l) => inClassOf(l, c)).length,
     href: link({ class: c }),
   }));
   const areaTabs = areaCounts(inClass).map((a) => ({ ...a, label: areaLabel(a.value), href: link({ area: a.value }) }));
@@ -46,9 +52,9 @@ export default async function LinesPage({ searchParams }: { searchParams: SP }) 
     label: s === 'all' ? '전체' : codeLabel('status', s),
     href: link({ status: s }),
   }));
-  const groups = (cls === 'all' ? codes.railClass.values : [cls]).map((c) => ({
+  const groups = (cls === 'all' ? CLASSES.filter((c) => c !== 'all') : [cls]).map((c) => ({
     cls: c,
-    items: shown.filter((l) => l.rail_class === c),
+    items: shown.filter((l) => inClassOf(l, c)),
   }));
 
   return (
@@ -87,7 +93,7 @@ export default async function LinesPage({ searchParams }: { searchParams: SP }) 
         .map((g) => (
           <section key={g.cls} id={`class-${g.cls}`} className="section" style={{ marginTop: 'var(--kr-space-5)' }}>
             <div className="section-head">
-              <h2>{codeLabel('railClass', g.cls)}</h2>
+              <h2>{classLabel(g.cls)}</h2>
               <span className="muted num">{fmtNum(g.items.length)}</span>
             </div>
             <div className="table-wrap">

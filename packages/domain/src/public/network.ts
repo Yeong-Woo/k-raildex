@@ -60,7 +60,8 @@ export async function publicLines(db: Queryable, q: LineListQuery) {
   if (q.q) where.push(`(l.name_ko ILIKE ${p(`%${q.q}%`)} OR l.name_full ILIKE $${params.length} OR l.id = ${p(q.q)})`);
   const { rows } = await db.query<PublicLineListItem>(
     `SELECT ${LINE_COLS},
-            (SELECT count(*)::int FROM v_station_line v WHERE v.line_id = l.id) AS station_count
+            (SELECT count(*)::int FROM v_station_line v WHERE v.line_id = l.id) AS station_count,
+            l.passenger_service AS passenger
        ${LINE_FROM} WHERE ${where.join(' AND ')} ORDER BY l.id`,
     params,
   );
