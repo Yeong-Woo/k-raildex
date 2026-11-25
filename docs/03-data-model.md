@@ -548,7 +548,7 @@ CREATE TABLE plan_milestone (      -- 기대 일정(앞으로의 예정) (Q88·Q
 );
 CREATE TABLE plan_line (           -- 계획 ↔ 노선 + 역할 (Q90 A)
   plan_id text REFERENCES plan(id), line_id text REFERENCES line(id),
-  role text NOT NULL DEFAULT 'new',  -- new(신설 노선이 됨) | extends(기존 노선 연장) | upgrades(개량, 지도 변화 없음) | replaces(개통 시 대체되어 사라지는 노선·구간)
+  role text NOT NULL DEFAULT 'new',  -- new(신설 노선이 됨) | extends(기존 노선 연장) | upgrades(개량, 지도 변화 없음) | shares(선로 공용 — 고치지 않고 함께 씀, 지도 변화 없음, 0029) | replaces(개통 시 대체되어 사라지는 노선·구간)
   from_line_station_id text REFERENCES line_station(id),   -- replaces·extends 의 구간(선택)
   to_line_station_id   text REFERENCES line_station(id),
   note text,
@@ -869,7 +869,7 @@ CREATE TABLE app_setting (key text PRIMARY KEY, value jsonb NOT NULL, updated_at
 | `plan_stage`                               | concept 구상 → plan_listed 상위계획 반영 → prefeasibility 사전타당성 → feasibility 예비타당성 → strategic_eia 전략환경영향평가 → basic_plan 기본계획 → basic_design 기본설계 → eia 환경영향평가 → detail_design 실시설계 → construction 착공·시공 → trial_run 시운전 → opened 개통 ; abandoned 폐기 ; dormant 휴면 |
 | `plan_stage_event.kind`                    | reached 도달 / withdrawn 철회·보류 / dormant 휴면                                                                                                                                                                                                                                                                  |
 | `plan_milestone.basis`                     | official 공식 / press 보도 / (estimate 는 Q94 A 로 사용하지 않음)                                                                                                                                                                                                                                                  |
-| `plan_line.role`                           | new 신설 / extends 연장 / upgrades 개량 / replaces 대체(개통 시 사라짐)                                                                                                                                                                                                                                            |
+| `plan_line.role`                           | new 신설 / extends 연장 / upgrades 개량 / shares 선로 공용 / replaces 대체(개통 시 사라짐)                                                                                                                                                                                                                         |
 | `plan_station.role`                        | new 신설 / existing 기존(환승) / closes 폐역 예정 / subject 사업 대상 역                                                                                                                                                                                                                                           |
 | `plan_relation.relation`                   | succeeded_by, part_of, same_corridor, related                                                                                                                                                                                                                                                                      |
 | `plan_geometry.kind`                       | schematic 개략 / traced 도면 추출 / official 공식 좌표                                                                                                                                                                                                                                                             |
@@ -921,7 +921,7 @@ CREATE TABLE app_setting (key text PRIMARY KEY, value jsonb NOT NULL, updated_at
 2. 미개통 계획 P 의 개통 예정 시점 T = `v_plan_target_open`. T 의 시작 연도 ≤ Y 이면 P 를 적용한다(미정은 "목표 미정" 칸에서만, 목표가 지난 미개통은 현재 연도에 "지연" 표시).
    - `plan_line role=new/extends`: 그 노선(공사 중·계획 상태)·노선별 역을 더한다. extends 는 연장 대상 노선의 색·이름으로 이어 그린다. new 도 노선 레코드가 있으면 노선 이름으로(계획 이름은 plan_id 로 정보 패널에, 0022). 계획 하나가 노선 여럿을 신설·연장하면(인덕원동탄선 사업 = 인덕원동탄선 + 서동탄~동탄 1호선 연장) 노선마다 따로 그리고 이름·색은 그 노선(새 노선의 `line.color` 도 쓴다), 첫 노선은 `plan:<계획>`, 나머지는 `plan:<계획>:<노선>`(0023).
    - `role=replaces`: 해당 노선(또는 from~to 구간)을 숨긴다. `plan_station role=closes`: 그 역을 숨긴다.
-   - `role=upgrades`: 지도 변화 없음(정보 패널에만).
+   - `role=upgrades`·`shares`: 지도 변화 없음(정보 패널에만).
    - 노선 레코드가 아직 없는 계획(구상·계획 단계)은 `v_plan_shape` 선형과 `plan_station role=new` 역으로 그린다.
 3. **지금 공사 중인 노선·역은 어느 시점에도 보인다**(사용자 지시 2026-11-25): 연결 계획(new·extends)의 개통 목표 연도 전에는 현재 지도처럼 공사 중(굵은 점선, `line:<노선>:construction`)으로, 목표 연도부터 계획 선(개통 예정)으로 그린다. 계획과 묶이지 않은 공사 중 구간(병점기지선 연장부였던 것 등)은 모든 시점에 공사 중. 공사 중 노선의 역(계획 상태 역 포함)도 모든 시점에 보인다(0022·0024). OSM 공사 선형이 없는 공사 중 노선(수서광주선)은 그 노선을 신설·연장하는 공사 단계 계획(신설·연장 노선이 하나뿐)의 계획 선형으로 현재 지도·목표 전 시점에 공사 중으로 그린다(뷰 `v_line_plan_shape`, 0027 — 계획 선형의 `quality`·`odbl` 을 그대로). 폐역은 시점 지도에서 뺀다.
 4. 표시 속성: 단계별 선 모양(시공 실선 / 설계 굵은 점선 / 그 전 가는 점선), 색 = 연장이면 기존 노선색, 공식색(`plan.color`, 출처 필수) 있으면 그 색, 아니면 단계 대표색(Q91 A). 선형 품질 schematic 은 "개략" 표시.

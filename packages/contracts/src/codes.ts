@@ -205,6 +205,7 @@ export const codes = {
     new: { ko: '신설' },
     extends: { ko: '연장' },
     upgrades: { ko: '개량' },
+    shares: { ko: '선로 공용' },
     replaces: { ko: '대체(개통 시 사라짐)' },
   }),
   planStationRole: table({
