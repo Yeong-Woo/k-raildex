@@ -1,6 +1,7 @@
 /**
  * 지도 편집(FR-ADM-070~072): 현재 노선·역 레이어, 역 찾기·클릭 → 표식 끌기 → 좌표 저장(coord_source manual),
- * 좌표 없는 역 패널 → 지도에서 찍어 입력. OSM 선형은 osm 스키마에서 그리기만 한다(저장 안 함).
+ * 좌표 없는 역 패널(V-S02 + X-station-no-coord) → 지도에서 찍어 입력, 또는 다른 역을 골라 그 좌표를 가져온다
+ * (coord_source derived · coord_basis existing_station · coord_same_as_id = 그 역). OSM 선형은 그리기만 한다(저장 안 함).
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useSearch } from '@tanstack/react-router';
@@ -10,7 +11,7 @@ import { Marker, type MapLayerMouseEvent } from 'maplibre-gl';
 import { codeLabel, isCode } from '@k-raildex/contracts';
 import { currentLineLayers, currentStationLayers, STATUS_COLORS } from '@k-raildex/map';
 import { Badge, Button, Card, cn } from '@k-raildex/ui';
-import { Crosshair, ExternalLink, MapPin, X } from 'lucide-react';
+import { Copy, Crosshair, ExternalLink, MapPin, X } from 'lucide-react';
 import { api, apiOptional, errorText, qs, type EntityResponse } from '../lib/api';
 import { RefInput } from '../form/widgets/RefInput';
 import { useGeoJsonLayer, useMapLibre, type FeatureCollection } from './useMap';
@@ -24,6 +25,17 @@ interface StationData {
   coord_basis: string | null;
 }
 type LngLat = { lng: number; lat: number };
+/** from = 좌표를 가져온 역(있으면 "기존 역 좌표"로 저장) */
+type Pending = LngLat & { from?: { id: string; name: string } };
+interface QualityItem {
+  entity_type: string;
+  entity_id: string;
+  label: string | null;
+  detail: string | null;
+}
+type QualityList = { items: QualityItem[]; total: number };
+/** 지도 편집의 "좌표 없는 역" 패널이 읽는 품질 규칙 */
+const MISSING_RULES = ['V-S02', 'X-station-no-coord'] as const;
 
 const round = (v: number) => Math.round(v * 1e6) / 1e6;
 
@@ -33,8 +45,14 @@ export function EditMap() {
   const qc = useQueryClient();
   const { container, map } = useMapLibre();
   const stationId = search.station ?? null;
-  const [pending, setPending] = useState<LngLat | null>(null);
+  const [pending, setPending] = useState<Pending | null>(null);
   const [placing, setPlacing] = useState(false);
+  // 다른 역 고르기 모드: 지도에서 역 점을 클릭하면 그 역 좌표를 새 좌표로
+  const [picking, setPicking] = useState(false);
+  const pickingRef = useRef(false);
+  pickingRef.current = picking;
+  const stationIdRef = useRef(stationId);
+  stationIdRef.current = stationId;
   const marker = useRef<Marker | null>(null);
 
   const stations = useQuery({
@@ -46,12 +64,23 @@ export function EditMap() {
     queryFn: () => apiOptional<FeatureCollection>('/v1/admin/map/current-lines'),
   });
   const missing = useQuery({
-    queryKey: ['quality', 'V-S02', 'map'],
-    queryFn: () =>
-      apiOptional<{
-        items: { entity_type: string; entity_id: string; label: string | null; detail: string | null }[];
-        total: number;
-      }>(`/v1/admin/quality/V-S02${qs({ limit: 200 })}`),
+    queryKey: ['quality', 'map-missing-coords'],
+    queryFn: async () => {
+      const lists = await Promise.all(
+        MISSING_RULES.map((r) => apiOptional<QualityList>(`/v1/admin/quality/${r}${qs({ limit: 200 })}`)),
+      );
+      if (lists.every((l) => l === null)) return null;
+      // 두 규칙에 다 걸린 역은 한 번만(V-S02 쪽 설명 우선)
+      const seen = new Map<string, QualityItem & { rule: string }>();
+      lists.forEach((l, i) =>
+        l?.items
+          .filter((it) => it.entity_type === 'station')
+          .forEach((it) => {
+            if (!seen.has(it.entity_id)) seen.set(it.entity_id, { ...it, rule: MISSING_RULES[i]! });
+          }),
+      );
+      return { items: [...seen.values()], total: seen.size };
+    },
   });
   const station = useQuery({
     queryKey: ['entity', 'station', stationId],
@@ -62,11 +91,12 @@ export function EditMap() {
   useGeoJsonLayer(map, 'current-lines', lines.data, currentLineLayers('current-lines'));
   useGeoJsonLayer(map, 'current-stations', stations.data, currentStationLayers('current-stations'));
   // 역·노선 클릭 → 정보 팝업(좌표 찍기 중에는 끔). 역 클릭은 아래에서 옆 패널 선택도 한다
-  useFeaturePopup(map, ['current-station', 'current-line', 'current-line-construction'], !placing);
+  useFeaturePopup(map, ['current-station', 'current-line', 'current-line-construction'], !placing && !picking);
 
   const select = (id: string | null) => {
     setPending(null);
     setPlacing(false);
+    setPicking(false);
     void navigate({ search: (s) => ({ ...s, tab: 'edit', station: id ?? undefined }) });
   };
 
@@ -75,7 +105,9 @@ export function EditMap() {
     if (!map) return;
     const onClick = (e: MapLayerMouseEvent) => {
       const id = e.features?.[0]?.properties?.station_id;
-      if (typeof id === 'string') select(id);
+      if (typeof id !== 'string') return;
+      if (pickingRef.current) void takeFrom(id);
+      else select(id);
     };
     const enter = () => (map.getCanvas().style.cursor = 'pointer');
     const leave = () => (map.getCanvas().style.cursor = '');
@@ -87,7 +119,7 @@ export function EditMap() {
       map.off('mouseenter', 'current-station', enter);
       map.off('mouseleave', 'current-station', leave);
     };
-    // select 는 navigate 래퍼(안정적)
+    // select·takeFrom 은 ref·navigate 로만 상태를 바꾼다
   }, [map]);
 
   // 좌표 찍기 모드: 지도 클릭 = 새 좌표
@@ -105,6 +137,21 @@ export function EditMap() {
     };
   }, [map, placing]);
 
+  // 다른 역 좌표 가져오기(그 역에 좌표가 있어야 한다 — V-H08)
+  const takeFrom = async (fromId: string) => {
+    setPicking(false);
+    if (fromId === stationIdRef.current) return void toast.error('같은 역입니다');
+    try {
+      const r = await qc.fetchQuery({
+        queryKey: ['entity', 'station', fromId],
+        queryFn: () => api<EntityResponse<StationData>>(`/v1/admin/station/${encodeURIComponent(fromId)}`),
+      });
+      if (!r.data.geom) return void toast.error(`${r.data.name_ko}: 좌표가 없는 역입니다`);
+      setPending({ lng: r.data.geom.lng, lat: r.data.geom.lat, from: { id: fromId, name: r.data.name_ko } });
+    } catch (e) {
+      toast.error(errorText(e));
+    }
+  };
   // 선택한 역 표식(끌 수 있음)
   const data = station.data?.data;
   const shown: LngLat | null = pending ?? (data?.geom ? { lng: data.geom.lng, lat: data.geom.lat } : null);
@@ -141,10 +188,17 @@ export function EditMap() {
       api(`/v1/admin/station/${encodeURIComponent(stationId!)}`, {
         method: 'PATCH',
         ifMatch: station.data!.version,
-        json: { geom: { lat: pending!.lat, lng: pending!.lng }, coord_source: 'manual', coord_basis: null },
+        json: {
+          geom: { lat: pending!.lat, lng: pending!.lng },
+          ...(pending!.from
+            ? { coord_source: 'derived', coord_basis: 'existing_station', coord_same_as_id: pending!.from.id }
+            : { coord_source: 'manual', coord_basis: null, coord_same_as_id: null }),
+        },
       }),
     onSuccess: async () => {
-      toast.success('좌표를 저장했습니다(수기 확인)');
+      toast.success(
+        pending?.from ? `좌표를 저장했습니다(${pending.from.name} 역 좌표)` : '좌표를 저장했습니다(수기 확인)',
+      );
       setPending(null);
       await qc.invalidateQueries({ queryKey: ['entity', 'station', stationId] });
       await qc.invalidateQueries({ queryKey: ['map'] });
@@ -203,6 +257,9 @@ export function EditMap() {
                     <dt className="font-semibold text-primary">새 좌표</dt>
                     <dd className="font-semibold text-primary" data-testid="pending-coord">
                       {pending.lat}, {pending.lng}
+                      {pending.from ? (
+                        <span className="block font-normal">← {pending.from.name} 역 좌표(기존 역 좌표)</span>
+                      ) : null}
                     </dd>
                   </>
                 ) : null}
@@ -217,12 +274,37 @@ export function EditMap() {
                   취소
                 </Button>
               ) : null}
-              <Button size="sm" variant={placing ? 'secondary' : 'outline'} onClick={() => setPlacing((p) => !p)}>
+              <Button
+                size="sm"
+                variant={placing ? 'secondary' : 'outline'}
+                onClick={() => {
+                  setPicking(false);
+                  setPlacing((p) => !p);
+                }}
+              >
                 <Crosshair className="size-4" /> {placing ? '지도를 클릭하세요' : '지도에서 찍기'}
               </Button>
+              <Button
+                size="sm"
+                variant={picking ? 'secondary' : 'outline'}
+                onClick={() => {
+                  setPlacing(false);
+                  setPicking((p) => !p);
+                }}
+              >
+                <Copy className="size-4" /> {picking ? '역 점을 클릭하세요' : '다른 역 좌표 쓰기'}
+              </Button>
             </div>
+            {picking ? (
+              <div className="mt-2" data-testid="coord-from-station">
+                <label className="mb-1 block text-xs font-semibold text-fg-muted">좌표를 가져올 역</label>
+                <RefInput target="station" value={null} onChange={(id) => id && void takeFrom(id)} />
+              </div>
+            ) : null}
             <p className="mt-2 text-[11px] text-fg-muted">
-              표식을 끌거나 [지도에서 찍기] 뒤 지도를 클릭하면 새 좌표가 됩니다. 저장하면 좌표 출처 = 수기 확인.
+              표식을 끌거나 [지도에서 찍기] 뒤 지도를 클릭하면 새 좌표가 됩니다(저장하면 좌표 출처 = 수기 확인). [다른
+              역 좌표 쓰기] 뒤 지도의 역 점을 클릭하거나 위 칸에서 찾으면 그 역 좌표를 덮어씁니다(좌표 출처 = 추정 ·
+              기존 역 좌표, 좌표를 빌려 올 역 = 그 역). 덮어쓴 뒤 표식을 끌면 수기 확인으로 바뀝니다.
             </p>
           </Card>
         ) : (
@@ -231,7 +313,7 @@ export function EditMap() {
         {/* 목록은 남는 높이 안에서만 스크롤(범례와 겹치지 않게) */}
         <section className="flex min-h-40 flex-1 flex-col">
           <h2 className="mb-1 flex items-center gap-2 text-xs font-semibold text-fg-muted">
-            좌표 없는 역·시·도 미상(V-S02)
+            좌표 없는 역(V-S02·X-station-no-coord)
             {missing.data ? <Badge tone={missing.data.total ? 'warn' : 'good'}>{missing.data.total}</Badge> : null}
           </h2>
           {missing.data === null ? (
@@ -242,26 +324,27 @@ export function EditMap() {
             <p className="text-xs text-fg-muted">없음</p>
           ) : (
             <ul className="flex min-h-0 flex-1 flex-col overflow-y-auto text-sm" data-testid="missing-coords">
-              {missing.data.items
-                .filter((it) => it.entity_type === 'station')
-                .map((it) => (
-                  <li key={it.entity_id}>
-                    <button
-                      type="button"
-                      className={cn(
-                        'flex w-full flex-col rounded px-2 py-1 text-left hover:bg-muted',
-                        it.entity_id === stationId && 'bg-muted',
-                      )}
-                      onClick={() => {
-                        select(it.entity_id);
-                        setPlacing(true);
-                      }}
-                    >
-                      <span>{it.label ?? it.entity_id}</span>
-                      <span className="text-[11px] text-fg-muted">{it.detail ?? it.entity_id}</span>
-                    </button>
-                  </li>
-                ))}
+              {missing.data.items.map((it) => (
+                <li key={it.entity_id}>
+                  <button
+                    type="button"
+                    className={cn(
+                      'flex w-full flex-col rounded px-2 py-1 text-left hover:bg-muted',
+                      it.entity_id === stationId && 'bg-muted',
+                    )}
+                    onClick={() => {
+                      select(it.entity_id);
+                      setPlacing(true);
+                    }}
+                  >
+                    <span>{it.label ?? it.entity_id}</span>
+                    <span className="text-[11px] text-fg-muted">
+                      {it.detail ?? it.entity_id}
+                      {it.rule === 'V-S02' ? '' : ' · 시설·폐역·공사 중'}
+                    </span>
+                  </button>
+                </li>
+              ))}
             </ul>
           )}
         </section>
@@ -294,6 +377,11 @@ export function EditMap() {
         {placing ? (
           <div className="absolute top-3 left-1/2 -translate-x-1/2 rounded-md bg-primary px-3 py-1.5 text-xs text-primary-fg shadow">
             {data?.name_ko ?? stationId} — 지도를 클릭해 좌표를 찍으세요
+          </div>
+        ) : null}
+        {picking ? (
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 rounded-md bg-primary px-3 py-1.5 text-xs text-primary-fg shadow">
+            {data?.name_ko ?? stationId} — 좌표를 가져올 역 점을 클릭하세요
           </div>
         ) : null}
       </div>
