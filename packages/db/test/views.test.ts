@@ -374,6 +374,11 @@ describe('시점별 지도(미래 지도)', () => {
     expect(rows[2]).toMatchObject({ color: '#0052A4', color_basis: 'extends_line', line_style: 'solid' });
   });
 
+  it('신설·연장 노선이 있는 계획 선형은 노선 이름으로(현재 ↔ 시점 전환에 이름이 바뀌지 않게)', async () => {
+    const { rows } = await db.query(`SELECT name_ko FROM map_at_lines(2030) WHERE feature_id = 'plan:plan-ext'`);
+    expect(rows).toEqual([{ name_ko: '일호선' }]);
+  });
+
   it('2032: 대체 계획 반영 → 이호선 숨김, 공식색 굵은 점선', async () => {
     const rows = await lineIds(2032);
     expect(rows.map((r) => r.feature_id)).toEqual(['line:line-one', 'plan:plan-ext', 'plan:plan-replace']);
@@ -394,6 +399,15 @@ describe('시점별 지도(미래 지도)', () => {
       (await db.query(`SELECT station_id FROM map_at_stations($1) ORDER BY 1`, [y])).rows.map((r) => r.station_id);
     expect(await st(now)).toEqual(['stn-a', 'stn-b']);
     expect(await st(2030)).toEqual(['stn-a', 'stn-b', 'stn-c']);
+  });
+
+  it('역 위치: 현재 지도(mv_map_station, 근사 좌표 스냅)와 같은 점', async () => {
+    await db.query('SELECT refresh_derived()');
+    const { rows } = await db.query(
+      `SELECT a.station_id FROM map_at_stations(2030) a JOIN mv_map_station m USING (station_id)
+        WHERE NOT ST_Equals(a.geom, m.geom)`,
+    );
+    expect(rows).toEqual([]);
   });
 });
 

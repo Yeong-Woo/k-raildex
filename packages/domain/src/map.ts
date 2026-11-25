@@ -82,16 +82,18 @@ export async function mapAtStations(db: Queryable, q: MapAtQuery): Promise<Featu
   const { rows } = await db.query<{ id: string; geometry: unknown; properties: Record<string, unknown> }>(
     `SELECT m.station_id AS id, ST_AsGeoJSON(m.geom, 6)::json AS geometry,
             json_build_object('station_id', m.station_id, 'name_ko', m.name_ko, 'status', m.status, 'future', m.future,
-              'plan_ids', m.plan_ids, 'approximate', m.approximate) AS properties
+              'plan_ids', m.plan_ids, 'approximate', m.approximate, 'snapped', m.snapped) AS properties
        FROM map_at_stations($1::int, $2, $3) m ORDER BY m.station_id`,
     [q.year, q.stage_min, q.include_undated],
   );
+  const features = collect(rows);
   return {
     type: 'FeatureCollection',
     at: q.year ?? 'future',
     stage_min: q.stage_min,
     include_undated: q.include_undated,
-    features: collect(rows),
+    ...(features.some((f) => f.properties.snapped) ? { attribution: OSM_ATTRIBUTION } : {}),
+    features,
   };
 }
 

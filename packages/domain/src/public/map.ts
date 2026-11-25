@@ -44,11 +44,18 @@ export async function publicMapStations(db: Queryable, q: PublicMapAt): Promise<
             json_build_object('station_id', m.station_id, 'name_ko', m.name_ko, 'status', m.status,
               'approximate', m.approximate, 'future', m.future, 'plan_ids', to_json(m.plan_ids),
               'line_ids', coalesce((SELECT array_agg(v.line_id ORDER BY v.line_id) FROM v_station_line v WHERE v.station_id = m.station_id), '{}')
-            ) AS properties
+            ) AS properties, m.snapped
        FROM map_at_stations($1::int, $2, $3) m ORDER BY m.station_id`,
     [q.year, q.stage_min, q.include_undated],
   );
-  return { type: 'FeatureCollection', ...header(q), features: collect(rows) };
+  // 현재 지도와 같은 스냅 점(근사 좌표 역 → OSM 선형 위)이 섞인다
+  const snapped = rows.some((r) => (r as FRow & { snapped: boolean }).snapped);
+  return {
+    type: 'FeatureCollection',
+    ...header(q),
+    ...(snapped ? { attribution: OSM_ATTRIBUTION } : {}),
+    features: collect(rows.map(({ id, geometry, properties }) => ({ id, geometry, properties }))),
+  };
 }
 
 export async function publicMapLines(db: Queryable, q: PublicMapAt): Promise<FeatureCollection> {
