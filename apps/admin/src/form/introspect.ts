@@ -166,4 +166,18 @@ export const CHILD_LABELS: Record<string, string> = {
   priority: '우선순위',
   include_construction: '공사 중 포함',
   document_id: '문서',
+  // 별칭·외부 코드·출처 연결(공통 하위 항목)
+  name: '이름',
+  lang: '언어',
+  valid_from: '적용 시작',
+  valid_to: '적용 끝',
+  system: '체계',
+  is_primary: '대표 코드',
+  field: '필드',
+  url: '주소',
+  seq: '순서',
+  branch: '지선',
+  way_ids: 'OSM way id',
+  share_with: '함께 쓰는 노선',
+  connect_terminals: '끝 역까지 직선 연결',
 };

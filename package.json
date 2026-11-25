@@ -23,9 +23,9 @@
     "prepare": "simple-git-hooks",
     "db:migrate": "pnpm -F @k-raildex/db run db:migrate",
     "db:reset": "pnpm -F @k-raildex/db run db:reset",
-    "stack:up": "docker compose -f docker/compose.dev.yml $( [ -f .env ] && echo --env-file .env ) --profile app $( grep -qE '^CLOUDFLARE_TUNNEL_TOKEN=.+' .env 2>/dev/null && echo --profile tunnel ) up -d --build --wait",
-    "stack:down": "docker compose -f docker/compose.dev.yml $( [ -f .env ] && echo --env-file .env ) --profile app $( grep -qE '^CLOUDFLARE_TUNNEL_TOKEN=.+' .env 2>/dev/null && echo --profile tunnel ) down",
-    "stack:logs": "docker compose -f docker/compose.dev.yml $( [ -f .env ] && echo --env-file .env ) --profile app $( grep -qE '^CLOUDFLARE_TUNNEL_TOKEN=.+' .env 2>/dev/null && echo --profile tunnel ) logs -f --tail=100"
+    "stack:up": "docker compose -f docker/compose.dev.yml $( [ -f .env ] && echo --env-file .env ) --profile app $( grep -qE '^CLOUDFLARE_TUNNEL_TOKEN=.+' .env 2>/dev/null && echo --profile tunnel ) $( grep -qE '^CF_ACCESS_AUD=.+' .env 2>/dev/null && echo --profile admin-ext ) up -d --build --wait",
+    "stack:down": "docker compose -f docker/compose.dev.yml $( [ -f .env ] && echo --env-file .env ) --profile app $( grep -qE '^CLOUDFLARE_TUNNEL_TOKEN=.+' .env 2>/dev/null && echo --profile tunnel ) --profile admin-ext down",
+    "stack:logs": "docker compose -f docker/compose.dev.yml $( [ -f .env ] && echo --env-file .env ) --profile app $( grep -qE '^CLOUDFLARE_TUNNEL_TOKEN=.+' .env 2>/dev/null && echo --profile tunnel ) $( grep -qE '^CF_ACCESS_AUD=.+' .env 2>/dev/null && echo --profile admin-ext ) logs -f --tail=100"
   },
   "simple-git-hooks": {
     "pre-commit": "pnpm exec lint-staged && sh scripts/gitleaks-staged.sh"

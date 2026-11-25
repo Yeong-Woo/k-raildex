@@ -1,15 +1,27 @@
-/** 품질 대시보드(FR-ADM-090): Soft 규칙별 건수 → 규칙을 고르면 대상 목록(쪽 넘김) */
+/**
+ * 품질 대시보드(FR-ADM-090): Soft 규칙별 건수 → 규칙을 고르면 검수 매뉴얼(packages/domain quality-guide.ts)과
+ * 대상 목록(쪽 넘김). 좌표·선형 규칙은 행마다 지도 도구로 바로 가는 단추를 둔다.
+ */
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate, useSearch } from '@tanstack/react-router';
 import { entityUiMeta, isCode, type EntityType } from '@k-raildex/contracts';
 import { Badge, Button, Card, CardHeader, cn, Empty } from '@k-raildex/ui';
+import { BookOpen } from 'lucide-react';
 import { apiOptional, errorText, qs } from '../lib/api';
 import { toSlug } from '../lib/entity-types';
 
+export interface QualityGuide {
+  what: string;
+  steps: string[];
+  done: string;
+  impact?: string;
+}
 export interface QualityRule {
   id: string;
   title: string;
   count: number;
+  note?: string;
+  guide?: QualityGuide | null;
 }
 interface QualityItem {
   entity_type: string;
@@ -20,10 +32,78 @@ interface QualityItem {
 
 const LIMIT = 50;
 
+/** 행에서 바로 여는 지도 도구(규칙별) */
+const ROW_TOOLS: Record<string, (it: QualityItem) => { label: string; href: string } | null> = {
+  'V-S02': (it) => ({ label: '지도에서 찍기', href: `/map?tab=edit&station=${encodeURIComponent(it.entity_id)}` }),
+  'X-station-no-coord': (it) => ({
+    label: '지도에서 찍기',
+    href: `/map?tab=edit&station=${encodeURIComponent(it.entity_id)}`,
+  }),
+  'X-station-near-other-name': (it) => ({
+    label: '지도',
+    href: `/map?tab=edit&station=${encodeURIComponent(it.entity_id)}`,
+  }),
+  'V-S12': (it) => ({ label: '계획 선형 편집', href: `/map?tool=geometry&plan=${encodeURIComponent(it.entity_id)}` }),
+  'X-construction-no-geometry': (it) =>
+    it.entity_type === 'plan'
+      ? { label: '계획 선형 편집', href: `/map?tool=geometry&plan=${encodeURIComponent(it.entity_id)}` }
+      : { label: 'OSM 매핑 점검', href: `/map?tool=osm&line=${encodeURIComponent(it.entity_id)}` },
+};
+
+function GuidePanel({
+  guide,
+  common,
+  note,
+}: {
+  guide: QualityGuide | null | undefined;
+  common: readonly string[];
+  note?: string;
+}) {
+  if (!guide && !note) return null;
+  return (
+    <details open className="border-b border-border px-4 py-3 text-sm" data-testid="quality-guide">
+      <summary className="flex cursor-pointer items-center gap-1.5 font-semibold select-none">
+        <BookOpen className="size-4 text-primary" /> 검수 방법
+      </summary>
+      {note ? <p className="mt-2 text-fg-muted">{note}</p> : null}
+      {guide ? (
+        <div className="mt-2 flex flex-col gap-2">
+          <p>{guide.what}</p>
+          <ol className="list-decimal space-y-1 pl-5">
+            {guide.steps.map((st, i) => (
+              <li key={i}>{st}</li>
+            ))}
+          </ol>
+          <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 text-xs">
+            <dt className="font-semibold text-fg-muted">빠지는 조건</dt>
+            <dd>{guide.done}</dd>
+            {guide.impact ? (
+              <>
+                <dt className="font-semibold text-fg-muted">영향</dt>
+                <dd>{guide.impact}</dd>
+              </>
+            ) : null}
+          </dl>
+          {common.length ? (
+            <details className="text-xs text-fg-muted">
+              <summary className="cursor-pointer select-none">공통 원칙</summary>
+              <ul className="mt-1 list-disc space-y-0.5 pl-5">
+                {common.map((c, i) => (
+                  <li key={i}>{c}</li>
+                ))}
+              </ul>
+            </details>
+          ) : null}
+        </div>
+      ) : null}
+    </details>
+  );
+}
+
 export function useQualityRules() {
   return useQuery({
     queryKey: ['quality'],
-    queryFn: () => apiOptional<{ rules: QualityRule[] }>('/v1/admin/quality'),
+    queryFn: () => apiOptional<{ rules: QualityRule[]; guide_common?: string[] }>('/v1/admin/quality'),
   });
 }
 
@@ -43,6 +123,7 @@ export function Quality() {
   });
   const current = rules.data?.rules.find((r) => r.id === rule);
   const total = items.data?.total ?? 0;
+  const tool = rule ? ROW_TOOLS[rule] : undefined;
 
   return (
     <div className="flex flex-col gap-4">
@@ -56,7 +137,7 @@ export function Quality() {
           <Empty>품질 API(/v1/admin/quality)가 아직 없습니다.</Empty>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[22rem_1fr]">
+        <div className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-[22rem_minmax(0,1fr)]">
           <Card className="self-start">
             <CardHeader title={`규칙 ${rules.data.rules.length}개`} />
             <ul className="divide-y divide-border text-sm" data-testid="quality-rules">
@@ -80,8 +161,11 @@ export function Quality() {
               ))}
             </ul>
           </Card>
-          <Card className="self-start">
+          <Card className="min-w-0 self-start">
             <CardHeader title={current ? `${current.id} · ${current.title}` : '규칙을 고르세요'} />
+            {current ? (
+              <GuidePanel guide={current.guide} common={rules.data.guide_common ?? []} note={current.note} />
+            ) : null}
             {!rule ? (
               <Empty>왼쪽에서 규칙을 고르면 해당 개체 목록이 나옵니다.</Empty>
             ) : items.isLoading ? (
@@ -92,43 +176,58 @@ export function Quality() {
               <Empty>해당 없음</Empty>
             ) : (
               <>
-                <table className="w-full text-sm" data-testid="quality-items">
-                  <thead className="text-left text-xs text-fg-muted">
-                    <tr>
-                      <th className="px-4 py-2">종류</th>
-                      <th className="px-4 py-2">개체</th>
-                      <th className="px-4 py-2">내용</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {items.data.items.map((it, i) => {
-                      const t = isCode('entityType', it.entity_type) ? (it.entity_type as EntityType) : null;
-                      return (
-                        <tr key={`${it.entity_type}/${it.entity_id}/${i}`} className="border-t border-border">
-                          <td className="px-4 py-1.5 text-xs text-fg-muted">
-                            {t ? entityUiMeta[t].label : it.entity_type}
-                          </td>
-                          <td className="px-4 py-1.5">
-                            {t ? (
-                              <Link
-                                to="/data/$type/$id"
-                                params={{ type: toSlug(t), id: it.entity_id }}
-                                search={{}}
-                                className="hover:underline"
-                              >
-                                {it.label ?? it.entity_id}
-                              </Link>
-                            ) : (
-                              (it.label ?? it.entity_id)
-                            )}
-                            <code className="ml-2 text-xs text-fg-muted">{it.entity_id}</code>
-                          </td>
-                          <td className="px-4 py-1.5 text-xs">{it.detail ?? ''}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm" data-testid="quality-items">
+                    <thead className="text-left text-xs text-fg-muted">
+                      <tr>
+                        <th className="px-4 py-2 whitespace-nowrap">종류</th>
+                        <th className="px-4 py-2">개체</th>
+                        <th className="px-4 py-2">내용</th>
+                        {tool ? <th className="px-4 py-2" /> : null}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {items.data.items.map((it, i) => {
+                        const t = isCode('entityType', it.entity_type) ? (it.entity_type as EntityType) : null;
+                        return (
+                          <tr key={`${it.entity_type}/${it.entity_id}/${i}`} className="border-t border-border">
+                            <td className="px-4 py-1.5 text-xs whitespace-nowrap text-fg-muted">
+                              {t ? entityUiMeta[t].label : it.entity_type}
+                            </td>
+                            <td className="px-4 py-1.5">
+                              {t ? (
+                                <Link
+                                  to="/data/$type/$id"
+                                  params={{ type: toSlug(t), id: it.entity_id }}
+                                  search={{}}
+                                  className="hover:underline"
+                                >
+                                  {it.label ?? it.entity_id}
+                                </Link>
+                              ) : (
+                                (it.label ?? it.entity_id)
+                              )}
+                              <code className="ml-2 text-xs text-fg-muted">{it.entity_id}</code>
+                            </td>
+                            <td className="px-4 py-1.5 text-xs break-words">{it.detail ?? ''}</td>
+                            {tool ? (
+                              <td className="px-4 py-1.5 text-right whitespace-nowrap">
+                                {(() => {
+                                  const a = tool(it);
+                                  return a ? (
+                                    <a href={a.href} className="text-xs text-primary hover:underline">
+                                      {a.label}
+                                    </a>
+                                  ) : null;
+                                })()}
+                              </td>
+                            ) : null}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
                 <div className="flex items-center gap-2 border-t border-border px-4 py-2 text-sm">
                   <Button
                     variant="secondary"

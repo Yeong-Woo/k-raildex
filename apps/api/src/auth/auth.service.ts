@@ -3,6 +3,8 @@
  * - `Authorization: Bearer <토큰>` → api_token(sha256 해시) 조회. 폐기·만료·비활성 사용자는 401. 범위는 토큰의 scopes
  * - 그 밖 → Cloudflare Access JWT(`Cf-Access-Jwt-Assertion`) 검증: 팀 도메인 공개키·audience·issuer, email = ADMIN_EMAIL.
  *   AUTH_DEV_BYPASS=1(운영 아님)이면 Access 검증 없이 관리자로 본다. 관리자는 모든 범위
+ * - 단 Cloudflare 를 거쳐 온 요청(Cf-Connecting-Ip·Cf-Ray 헤더)에는 우회를 쓰지 않는다 — 터널 공개 호스트 이름을 잘못
+ *   이어 개발용 api·관리 앱이 외부에 열려도 관리자 권한이 나가지 않게(C-9, 2026-11-26 관리 앱 외부 공개)
  */
 import { createHash } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
@@ -35,7 +37,8 @@ export class AuthService {
       if (!m) throw new ApiError(401, 'unauthorized', 'Authorization 형식은 Bearer <토큰>');
       return this.fromToken(m[1]!);
     }
-    if (this.config.devBypass) return this.admin(this.config.adminEmail ?? 'dev@localhost', 'dev_bypass');
+    if (this.config.devBypass && !viaCloudflare(req))
+      return this.admin(this.config.adminEmail ?? 'dev@localhost', 'dev_bypass');
     const jwt = header(req, 'cf-access-jwt-assertion');
     if (!jwt) throw new ApiError(401, 'unauthorized', '인증 필요(Cloudflare Access 또는 API 토큰)');
     return this.fromAccessJwt(jwt);
@@ -96,4 +99,9 @@ export class AuthService {
 function header(req: AuthedRequest, name: string): string | undefined {
   const v = req.headers[name];
   return Array.isArray(v) ? v[0] : v || undefined;
+}
+
+/** Cloudflare 엣지(터널 포함)가 붙이는 헤더 — 로컬 요청에는 없다 */
+function viaCloudflare(req: AuthedRequest): boolean {
+  return !!(header(req, 'cf-connecting-ip') || header(req, 'cf-ray'));
 }

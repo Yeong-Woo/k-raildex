@@ -65,6 +65,7 @@ pnpm dev:infra          # 로컬 PostgreSQL(PostGIS, 127.0.0.1:5440) + SeaweedFS
 pnpm dev:infra:down
 pnpm stack:up           # 전체를 컨테이너로(db·s3·migrate·api·worker·admin·web) → 관리 앱 http://127.0.0.1:5202, API 127.0.0.1:5101, 공개 사이트 http://127.0.0.1:5203
                         #   APP_DB=raildex_admin_dev pnpm stack:up 처럼 DB 이름을 바꿀 수 있다(기본 raildex = 전체 이관 데이터)
+                        #   .env 에 CF_ACCESS_AUD 가 있으면 admin-ext·api-admin(Access 검증)도 띄운다 — 관리 앱 외부 공개(docs/deploy-admin.md)
                         #   .env 에 CLOUDFLARE_TUNNEL_TOKEN 이 있으면 cloudflared 도 띄워 https://k-raildex.com 을 공개 사이트로 연결(2026-11-25 기존 시스템 교체)
 pnpm stack:logs / pnpm stack:down
 pnpm dev:web            # 공개 사이트 개발 서버(next dev) http://127.0.0.1:5303 — 공개 API(127.0.0.1:5101)가 떠 있어야 함

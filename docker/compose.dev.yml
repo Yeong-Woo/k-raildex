@@ -120,6 +120,48 @@ services:
       api: { condition: service_healthy }
     restart: unless-stopped
 
+  # ---- 관리 앱 외부 공개(프로필 admin-ext, 2026-11-26): .env 에 CF_ACCESS_AUD 가 있으면 pnpm stack:up 이 켠다 ----
+  # Cloudflare 터널 공개 호스트 이름(관리 앱 주소 → http://admin-ext:80)은 Cloudflare Access 애플리케이션 뒤에만 둔다.
+  # api-admin 은 운영 모드(NODE_ENV=production) — 개발 우회 없이 매 요청 Access JWT(서명·audience·ADMIN_EMAIL)를 검증한다.
+  # 포트를 게시하지 않는다(터널만 접근). 로컬 admin·api(개발 우회)는 터널에 넣지 않는다(C-9)
+  api-admin:
+    profiles: [admin-ext]
+    image: k-raildex-app:dev
+    command: ['node', 'apps/api/dist/main.js']
+    environment:
+      <<: *app-env
+      NODE_ENV: production
+      CF_ACCESS_TEAM_DOMAIN: ${CF_ACCESS_TEAM_DOMAIN:-}
+      CF_ACCESS_AUD: ${CF_ACCESS_AUD:-}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      HOST: 0.0.0.0
+      PORT: '3000'
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      s3: { condition: service_healthy }
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+
+  admin-ext:
+    profiles: [admin-ext]
+    image: k-raildex-admin:dev
+    environment:
+      API_UPSTREAM: http://api-admin:3000
+    depends_on:
+      admin: { condition: service_started }
+      api-admin: { condition: service_healthy }
+    restart: unless-stopped
+
   # 공개 사이트(Next.js SSR, docs/06-public-web.md). 브라우저 → web → api(공개 API, 컨테이너 안 주소)
   # 컨테이너 안 포트 5000 = Cloudflare 터널 공개 호스트 이름(k-raildex.com → http://web:5000, 대시보드 설정)과 맞춘 값
   web:
@@ -153,7 +195,8 @@ services:
       retries: 30
     restart: unless-stopped
 
-  # 외부 공개(2026-11-25 기존 시스템 교체): Cloudflare 터널 → 공개 사이트(web)만. 관리 앱·API·DB 는 터널에 넣지 않는다(C-9).
+  # 외부 공개(2026-11-25 기존 시스템 교체): Cloudflare 터널 → 공개 사이트(web)와, Access 뒤의 admin-ext(2026-11-26)만.
+  # 로컬 admin·api·DB 는 터널에 넣지 않는다(C-9). 잘못 이어도 api 는 Cloudflare 경유 요청에 개발 우회를 쓰지 않는다.
   # 토큰은 .env 의 CLOUDFLARE_TUNNEL_TOKEN(원격 관리 터널, 공개 호스트 이름은 Cloudflare 대시보드). 토큰이 있으면 pnpm stack:up 이 프로필 tunnel 을 켠다
   cloudflared:
     profiles: [tunnel]

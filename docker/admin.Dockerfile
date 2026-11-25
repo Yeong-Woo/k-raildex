@@ -12,6 +12,8 @@ ARG VITE_THUNDERFOREST_API_KEY=
 RUN pnpm -F @k-raildex/admin build
 
 FROM nginx:1.28-alpine
-COPY docker/admin.nginx.conf /etc/nginx/conf.d/default.conf
+# 템플릿 → /etc/nginx/conf.d/default.conf(시작 때 envsubst). API_UPSTREAM 은 compose 가 바꾼다
+ENV API_UPSTREAM=http://api:3000
+COPY docker/admin.nginx.conf /etc/nginx/templates/default.conf.template
 COPY --from=build /app/apps/admin/dist /usr/share/nginx/html
 EXPOSE 80

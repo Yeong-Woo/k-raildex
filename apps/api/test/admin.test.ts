@@ -13,6 +13,16 @@ beforeAll(async () => {
 });
 afterAll(async () => t?.close());
 
+describe('개발 우회(AUTH_DEV_BYPASS)', () => {
+  it('Cloudflare 를 거친 요청(Cf-Connecting-Ip·Cf-Ray)에는 우회하지 않는다', async () => {
+    expect((await req('GET', '/v1/admin/station?limit=1')).statusCode).toBe(200);
+    for (const h of [{ 'cf-connecting-ip': '203.0.113.5' }, { 'cf-ray': '8abc-ICN' }]) {
+      const r = await req('GET', '/v1/admin/station?limit=1', undefined, h);
+      expect(r.statusCode).toBe(401);
+    }
+  });
+});
+
 describe('목록·상세', () => {
   it('목록: 필터·정렬·쪽', async () => {
     const r = await req('GET', '/v1/admin/station?limit=2&offset=1&sort=-name_ko');

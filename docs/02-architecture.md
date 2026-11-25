@@ -125,15 +125,17 @@ worker(수집기/에이전트) → POST /v1/agent/changesets (status draft, 근�
 
 ## 5. 배포
 
-| 서비스      | 이미지                                         | 포트(127.0.0.1) | 비고            |
-| ----------- | ---------------------------------------------- | --------------- | --------------- |
-| db          | postgis/postgis:17-3.5                         | 5433            | 볼륨, 일일 백업 |
-| s3          | chrislusf/seaweedfs (Q39 A)                    | 8333            | 문서 저장소     |
-| api         | apps/api                                       | 5100            |                 |
-| worker      | apps/worker                                    | —               |                 |
-| admin       | apps/admin(정적 파일 + nginx 또는 api 가 서빙) | 5200            | Access 뒤       |
-| web         | apps/web                                       | 5000            | Tunnel 대상     |
-| cloudflared | cloudflare/cloudflared                         | —               | 프로필 tunnel   |
+| 서비스      | 이미지                                         | 포트(127.0.0.1) | 비고                                    |
+| ----------- | ---------------------------------------------- | --------------- | --------------------------------------- |
+| db          | postgis/postgis:17-3.5                         | 5433            | 볼륨, 일일 백업                         |
+| s3          | chrislusf/seaweedfs (Q39 A)                    | 8333            | 문서 저장소                             |
+| api         | apps/api                                       | 5100            |                                         |
+| worker      | apps/worker                                    | —               |                                         |
+| admin       | apps/admin(정적 파일 + nginx 또는 api 가 서빙) | 5200            | 로컬(개발 우회)                         |
+| api-admin   | apps/api(NODE_ENV=production, Access JWT 검증) | —               | 프로필 admin-ext                        |
+| admin-ext   | apps/admin(nginx → api-admin)                  | —               | Tunnel 대상, Access 뒤(deploy-admin.md) |
+| web         | apps/web                                       | 5000            | Tunnel 대상                             |
+| cloudflared | cloudflare/cloudflared                         | —               | 프로필 tunnel                           |
 
 - 기존 서버 1대 + docker compose + Cloudflare Tunnel 을 승계한다(Q61 A). 포트 5000 은 web.
 - 관리 앱 완성 때 기존 시스템 데이터를 동결하고, 새 공개 사이트가 완성되면 기존 사이트를 닫고 새 사이트를 연다(07 문서 6절, Q5·Q67).
