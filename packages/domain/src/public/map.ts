@@ -73,7 +73,18 @@ export async function publicMapLines(db: Queryable, q: PublicMapAt): Promise<Fea
               'color_basis', CASE WHEN m.color IS NULL THEN 'status' ELSE 'line' END,
               'quality', 'osm', 'odbl', true, 'delayed', false, 'target_value', NULL, 'target_precision', NULL,
               'passenger', m.passenger_service) AS properties
-       FROM mv_map_line m ORDER BY m.line_id, m.is_construction`,
+       FROM mv_map_line m
+     UNION ALL
+     -- OSM 공사 선형이 없는 공사 중 노선은 공사 단계 계획의 계획 선형으로(0027 v_line_plan_shape)
+     SELECT 'line:' || s.line_id || ':construction', ST_AsGeoJSON(s.geom, 6)::json,
+            json_build_object('feature_id', 'line:' || s.line_id || ':construction',
+              'line_id', s.line_id, 'plan_id', s.plan_id, 'name_ko', l.name_ko, 'status', 'under_construction',
+              'stage', NULL, 'line_style', 'solid', 'color', l.color,
+              'color_basis', CASE WHEN l.color IS NULL THEN 'status' ELSE 'line' END,
+              'quality', s.quality, 'odbl', s.odbl, 'delayed', false, 'target_value', NULL, 'target_precision', NULL,
+              'passenger', l.passenger_service)
+       FROM v_line_plan_shape s JOIN line l ON l.id = s.line_id
+      ORDER BY 1`,
   );
   return {
     type: 'FeatureCollection',

@@ -250,6 +250,7 @@ export const QUALITY_RULES: readonly QualityRule[] = [
             FROM line l
            WHERE l.deleted_at IS NULL AND l.status = 'under_construction'
              AND NOT EXISTS (SELECT 1 FROM osm.v_line_geometry g WHERE g.line_id = l.id)
+             AND NOT EXISTS (SELECT 1 FROM v_line_plan_shape s WHERE s.line_id = l.id AND s.quality <> 'schematic')
           UNION ALL
           SELECT 'plan', p.id, p.name_ko || CASE WHEN sh.quality = 'schematic' THEN ' (개략 선형만)' ELSE '' END, '2' || p.name_ko
             FROM plan p

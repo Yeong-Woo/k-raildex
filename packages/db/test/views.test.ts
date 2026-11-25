@@ -434,6 +434,28 @@ describe('시점별 지도(미래 지도)', () => {
     }
   });
 
+  it('OSM 공사 선형이 없는 공사 중 노선은 공사 단계 계획의 계획 선형으로 목표 전에도 보인다(0027)', async () => {
+    await db.query('BEGIN');
+    try {
+      await db.query(`UPDATE line SET status = 'under_construction' WHERE id = 'line-two'`);
+      await db.query(`UPDATE plan_line SET line_id = 'line-two', role = 'new' WHERE plan_id = 'plan-ext'`);
+      const at = async (y: number) =>
+        (
+          await db.query(
+            `SELECT feature_id, status, quality FROM map_at_lines($1) WHERE line_id = 'line-two' ORDER BY feature_id`,
+            [y],
+          )
+        ).rows;
+      expect(await at(new Date().getFullYear())).toEqual([
+        { feature_id: 'line:line-two:construction', status: 'under_construction', quality: 'schematic' },
+      ]);
+      // 개통 목표(2029-H2) 이후에는 계획 선 하나만
+      expect(await at(2030)).toEqual([{ feature_id: 'plan:plan-ext', status: 'planned', quality: 'schematic' }]);
+    } finally {
+      await db.query('ROLLBACK');
+    }
+  });
+
   it('역 위치: 현재 지도(mv_map_station, 근사 좌표 스냅)와 같은 점', async () => {
     await db.query('SELECT refresh_derived()');
     const { rows } = await db.query(
