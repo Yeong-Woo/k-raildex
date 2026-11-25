@@ -393,15 +393,15 @@ describe('시점별 지도(미래 지도)', () => {
     expect(rows).not.toContain('plan:plan-replace');
   });
 
-  it('역: 2030 에 신설역 다역이 나타나고, 현재에는 없다', async () => {
+  it('역: 공사 중 신설역 다역은 개통 목표 전(현재)에도 보인다', async () => {
     const now = new Date().getFullYear();
     const st = async (y: number) =>
       (await db.query(`SELECT station_id FROM map_at_stations($1) ORDER BY 1`, [y])).rows.map((r) => r.station_id);
-    expect(await st(now)).toEqual(['stn-a', 'stn-b']);
+    expect(await st(now)).toEqual(['stn-a', 'stn-b', 'stn-c']);
     expect(await st(2030)).toEqual(['stn-a', 'stn-b', 'stn-c']);
   });
 
-  it('계획 하나가 노선 둘을 지으면 노선마다 이름·색이 따로 그려진다', async () => {
+  it('계획 하나가 노선 둘을 지으면 노선마다 따로, 목표 전에는 공사 중으로 그려진다', async () => {
     await db.query('BEGIN');
     try {
       await db.query(
@@ -419,6 +419,15 @@ describe('시점별 지도(미래 지도)', () => {
       expect(rows).toEqual([
         { feature_id: 'plan:plan-ext', name_ko: '일호선', color_basis: 'extends_line' },
         { feature_id: 'plan:plan-ext:line-two', name_ko: '이호선', color_basis: expect.any(String) },
+      ]);
+      // 개통 목표(2029-H2) 전 시점에도 공사 중 구간은 '공사 중'으로 보인다
+      const before = await db.query(
+        `SELECT feature_id, status FROM map_at_lines($1) WHERE feature_id LIKE '%:construction' ORDER BY feature_id`,
+        [new Date().getFullYear()],
+      );
+      expect(before.rows).toEqual([
+        { feature_id: 'line:line-one:construction', status: 'under_construction' },
+        { feature_id: 'line:line-two:construction', status: 'under_construction' },
       ]);
     } finally {
       await db.query('ROLLBACK');
