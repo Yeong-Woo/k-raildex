@@ -290,6 +290,18 @@ export const QUALITY_RULES: readonly QualityRule[] = [
                               WHERE rs.entity_id = o.id AND rs.field = 'merged_into_id' AND s.type IN ('law', 'notice'))`,
   },
   {
+    // Q124: 노선에 속했는데 좌표가 없는 역(시설·폐역·공사 중 포함 — V-S02 는 운영 중 여객역만 본다). 사용자가 관리 앱에서 직접 입력
+    id: 'X-station-no-coord',
+    title: '노선에 속했는데 좌표 없음(시설·폐역·공사 중 포함)',
+    sql: `SELECT 'station' AS entity_type, s.id AS entity_id,
+                 st.status || ' · ' || s.kind || ' · ' ||
+                 (SELECT string_agg(DISTINCT x.line_id, ', ') FROM line_station x WHERE x.station_id = s.id AND x.deleted_at IS NULL) AS detail,
+                 s.name_ko || s.id AS sort_key
+            FROM station s JOIN v_station_status st ON st.station_id = s.id
+           WHERE s.deleted_at IS NULL AND s.geom IS NULL AND s.coord_same_as_id IS NULL
+             AND EXISTS (SELECT 1 FROM line_station x WHERE x.station_id = s.id AND x.deleted_at IS NULL)`,
+  },
+  {
     id: 'X-source-license-unknown',
     title: '라이선스 미상(unknown) 출처',
     sql: `SELECT 'source' AS entity_type, s.id AS entity_id, s.title AS detail, s.id AS sort_key
