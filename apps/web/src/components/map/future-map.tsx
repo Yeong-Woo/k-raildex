@@ -781,7 +781,19 @@ function InfoCard({
       <>
         <p className="eyebrow">운행 계통</p>
         <h2 className="info-title">
-          <i className="dot" style={{ background: service?.color || '#F5B700' }} aria-hidden="true" />{' '}
+          <i
+            className="dot"
+            style={{
+              // 계통 색, 없으면 대표 노선 색(API 계산, Q127 A)
+              background:
+                (serviceFc && serviceFc !== 'loading'
+                  ? (serviceFc.features[0]?.properties.color as string | null)
+                  : null) ||
+                service?.color ||
+                '#F5B700',
+            }}
+            aria-hidden="true"
+          />{' '}
           {service?.name_ko ?? hash.service}
         </h2>
         {service ? <p className="fp-hint">{serviceKindLabel(service.kind)}</p> : null}

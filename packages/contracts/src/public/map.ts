@@ -94,7 +94,9 @@ export const publicMapServiceSchema = z
             service_id: z.string(),
             name_ko: z.string(),
             kind: z.string(),
+            /** 계통 색, 없으면 대표 노선 색(Q127 A, v_service_color). 둘 다 없으면 null */
             color: z.string().nullable(),
+            color_basis: z.enum(['service', 'line']).nullable(),
             /** operating = 정차 구간, under_construction·planned = 운행 예정 노선(정차역 없음) */
             status: z.string(),
             /** true = 선형이 없어 역 사이 직선 */

@@ -335,6 +335,8 @@ describe('지도(6.5)', () => {
     const svc = await ok('/v1/public/map/services/svc-fx-one.geojson', publicMapServiceSchema);
     expect(svc.service_id).toBe('svc-fx-one');
     for (const f of svc.features) expect(f.properties.service_id).toBe('svc-fx-one');
+    // 계통 색이 없으면 대표 노선(시험 1호선) 색(Q127 A)
+    expect(svc.features[0]!.properties).toMatchObject({ color: '#0052A4', color_basis: 'line' });
     expect((await get('/v1/public/map/services/svc-none.geojson')).statusCode).toBe(404);
   });
 });

@@ -161,9 +161,10 @@ export async function publicMapService(db: Queryable, id: string) {
   const { rows } = await db.query<FRow>(
     `SELECT g.service_id || ':' || g.status || CASE WHEN g.approximate THEN ':approx' ELSE '' END AS id,
             ST_AsGeoJSON(g.geom, 6)::json AS geometry,
-            json_build_object('service_id', s.id, 'name_ko', s.name_ko, 'kind', s.kind, 'color', s.color,
-              'status', g.status, 'approximate', g.approximate) AS properties
+            json_build_object('service_id', s.id, 'name_ko', s.name_ko, 'kind', s.kind, 'color', c.color,
+              'color_basis', c.color_basis, 'status', g.status, 'approximate', g.approximate) AS properties
        FROM mv_service_geometry g JOIN service s ON s.id = g.service_id
+       JOIN v_service_color c ON c.service_id = s.id
       WHERE g.service_id = $1
       ORDER BY g.status <> 'operating', g.approximate`,
     [id],

@@ -937,6 +937,7 @@ CREATE TABLE app_setting (key text PRIMARY KEY, value jsonb NOT NULL, updated_at
 2. 두 역(점 = `mv_map_station`)이 같은 선형 조각 위(300 m 안)면 그 사이를 자르고(`mv_service_segment`), 다른 조각이면 두 조각을 가까운 끝까지 이어 붙인다. 조각이 없으면 두 역 근처 통로(역 사이 거리 25%, 최소 1 km) 안의 노선 선형, 그것도 없으면 직선(`approximate`, 흐리게).
 3. 정차역이 하나도 없는 계통 노선(운행 예정 연장 — 1호선 연장 등)은 노선 선형 전체를 노선 상태(공사 중 등)로.
 4. 공개 API `GET /v1/public/map/services/{id}.geojson` — 계통·상태·approximate 별 MultiLineString. OSM 유래라 ODbL 표기.
+5. 표시 색(Q127 A, 뷰 `v_service_color`, 0028): 계통 `color`, 없으면 계통 노선(`seq` 순) 중 색이 있는 첫 노선의 색(`color_basis = line`), 둘 다 없으면 null(지도 강조 기본색). 저장하지 않는다.
 
 ## 7. 검색
 
