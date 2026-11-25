@@ -73,27 +73,43 @@ export const QUALITY_RULES: readonly QualityRule[] = [
   },
   {
     id: 'V-S04',
-    title: '같은 노선 인접 역 거리 30km 초과 또는 km 역행',
-    sql: `WITH seqd AS (
-            SELECT x.id, x.line_id, x.seq, x.km, s.geom,
-                   lag(x.id) OVER w AS prev_id, lag(x.km) OVER w AS prev_km, lag(s.geom) OVER w AS prev_geom
+    // 2026-11-25 사용자 지시: 상한을 정차역 종류로 — 양 끝이 고속열차(high_speed 계통) 정차역이면 80km,
+    // 고속·일반열차(intercity) 정차역이면 50km, 그 밖 30km. km 역행은 그대로 잡는다
+    title: '같은 노선 인접 역 거리 초과(고속 정차역 80km·일반열차 정차역 50km·그 밖 30km) 또는 km 역행',
+    sql: `WITH stops AS (
+            SELECT ls.station_id, bool_or(sv.kind = 'high_speed') AS hs
+              FROM stop_pattern_stop sps
+              JOIN stop_pattern sp ON sp.id = sps.pattern_id
+              JOIN service sv ON sv.id = sp.service_id AND sv.deleted_at IS NULL AND sv.kind IN ('high_speed', 'intercity')
+              JOIN line_station ls ON ls.id = sps.line_station_id AND ls.deleted_at IS NULL
+             GROUP BY ls.station_id
+          ), seqd AS (
+            SELECT x.id, x.line_id, x.seq, x.km, s.geom, x.station_id,
+                   lag(x.id) OVER w AS prev_id, lag(x.km) OVER w AS prev_km, lag(s.geom) OVER w AS prev_geom,
+                   lag(x.station_id) OVER w AS prev_station_id
               FROM line_station x
               JOIN line l ON l.id = x.line_id AND l.deleted_at IS NULL
               JOIN station s ON s.id = x.station_id
              WHERE x.deleted_at IS NULL
             WINDOW w AS (PARTITION BY x.line_id, coalesce(x.branch, '') ORDER BY x.seq)
+          ), lim AS (
+            SELECT d.*, ST_Distance(d.geom, d.prev_geom) AS dist,
+                   CASE WHEN a.hs AND b.hs THEN 80000 WHEN a.station_id IS NOT NULL AND b.station_id IS NOT NULL THEN 50000
+                        ELSE 30000 END AS max_m
+              FROM seqd d
+              LEFT JOIN stops a ON a.station_id = d.station_id
+              LEFT JOIN stops b ON b.station_id = d.prev_station_id
+             WHERE d.prev_id IS NOT NULL
           )
           SELECT 'line_station' AS entity_type, id AS entity_id,
                  concat_ws(', ',
-                   CASE WHEN geom IS NOT NULL AND prev_geom IS NOT NULL AND ST_Distance(geom, prev_geom) > 30000
-                        THEN '앞 역(' || prev_id || ')과 ' || round((ST_Distance(geom, prev_geom) / 1000)::numeric, 1) || 'km' END,
+                   CASE WHEN dist > max_m
+                        THEN '앞 역(' || prev_id || ')과 ' || round((dist / 1000)::numeric, 1) || 'km(상한 ' || max_m / 1000 || 'km)' END,
                    CASE WHEN km IS NOT NULL AND prev_km IS NOT NULL AND km < prev_km
                         THEN 'km 역행(' || prev_km || ' → ' || km || ')' END) AS detail,
                  line_id || lpad(seq::text, 5, '0') AS sort_key
-            FROM seqd
-           WHERE prev_id IS NOT NULL
-             AND ((geom IS NOT NULL AND prev_geom IS NOT NULL AND ST_Distance(geom, prev_geom) > 30000)
-               OR (km IS NOT NULL AND prev_km IS NOT NULL AND km < prev_km))`,
+            FROM lim
+           WHERE dist > max_m OR (km IS NOT NULL AND prev_km IS NOT NULL AND km < prev_km)`,
   },
   {
     id: 'V-S05',
