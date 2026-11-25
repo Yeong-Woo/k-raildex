@@ -48,6 +48,7 @@ describe('옛 id 301(FR-WEB-004, Q69 A)', () => {
 describe('기존 사이트에만 있던 경로·쿼리(WP 7.6 크롤)', () => {
   it('5년 단위 연표 → 10년 단위', () => {
     expect(legacyRouteRedirect('/timeline/2005-2009/', '')).toBe('/timeline/2000s/');
+    expect(legacyRouteRedirect('/route-maps/korail-national-20250101.jpg', '')).toBe('/maps/');
     expect(legacyRouteRedirect('/timeline/2020-2024/', '?area=all')).toBe('/timeline/2020s/?area=all');
     expect(legacyRouteRedirect('/timeline/2010s/', '')).toBeNull();
   });

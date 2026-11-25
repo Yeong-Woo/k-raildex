@@ -48,5 +48,6 @@ export async function proxy(req: NextRequest) {
 
 export const config = {
   // 페이지 경로만(정적 파일·Route Handler·파일 확장자 경로 제외)
-  matcher: ['/((?!_next/|api/|.*\\.[A-Za-z0-9]+$).*)'],
+  // 기존 노선도 이미지 주소(`/route-maps/*.jpg`)는 확장자가 있어도 받는다
+  matcher: ['/((?!_next/|api/|.*\\.[A-Za-z0-9]+$).*)', '/route-maps/:path*'],
 };

@@ -89,6 +89,8 @@ export function legacyRouteRedirect(pathname: string, search: string): string | 
   const five = /^\/timeline\/(\d{4})-(\d{4})\/$/.exec(pathname);
   if (five) path = `/timeline/${Math.floor(Number(five[1]) / 10) * 10}s/`;
   else if (pathname === '/system-summary/') path = '/about/';
+  // 기존 노선도 원본 이미지(`/route-maps/<파일>.jpg`) → 노선도 페이지(원본은 문서로 게시, round-06 Q131 A)
+  else if (pathname.startsWith('/route-maps/')) return '/maps/';
   const qs = new URLSearchParams(search);
   let qChanged = false;
   if ((pathname === '/stations/' || pathname.startsWith('/stations/region/')) && qs.has('status')) {
