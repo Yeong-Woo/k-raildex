@@ -1,4 +1,4 @@
-import { expect, test, toast } from './fixtures';
+import { expect, pickRef, test, toast } from './fixtures';
 
 test('정차 패턴 매트릭스: 셀을 눌러 정차/통과를 바꾸고 저장', async ({ page }) => {
   await page.goto('/data/service/svc-fx-one');
@@ -185,4 +185,57 @@ test('품질 X-station-split: [분리 유지]는 메모로 빠지고, [병합…
   expect((await page.request.get(`${api}/v1/admin/station/stn-e2e-split`)).status()).toBe(404);
   const ls = await (await page.request.get(`${api}/v1/admin/line-station/ls-fx-two--e2e-split`)).json();
   expect(ls.data.station_id).toBe('stn-fx-c');
+});
+
+test('역 상세: 중복 역을 [병합…]으로 합치고 [ID 변경…]으로 대표 id 를 바꾼다', async ({ page }) => {
+  const api = process.env.E2E_API_URL;
+  for (const [id, line, seq] of [
+    ['e2e-dup-a', 'line-fx-one', 12],
+    ['e2e-dup-b', 'line-fx-two', 12],
+  ] as const) {
+    const st = await page.request.post(`${api}/v1/admin/station`, {
+      data: {
+        id: `stn-${id}`,
+        name_ko: '중복역',
+        region_code: '41',
+        checked_at: '2026-01-01',
+        sources: [{ source_id: 'src-fixture-notice' }],
+      },
+    });
+    expect(st.ok(), await st.text()).toBe(true);
+    const ls = await page.request.post(`${api}/v1/admin/line-station`, {
+      data: { id: `ls-${line.slice(5)}--${id}`, line_id: line, station_id: `stn-${id}`, seq, status: 'operating' },
+    });
+    expect(ls.ok(), await ls.text()).toBe(true);
+  }
+  // b → a 병합(역 상세에서 대상 역을 직접 고른다)
+  await page.goto('/data/station/stn-e2e-dup-b');
+  await page.getByTestId('merge-open').click();
+  const dlg = page.getByTestId('merge-dialog');
+  await pickRef(page, dlg, 'stn-e2e-dup-a', /중복역/);
+  await expect(dlg).toContainText('stn-e2e-dup-a');
+  await expect(dlg.getByTestId('merge-line-stations')).toContainText('대상 역 아래로 옮김');
+  await dlg.getByLabel('병합 사유(필수)').fill('같은 역 중복');
+  await page.getByTestId('merge-apply').click();
+  await expect(toast(page, '병합했습니다')).toBeVisible();
+  await expect(page).toHaveURL(/\/data\/station\/stn-e2e-dup-a/);
+
+  // a → stn-e2e-dup 로 ID 변경
+  await page.getByTestId('rename-open').click();
+  const rd = page.getByTestId('rename-dialog');
+  await rd.getByLabel(/새 id/).fill('stn-e2e-dup');
+  await expect(page.getByTestId('rename-apply')).toBeDisabled();
+  await page.getByTestId('rename-check').click();
+  await expect(rd.getByTestId('rename-ok')).toBeVisible();
+  await rd.getByLabel('변경 사유(필수)').fill('대표 id');
+  await page.getByTestId('rename-apply').click();
+  await expect(toast(page, 'ID 를 stn-e2e-dup 로 바꿨습니다')).toBeVisible();
+  await expect(page).toHaveURL(/\/data\/station\/stn-e2e-dup$/);
+  const r = await (await page.request.get(`${api}/v1/admin/line-station/ls-fx-two--e2e-dup-b`)).json();
+  expect(r.data.station_id).toBe('stn-e2e-dup');
+  // 옛 id(병합으로 휴지통에 간 id 포함)로는 다시 못 바꾼다
+  await page.getByTestId('rename-open').click();
+  await rd.getByLabel(/새 id/).fill('stn-e2e-dup-b');
+  await page.getByTestId('rename-check').click();
+  await expect(rd.getByTestId('rename-error')).toContainText(/이미 있음|예약된 옛 id/);
 });

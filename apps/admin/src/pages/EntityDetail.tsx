@@ -25,6 +25,7 @@ import { LineStationsEditor } from '../editors/LineStationsEditor';
 import { StationLineStations } from '../editors/StationLineStations';
 import { AttachmentsTab } from '../editors/AttachmentsTab';
 import { MergeStationButton } from '../editors/MergeStation';
+import { RenameIdButton } from '../editors/RenameId';
 
 type Obj = Record<string, unknown>;
 interface EntityResponse {
@@ -225,7 +226,17 @@ function Detail({ type, id, tab }: { type: EntityType; id: string; tab: string }
                 : '검수 전'}
           </Badge>
         ) : null}
-        <div className="ml-auto flex gap-2">
+        <div className="ml-auto flex flex-wrap justify-end gap-2">
+          {!isNew && !deleted ? (
+            <RenameIdButton
+              type={type}
+              id={id}
+              referenceCount={q.data?.referenced_by.total}
+              onDone={(nid) =>
+                void navigate({ to: '/data/$type/$id', params: { type: toSlug(type), id: nid }, search: {} })
+              }
+            />
+          ) : null}
           {type === 'station' && !isNew && !deleted ? (
             <MergeStationButton
               size="md"
