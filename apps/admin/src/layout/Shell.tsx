@@ -1,7 +1,7 @@
 import { Link, Outlet, useNavigate } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 import { entityUiMeta } from '@k-raildex/contracts';
-import { cn } from '@k-raildex/ui';
+import { BrandMark, cn } from '@k-raildex/ui';
 import {
   Cog,
   Database,
@@ -84,7 +84,10 @@ export function Shell() {
   return (
     <div className="flex min-h-screen">
       <aside className="sticky top-0 flex h-screen w-56 shrink-0 flex-col gap-4 overflow-y-auto border-r border-border bg-bg-elevated p-3">
-        <div className="px-2 text-sm font-bold">한국철도도감 · 관리</div>
+        <div className="flex items-center gap-2 px-2 text-sm font-bold">
+          <BrandMark size={22} className="shrink-0" />
+          한국철도도감 · 관리
+        </div>
         <button
           onClick={() => setSearchOpen(true)}
           className="flex items-center gap-2 rounded-md border border-border px-2 py-1.5 text-sm text-fg-muted hover:bg-muted"

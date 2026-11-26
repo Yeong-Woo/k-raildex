@@ -6,3 +6,4 @@ export * from './display';
 export * from './tabs';
 export * from './dialog';
 export * from './tokens';
+export * from './brand';

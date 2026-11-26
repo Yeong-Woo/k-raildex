@@ -36,6 +36,9 @@ export const colorTokens = {
   'accent-fg': ['oklch(0.99 0 0)', 'oklch(0.18 0.02 258)'],
   'accent-soft': ['oklch(0.94 0.03 258)', 'oklch(0.31 0.06 258)'],
   'accent-soft-fg': ['oklch(0.38 0.13 258)', `oklch(0.87 0.07 ${N})`],
+  /** 로고(brand.tsx) 갈래 노선 색 — 세로 노선은 accent. 특정 기관 노선 색이 아닌 일반 노선도 색(2026-11-26 D1안) */
+  'brand-green': ['oklch(0.6 0.14 150)', 'oklch(0.6 0.14 150)'],
+  'brand-amber': ['oklch(0.74 0.15 65)', 'oklch(0.74 0.15 65)'],
   link: ['oklch(0.45 0.15 258)', `oklch(0.78 0.11 ${N})`],
   'link-visited': ['oklch(0.44 0.15 300)', 'oklch(0.78 0.11 300)'],
   /** 포커스 고리 — 노선 색과 겹치지 않는 주황(기존 사이트 승계), 면 위 3:1 이상 */

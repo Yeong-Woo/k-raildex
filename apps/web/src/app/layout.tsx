@@ -6,7 +6,7 @@ import './globals.css';
 import { SiteFooter, SiteHeader } from '@/components/site-chrome';
 import { THEME_KEY } from '@/lib/theme';
 import { getVersion } from '@/lib/data';
-import { SITE_NAME, siteUrl } from '@/lib/site';
+import { OG_IMAGE, SITE_NAME, siteUrl } from '@/lib/site';
 
 // 데이터는 요청 때 공개 API 에서(FR-WEB-001) — 빌드 때 미리 그리지 않는다. fetch 캐시(30초·태그)는 lib/api.ts
 export const dynamic = 'force-dynamic';
@@ -16,7 +16,8 @@ export const metadata: Metadata = {
   title: { default: `${SITE_NAME} — 대한민국 철도의 지금과 앞으로`, template: `%s · ${SITE_NAME}` },
   description: '대한민국 철도의 노선·역·운행 계통·시간표와 계획 사업을 출처와 함께 정리한 비상업 공개 자료.',
   applicationName: SITE_NAME,
-  openGraph: { siteName: SITE_NAME, locale: 'ko_KR', type: 'website' },
+  openGraph: { siteName: SITE_NAME, locale: 'ko_KR', type: 'website', images: [OG_IMAGE] },
+  twitter: { card: 'summary_large_image', images: [OG_IMAGE.url] },
   formatDetection: { telephone: false },
 };
 

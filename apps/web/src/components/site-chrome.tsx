@@ -1,4 +1,5 @@
 /** 머리·바닥(모든 페이지 공통). 비상업 고지와 출처·라이선스 문구(NFR-WEB-004)는 바닥에 늘 보인다 */
+import { BrandMark } from '@k-raildex/ui/brand';
 import { paths } from '@/lib/urls';
 import { NavLinks, type NavItem } from './nav-links';
 import { ThemeToggle } from './theme-toggle';
@@ -12,28 +13,12 @@ export const NAV: NavItem[] = [
   { href: paths.timeline(), label: '연표', match: '/timeline/' },
 ];
 
-function Logo() {
-  return (
-    <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true">
-      <rect width="32" height="32" rx="8" fill="var(--kr-accent)" />
-      <path
-        d="M9 24 16 7l7 17M11.5 18h9"
-        stroke="var(--kr-accent-fg)"
-        strokeWidth="2.6"
-        fill="none"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
 export function SiteHeader() {
   return (
     <header className="site-header">
       <div className="in">
         <a className="brand" href="/">
-          <Logo />
+          <BrandMark size={28} />
           <span>한국철도도감</span>
         </a>
         <NavLinks items={NAV} />

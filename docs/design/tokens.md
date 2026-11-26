@@ -22,69 +22,70 @@
 
 대비 보장(시험으로 강제): 본문 `fg` 7:1 이상, 모든 글자 토큰 4.5:1 이상(자기 `-soft`·`-bg` 바탕 위 포함), 표시용(`*-mark`, 단계 띠 색, `border-strong`, `focus`) 3:1 이상(SC 1.4.11).
 
-| 토큰                             | 라이트 (OKLCH · hex)                 | 다크 (OKLCH · hex)               |
-| -------------------------------- | ------------------------------------ | -------------------------------- |
-| `bg`                             | `oklch(0.975 0.003 255)` #F5F7F9     | `oklch(0.185 0.009 255)` #101317 |
-| `surface`                        | `oklch(1 0 0)` #FFFFFF               | `oklch(0.22 0.011 255)` #171B20  |
-| `surface-muted`                  | `oklch(0.955 0.005 255)` #EEF0F3     | `oklch(0.26 0.012 255)` #20242A  |
-| `surface-sunken`                 | `oklch(0.935 0.006 255)` #E7EAED     | `oklch(0.16 0.008 255)` #0B0D11  |
-| `overlay`                        | `oklch(0.2 0.02 255 / 0.45)` #10171F | `oklch(0 0 0 / 0.6)` #000000     |
-| `fg`                             | `oklch(0.22 0.014 255)` #161B21      | `oklch(0.94 0.005 255)` #E9EBEE  |
-| `fg-muted`                       | `oklch(0.44 0.016 255)` #4D535B      | `oklch(0.77 0.012 255)` #AFB5BC  |
-| `fg-subtle`                      | `oklch(0.52 0.014 255)` #646971      | `oklch(0.69 0.012 255)` #969CA3  |
-| `border`                         | `oklch(0.9 0.006 255)` #DBDEE2       | `oklch(0.33 0.012 255)` #31363C  |
-| `border-strong`                  | `oklch(0.62 0.012 255)` #81878D      | `oklch(0.54 0.014 255)` #696F77  |
-| `accent`                         | `oklch(0.47 0.15 258)` #1A57AD       | `oklch(0.76 0.12 255)` #7CB4FC   |
-| `accent-fg`                      | `oklch(0.99 0 0)` #FCFCFC            | `oklch(0.18 0.02 258)` #0C121A   |
-| `accent-soft`                    | `oklch(0.94 0.03 258)` #DFECFF       | `oklch(0.31 0.06 258)` #1C314E   |
-| `accent-soft-fg`                 | `oklch(0.38 0.13 258)` #0A3F86       | `oklch(0.87 0.07 255)` #B6D7FF   |
-| `link`                           | `oklch(0.45 0.15 258)` #1351A6       | `oklch(0.78 0.11 255)` #87BAFD   |
-| `link-visited`                   | `oklch(0.44 0.15 300)` #613897       | `oklch(0.78 0.11 300)` #C2A7F4   |
-| `focus`                          | `oklch(0.66 0.17 55)` #DE6F00        | `oklch(0.8 0.15 75)` #F5AE39     |
-| `danger`                         | `oklch(0.5 0.18 27)` #B32322         | `oklch(0.72 0.15 25)` #F47B74    |
-| `danger-fg`                      | `oklch(0.99 0 0)` #FCFCFC            | `oklch(0.18 0.02 25)` #1A0E0D    |
-| `danger-soft`                    | `oklch(0.95 0.025 27)` #FFE9E6       | `oklch(0.31 0.07 25)` #4E201E    |
-| `warn`                           | `oklch(0.5 0.11 65)` #8D5406         | `oklch(0.8 0.13 80)` #E9B452     |
-| `warn-fg`                        | `oklch(0.99 0 0)` #FCFCFC            | `oklch(0.2 0.03 75)` #1E1406     |
-| `warn-soft`                      | `oklch(0.95 0.05 85)` #FEEDC9        | `oklch(0.32 0.06 75)` #442E09    |
-| `good`                           | `oklch(0.47 0.11 150)` #206B38       | `oklch(0.78 0.13 150)` #76CF8A   |
-| `good-fg`                        | `oklch(0.99 0 0)` #FCFCFC            | `oklch(0.2 0.03 150)` #0C1A0F    |
-| `good-soft`                      | `oklch(0.95 0.04 150)` #DCF7E1       | `oklch(0.3 0.05 150)` #1A3520    |
-| `info`                           | `oklch(0.47 0.15 258)` #1A57AD       | `oklch(0.76 0.12 255)` #7CB4FC   |
-| `info-soft`                      | `oklch(0.94 0.03 258)` #DFECFF       | `oklch(0.31 0.06 258)` #1C314E   |
-| `status-operating-fg`            | `oklch(0.4 0.1 150)` #115629         | `oklch(0.86 0.1 150)` #A1E4AE    |
-| `status-operating-bg`            | `oklch(0.94 0.05 150)` #D5F5DA       | `oklch(0.31 0.06 150)` #17391F   |
-| `status-operating-mark`          | `oklch(0.58 0.14 150)` #2A904B       | `oklch(0.72 0.15 150)` #53BE70   |
-| `status-under_construction-fg`   | `oklch(0.42 0.09 70)` #6C4302        | `oklch(0.88 0.11 90)` #F4D580    |
-| `status-under_construction-bg`   | `oklch(0.95 0.07 90)` #FFEDB9        | `oklch(0.33 0.06 75)` #47300C    |
-| `status-under_construction-mark` | `oklch(0.64 0.15 58)` #CE710C        | `oklch(0.78 0.15 70)` #F4A437    |
-| `status-planned-fg`              | `oklch(0.4 0.13 258)` #11458C        | `oklch(0.87 0.07 255)` #B6D7FF   |
-| `status-planned-bg`              | `oklch(0.94 0.035 258)` #DDECFF      | `oklch(0.31 0.06 258)` #1C314E   |
-| `status-planned-mark`            | `oklch(0.58 0.15 258)` #3C79D1       | `oklch(0.7 0.13 258)` #6A9FEE    |
-| `status-suspended-fg`            | `oklch(0.43 0.12 45)` #833404        | `oklch(0.86 0.08 55)` #FBC49F    |
-| `status-suspended-bg`            | `oklch(0.94 0.04 50)` #FFE4D4        | `oklch(0.32 0.06 50)` #4B2915    |
-| `status-suspended-mark`          | `oklch(0.66 0.16 45)` #DF6C32        | `oklch(0.74 0.14 50)` #F08E54    |
-| `status-closed-fg`               | `oklch(0.42 0.13 25)` #862726        | `oklch(0.86 0.07 20)` #FCBFBE    |
-| `status-closed-bg`               | `oklch(0.94 0.03 20)` #FFE4E3        | `oklch(0.31 0.07 22)` #4E2020    |
-| `status-closed-mark`             | `oklch(0.58 0.17 25)` #CB4644        | `oklch(0.7 0.15 25)` #ED756E     |
-| `status-abandoned-fg`            | `oklch(0.4 0.01 255)` #44484D        | `oklch(0.84 0.008 255)` #C7CBD0  |
-| `status-abandoned-bg`            | `oklch(0.93 0.004 255)` #E6E8EA      | `oklch(0.29 0.008 255)` #292C2F  |
-| `status-abandoned-mark`          | `oklch(0.62 0.01 255)` #82878C       | `oklch(0.6 0.01 255)` #7C8186    |
-| `stage-early`                    | `oklch(0.62 0.03 255)` #7A8798       | `oklch(0.62 0.03 255)` #7A8798   |
-| `stage-early-fg`                 | `oklch(0.4 0.03 255)` #3D4958        | `oklch(0.82 0.02 255)` #BCC5D1   |
-| `stage-study`                    | `oklch(0.55 0.15 300)` #8059BB       | `oklch(0.7 0.13 300)` #AB8BE3    |
-| `stage-study-fg`                 | `oklch(0.42 0.15 300)` #5B3291       | `oklch(0.84 0.09 300)` #D3BEFD   |
-| `stage-design`                   | `oklch(0.52 0.15 255)` #1F68BC       | `oklch(0.7 0.13 255)` #64A1EE    |
-| `stage-design-fg`                | `oklch(0.42 0.14 255)` #004B97       | `oklch(0.84 0.08 255)` #A8CEFF   |
-| `stage-build`                    | `oklch(0.65 0.15 60)` #D0750A        | `oklch(0.78 0.14 70)` #F0A646    |
-| `stage-build-fg`                 | `oklch(0.43 0.1 65)` #744200         | `oklch(0.86 0.11 80)` #F7C97B    |
-| `stage-open`                     | `oklch(0.55 0.14 150)` #1C8742       | `oklch(0.72 0.14 150)` #5BBD74   |
-| `stage-open-fg`                  | `oklch(0.4 0.1 150)` #115629         | `oklch(0.85 0.1 150)` #9EE1AB    |
-| `stage-stopped`                  | `oklch(0.6 0.01 255)` #7C8186        | `oklch(0.56 0.01 255)` #71757A   |
-| `stage-stopped-fg`               | `oklch(0.42 0.01 255)` #494D53       | `oklch(0.8 0.01 255)` #B9BEC4    |
-| `review-fg`                      | `oklch(0.43 0.09 75)` #6C4701        | `oklch(0.88 0.1 88)` #F3D489     |
-| `review-bg`                      | `oklch(0.96 0.05 90)` #FFF1CC        | `oklch(0.32 0.06 80)` #432F07    |
-| `review-border`                  | `oklch(0.72 0.12 80)` #CC9C42        | `oklch(0.56 0.09 82)` #8F6F30    |
+| 토큰                             | 라이트 (OKLCH · hex)                                          | 다크 (OKLCH · hex)               |
+| -------------------------------- | ------------------------------------------------------------- | -------------------------------- |
+| `bg`                             | `oklch(0.975 0.003 255)` #F5F7F9                              | `oklch(0.185 0.009 255)` #101317 |
+| `surface`                        | `oklch(1 0 0)` #FFFFFF                                        | `oklch(0.22 0.011 255)` #171B20  |
+| `surface-muted`                  | `oklch(0.955 0.005 255)` #EEF0F3                              | `oklch(0.26 0.012 255)` #20242A  |
+| `surface-sunken`                 | `oklch(0.935 0.006 255)` #E7EAED                              | `oklch(0.16 0.008 255)` #0B0D11  |
+| `overlay`                        | `oklch(0.2 0.02 255 / 0.45)` #10171F                          | `oklch(0 0 0 / 0.6)` #000000     |
+| `fg`                             | `oklch(0.22 0.014 255)` #161B21                               | `oklch(0.94 0.005 255)` #E9EBEE  |
+| `fg-muted`                       | `oklch(0.44 0.016 255)` #4D535B                               | `oklch(0.77 0.012 255)` #AFB5BC  |
+| `fg-subtle`                      | `oklch(0.52 0.014 255)` #646971                               | `oklch(0.69 0.012 255)` #969CA3  |
+| `border`                         | `oklch(0.9 0.006 255)` #DBDEE2                                | `oklch(0.33 0.012 255)` #31363C  |
+| `border-strong`                  | `oklch(0.62 0.012 255)` #81878D                               | `oklch(0.54 0.014 255)` #696F77  |
+| `accent`                         | `oklch(0.47 0.15 258)` #1A57AD                                | `oklch(0.76 0.12 255)` #7CB4FC   |
+| `accent-fg`                      | `oklch(0.99 0 0)` #FCFCFC                                     | `oklch(0.18 0.02 258)` #0C121A   |
+| `accent-soft`                    | `oklch(0.94 0.03 258)` #DFECFF                                | `oklch(0.31 0.06 258)` #1C314E   |
+| `accent-soft-fg`                 | `oklch(0.38 0.13 258)` #0A3F86                                | `oklch(0.87 0.07 255)` #B6D7FF   |
+| `brand-green` · `brand-amber`    | `oklch(0.6 0.14 150)` #319751 · `oklch(0.74 0.15 65)` #EA942F | 같음                             |
+| `link`                           | `oklch(0.45 0.15 258)` #1351A6                                | `oklch(0.78 0.11 255)` #87BAFD   |
+| `link-visited`                   | `oklch(0.44 0.15 300)` #613897                                | `oklch(0.78 0.11 300)` #C2A7F4   |
+| `focus`                          | `oklch(0.66 0.17 55)` #DE6F00                                 | `oklch(0.8 0.15 75)` #F5AE39     |
+| `danger`                         | `oklch(0.5 0.18 27)` #B32322                                  | `oklch(0.72 0.15 25)` #F47B74    |
+| `danger-fg`                      | `oklch(0.99 0 0)` #FCFCFC                                     | `oklch(0.18 0.02 25)` #1A0E0D    |
+| `danger-soft`                    | `oklch(0.95 0.025 27)` #FFE9E6                                | `oklch(0.31 0.07 25)` #4E201E    |
+| `warn`                           | `oklch(0.5 0.11 65)` #8D5406                                  | `oklch(0.8 0.13 80)` #E9B452     |
+| `warn-fg`                        | `oklch(0.99 0 0)` #FCFCFC                                     | `oklch(0.2 0.03 75)` #1E1406     |
+| `warn-soft`                      | `oklch(0.95 0.05 85)` #FEEDC9                                 | `oklch(0.32 0.06 75)` #442E09    |
+| `good`                           | `oklch(0.47 0.11 150)` #206B38                                | `oklch(0.78 0.13 150)` #76CF8A   |
+| `good-fg`                        | `oklch(0.99 0 0)` #FCFCFC                                     | `oklch(0.2 0.03 150)` #0C1A0F    |
+| `good-soft`                      | `oklch(0.95 0.04 150)` #DCF7E1                                | `oklch(0.3 0.05 150)` #1A3520    |
+| `info`                           | `oklch(0.47 0.15 258)` #1A57AD                                | `oklch(0.76 0.12 255)` #7CB4FC   |
+| `info-soft`                      | `oklch(0.94 0.03 258)` #DFECFF                                | `oklch(0.31 0.06 258)` #1C314E   |
+| `status-operating-fg`            | `oklch(0.4 0.1 150)` #115629                                  | `oklch(0.86 0.1 150)` #A1E4AE    |
+| `status-operating-bg`            | `oklch(0.94 0.05 150)` #D5F5DA                                | `oklch(0.31 0.06 150)` #17391F   |
+| `status-operating-mark`          | `oklch(0.58 0.14 150)` #2A904B                                | `oklch(0.72 0.15 150)` #53BE70   |
+| `status-under_construction-fg`   | `oklch(0.42 0.09 70)` #6C4302                                 | `oklch(0.88 0.11 90)` #F4D580    |
+| `status-under_construction-bg`   | `oklch(0.95 0.07 90)` #FFEDB9                                 | `oklch(0.33 0.06 75)` #47300C    |
+| `status-under_construction-mark` | `oklch(0.64 0.15 58)` #CE710C                                 | `oklch(0.78 0.15 70)` #F4A437    |
+| `status-planned-fg`              | `oklch(0.4 0.13 258)` #11458C                                 | `oklch(0.87 0.07 255)` #B6D7FF   |
+| `status-planned-bg`              | `oklch(0.94 0.035 258)` #DDECFF                               | `oklch(0.31 0.06 258)` #1C314E   |
+| `status-planned-mark`            | `oklch(0.58 0.15 258)` #3C79D1                                | `oklch(0.7 0.13 258)` #6A9FEE    |
+| `status-suspended-fg`            | `oklch(0.43 0.12 45)` #833404                                 | `oklch(0.86 0.08 55)` #FBC49F    |
+| `status-suspended-bg`            | `oklch(0.94 0.04 50)` #FFE4D4                                 | `oklch(0.32 0.06 50)` #4B2915    |
+| `status-suspended-mark`          | `oklch(0.66 0.16 45)` #DF6C32                                 | `oklch(0.74 0.14 50)` #F08E54    |
+| `status-closed-fg`               | `oklch(0.42 0.13 25)` #862726                                 | `oklch(0.86 0.07 20)` #FCBFBE    |
+| `status-closed-bg`               | `oklch(0.94 0.03 20)` #FFE4E3                                 | `oklch(0.31 0.07 22)` #4E2020    |
+| `status-closed-mark`             | `oklch(0.58 0.17 25)` #CB4644                                 | `oklch(0.7 0.15 25)` #ED756E     |
+| `status-abandoned-fg`            | `oklch(0.4 0.01 255)` #44484D                                 | `oklch(0.84 0.008 255)` #C7CBD0  |
+| `status-abandoned-bg`            | `oklch(0.93 0.004 255)` #E6E8EA                               | `oklch(0.29 0.008 255)` #292C2F  |
+| `status-abandoned-mark`          | `oklch(0.62 0.01 255)` #82878C                                | `oklch(0.6 0.01 255)` #7C8186    |
+| `stage-early`                    | `oklch(0.62 0.03 255)` #7A8798                                | `oklch(0.62 0.03 255)` #7A8798   |
+| `stage-early-fg`                 | `oklch(0.4 0.03 255)` #3D4958                                 | `oklch(0.82 0.02 255)` #BCC5D1   |
+| `stage-study`                    | `oklch(0.55 0.15 300)` #8059BB                                | `oklch(0.7 0.13 300)` #AB8BE3    |
+| `stage-study-fg`                 | `oklch(0.42 0.15 300)` #5B3291                                | `oklch(0.84 0.09 300)` #D3BEFD   |
+| `stage-design`                   | `oklch(0.52 0.15 255)` #1F68BC                                | `oklch(0.7 0.13 255)` #64A1EE    |
+| `stage-design-fg`                | `oklch(0.42 0.14 255)` #004B97                                | `oklch(0.84 0.08 255)` #A8CEFF   |
+| `stage-build`                    | `oklch(0.65 0.15 60)` #D0750A                                 | `oklch(0.78 0.14 70)` #F0A646    |
+| `stage-build-fg`                 | `oklch(0.43 0.1 65)` #744200                                  | `oklch(0.86 0.11 80)` #F7C97B    |
+| `stage-open`                     | `oklch(0.55 0.14 150)` #1C8742                                | `oklch(0.72 0.14 150)` #5BBD74   |
+| `stage-open-fg`                  | `oklch(0.4 0.1 150)` #115629                                  | `oklch(0.85 0.1 150)` #9EE1AB    |
+| `stage-stopped`                  | `oklch(0.6 0.01 255)` #7C8186                                 | `oklch(0.56 0.01 255)` #71757A   |
+| `stage-stopped-fg`               | `oklch(0.42 0.01 255)` #494D53                                | `oklch(0.8 0.01 255)` #B9BEC4    |
+| `review-fg`                      | `oklch(0.43 0.09 75)` #6C4701                                 | `oklch(0.88 0.1 88)` #F3D489     |
+| `review-bg`                      | `oklch(0.96 0.05 90)` #FFF1CC                                 | `oklch(0.32 0.06 80)` #432F07    |
+| `review-border`                  | `oklch(0.72 0.12 80)` #CC9C42                                 | `oklch(0.56 0.09 82)` #8F6F30    |
 
 그림자 `shadow-sm/md/lg` 도 배색별로 다르다(다크는 검정 투명도를 키움).
 
@@ -133,3 +134,11 @@
 | `station-detail.html` | 서울역: 노선별 색 띠, 노선별 카드(역번호·이웃 역·운영기관), 시간대별 열차 수 막대, 관련 계획 |
 | `plan-detail.html`    | 부전~마산 복선전철: 12단계 진행 띠, 기대 일정(근거·발표 시점), 단계 이력 타임라인, 반영 내역 |
 | `future-map.html`     | 미래 지도 2034: 옆 패널(현재/미래·연도·단계 필터·범례·새 노선 목록), 연도 띠, 계획 정보 창   |
+
+## 로고(2026-11-26 D1안 "환승점 K")
+
+- 파랑 세로 노선(`accent`)과 거기서 갈라지는 초록(`brand-green`)·노랑(`brand-amber`) 노선이 K 를 이루고, 세 노선이 만나는 자리가 환승역 고리(`fg`)다. 바탕은 `surface` 타일 + `border` 테두리.
+- 모양의 단일 정의: `packages/ui/src/brand.tsx`(`BRAND_GEOMETRY`). 화면은 `<BrandMark />`(토큰 색 — 라이트·다크를 따른다), 공개 사이트 머리·관리 앱 사이드바에 쓴다.
+- 정적 파일: `apps/web/src/app/icon.svg`(파비콘)·`apps/admin/public/favicon.svg` = `brandMarkSvg('light')`. 시험 `packages/ui/test/brand.test.ts` 가 일치를 확인하고, `UPDATE_BRAND=1` 로 다시 만든다.
+- PNG: `apps/web/src/app/apple-icon.png`(180, 테두리 없이 꽉 채움)·`apps/web/public/opengraph-image.png`(1200×630, 기호 + 한국철도도감 · K-RAILDEX · 부제) — `node apps/web/scripts/brand-images.mjs`. 공유 이미지는 `lib/site.ts` 의 `OG_IMAGE` 로 모든 페이지 메타데이터에 넣는다.
+- 노선 색은 특정 운영기관의 노선 색이 아닌 일반 노선도 색이다.

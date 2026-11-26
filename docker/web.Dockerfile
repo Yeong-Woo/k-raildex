@@ -14,6 +14,7 @@ WORKDIR /app
 # standalone = 서버 + 추적된 node_modules(모노레포 구조 그대로). 정적 파일·public 은 따로 복사한다
 COPY --from=build --chown=node:node /app/apps/web/.next/standalone ./
 COPY --from=build --chown=node:node /app/apps/web/.next/static ./apps/web/.next/static
+COPY --from=build --chown=node:node /app/apps/web/public ./apps/web/public
 USER node
 EXPOSE 3000
 CMD ["node", "apps/web/server.js"]

@@ -7,6 +7,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./tokens": "./src/tokens.ts",
+    "./brand": "./src/brand.tsx",
     "./tokens.css": "./src/tokens.css",
     "./tailwind.css": "./src/tailwind.css",
     "./base.css": "./src/base.css"
