@@ -19,6 +19,7 @@ import {
   mapAtLines,
   mapAtStations,
   mapTimeline,
+  mergePreview,
   MemoryObjectStore,
   qualityItems,
   qualitySummary,
@@ -437,6 +438,84 @@ describe('품질·지도(픽스처)', () => {
       { op: 'update', entity_type: 'line_station', id: 'ls-fx-two--fx-e', data: { km: null } },
       { op: 'delete', entity_type: 'line_station', id: 'ls-fx-two--q-far' },
     ]);
+  });
+
+  it('분리 정거장(X-station-split): 분리 유지 메모면 빠지고, 미리 보기 → 근거 출처와 함께 병합', async () => {
+    const hits = async () =>
+      (await qualityItems(db, 'X-station-split', { limit: 50, offset: 0 })).items.filter(
+        (i) => i.entity_id === 'stn-q-split',
+      );
+    await apply([
+      {
+        op: 'create',
+        entity_type: 'station',
+        data: {
+          id: 'stn-q-split',
+          name_ko: '다(신설)',
+          region_code: '41',
+          merge_into_id: 'stn-fx-c',
+          checked_at: '2026-01-01',
+          sources: SRC,
+        },
+      },
+      {
+        op: 'create',
+        entity_type: 'line_station',
+        data: {
+          id: 'ls-fx-two--q-split',
+          line_id: 'line-fx-two',
+          station_id: 'stn-q-split',
+          seq: 9,
+          status: 'under_construction',
+        },
+      },
+    ]);
+    const [h] = await hits();
+    expect(h).toMatchObject({ action_ref: 'stn-fx-c', detail: expect.stringContaining('→ 다(stn-fx-c)') });
+    expect((await reviewList(db, 'station')).items.find((i) => i.id === 'stn-q-split')!.issues).toContainEqual(
+      expect.objectContaining({ rule: 'X-station-split' }),
+    );
+    // 다른 역 id 로 적은 분리 유지는 효력 없음, 병합할 역 id 로 적으면 빠진다
+    await apply([
+      { op: 'update', entity_type: 'station', id: 'stn-q-split', data: { editor_note: '분리 유지(stn-fx-b): x' } },
+    ]);
+    expect(await hits()).toHaveLength(1);
+    await apply([
+      {
+        op: 'update',
+        entity_type: 'station',
+        id: 'stn-q-split',
+        data: { editor_note: '분리 유지(stn-fx-c): 환승 미정' },
+      },
+    ]);
+    expect(await hits()).toEqual([]);
+
+    const p = await mergePreview(db, 'stn-q-split', 'stn-fx-c');
+    expect(p).toMatchObject({
+      matches_merge_into: true,
+      adds_former_name: true,
+      distance_m: null,
+      line_stations: [{ id: 'ls-fx-two--q-split', action: 'move', twin_id: null, status: 'under_construction' }],
+    });
+    expect(p.into.lines.map((l) => l.line_id)).toEqual(['line-fx-one']);
+    await domainError(mergePreview(db, 'stn-q-split', 'stn-q-split'), 'validation');
+
+    await apply([
+      {
+        op: 'merge_station',
+        entity_type: 'station',
+        id: 'stn-q-split',
+        into_id: 'stn-fx-c',
+        reason: '환승역 확인',
+        source_id: 'src-fixture-notice',
+      },
+    ]);
+    const ls = await readEntity(db, 'line_station', 'ls-fx-two--q-split');
+    expect(ls?.station_id).toBe('stn-fx-c');
+    const rs = await db.query(`SELECT field, note FROM record_source WHERE entity_id = 'ls-fx-two--q-split'`);
+    expect(rs.rows).toContainEqual({ field: 'station_id', note: '역 병합 근거(stn-q-split → stn-fx-c)' });
+    expect(await hits()).toEqual([]);
+    await apply([{ op: 'delete', entity_type: 'line_station', id: 'ls-fx-two--q-split' }]);
   });
 
   it('이관 검수 목록: 폐기 근거 필요(Q101)·뺀 정차역(Q105)', async () => {

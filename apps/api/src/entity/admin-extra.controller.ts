@@ -3,7 +3,7 @@
  */
 import { Body, Controller, Get, HttpCode, Inject, Param, Post, Put, Query } from '@nestjs/common';
 import { codes, idSchema } from '@k-raildex/contracts';
-import { listTrash, lookup } from '@k-raildex/domain';
+import { listTrash, lookup, mergePreview } from '@k-raildex/domain';
 import { z } from 'zod';
 import { CurrentPrincipal, RequireScope, type Principal } from '../auth/principal';
 import { boolParam, entityTypeParam, limitParam, offsetParam, writeOptionsSchema } from '../common/http';
@@ -12,7 +12,9 @@ import { EntityService } from './entity.service';
 type Q = Record<string, string | undefined>;
 
 const renameSchema = z.object({ new_id: z.string().min(1), reason: z.string().optional() }).strict();
-const mergeSchema = z.object({ into_id: idSchema('station'), reason: z.string().optional() }).strict();
+const mergeSchema = z
+  .object({ into_id: idSchema('station'), reason: z.string().optional(), source_id: idSchema('source').optional() })
+  .strict();
 const lineStationsPutSchema = z.object({ items: z.array(z.record(z.string(), z.unknown())) }).strict();
 
 @Controller('v1/admin')
@@ -90,6 +92,13 @@ export class AdminExtraController {
     return { ...this.svc.toWriteResponse(r, opts.dry_run), old_id: id };
   }
 
+  /** 병합 미리 보기(저장 없음): 옮겨질 노선별 역·참조·거리 */
+  @Get('stations/:id/merge-preview')
+  @RequireScope('admin:read')
+  async mergePreview(@Param('id') id: string, @Query('into_id') into: string | undefined) {
+    return mergePreview(this.svc.db, id, idSchema('station').parse(into));
+  }
+
   @Post('stations/:id/merge')
   @HttpCode(200)
   @RequireScope('admin:write')
@@ -98,7 +107,16 @@ export class AdminExtraController {
     const opts = writeOptionsSchema.parse(query);
     const r = await this.svc.apply(
       p,
-      [{ op: 'merge_station', entity_type: 'station', id, into_id: input.into_id, reason: input.reason }],
+      [
+        {
+          op: 'merge_station',
+          entity_type: 'station',
+          id,
+          into_id: input.into_id,
+          reason: input.reason,
+          source_id: input.source_id,
+        },
+      ],
       opts,
       `역 병합 ${id} → ${input.into_id}`,
     );

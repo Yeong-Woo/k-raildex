@@ -326,6 +326,26 @@ export const QUALITY_RULES: readonly QualityRule[] = [
              AND EXISTS (SELECT 1 FROM line_station x WHERE x.station_id = s.id AND x.deleted_at IS NULL)`,
   },
   {
+    // Q73 A(2026-11-26 사용자 지시로 검수 목록화): 공사 중 분리 정거장(merge_into_id) — 기존 역과 같은 역(환승역)인지 확인해
+    // 병합하거나, 미확정이면 내부 메모에 "분리 유지(<병합할 역 id>)" 를 적어 목록에서 뺀다(병합할 역이 바뀌면 다시 나온다).
+    // action_ref = 병합할 역 id(행의 [병합] 단추)
+    id: 'X-station-split',
+    title: '공사 중 분리 정거장 — 기존 역과 병합할지 확인',
+    actionRef: true,
+    sql: `SELECT 'station' AS entity_type, s.id AS entity_id,
+                 '→ ' || m.name_ko || '(' || m.id || ') · 이 역: ' ||
+                 coalesce((SELECT string_agg(l.name_ko, ', ' ORDER BY l.name_ko) FROM line_station x JOIN line l ON l.id = x.line_id
+                            WHERE x.station_id = s.id AND x.deleted_at IS NULL), '노선 없음') ||
+                 ' / 기존 역: ' ||
+                 coalesce((SELECT string_agg(l.name_ko, ', ' ORDER BY l.name_ko) FROM line_station x JOIN line l ON l.id = x.line_id
+                            WHERE x.station_id = m.id AND x.deleted_at IS NULL), '노선 없음') AS detail,
+                 s.name_ko || s.id AS sort_key,
+                 m.id AS action_ref
+            FROM station s JOIN station m ON m.id = s.merge_into_id AND m.deleted_at IS NULL
+           WHERE s.deleted_at IS NULL
+             AND coalesce(s.editor_note, '') NOT LIKE '%분리 유지(' || m.id || ')%'`,
+  },
+  {
     id: 'X-source-license-unknown',
     title: '라이선스 미상(unknown) 출처',
     sql: `SELECT 'source' AS entity_type, s.id AS entity_id, s.title AS detail, s.id AS sort_key

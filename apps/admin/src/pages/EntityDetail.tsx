@@ -24,6 +24,7 @@ import { emptyRecord, FormEngine } from '../form/FormEngine';
 import { LineStationsEditor } from '../editors/LineStationsEditor';
 import { StationLineStations } from '../editors/StationLineStations';
 import { AttachmentsTab } from '../editors/AttachmentsTab';
+import { MergeStationButton } from '../editors/MergeStation';
 
 type Obj = Record<string, unknown>;
 interface EntityResponse {
@@ -225,6 +226,16 @@ function Detail({ type, id, tab }: { type: EntityType; id: string; tab: string }
           </Badge>
         ) : null}
         <div className="ml-auto flex gap-2">
+          {type === 'station' && !isNew && !deleted ? (
+            <MergeStationButton
+              size="md"
+              fromId={id}
+              intoId={(q.data?.data.merge_into_id as string | null | undefined) ?? null}
+              onDone={(into) =>
+                void navigate({ to: '/data/$type/$id', params: { type: 'station', id: into }, search: {} })
+              }
+            />
+          ) : null}
           {!isNew && !deleted ? (
             <Button
               variant="outline"

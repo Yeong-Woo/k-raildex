@@ -60,6 +60,7 @@ const opSchema = z.discriminatedUnion('op', [
       id: z.string().min(1),
       into_id: z.string().min(1),
       reason: z.string().optional(),
+      source_id: z.string().min(1).optional(),
     })
     .strict(),
 ]);

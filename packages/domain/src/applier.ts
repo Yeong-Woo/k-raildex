@@ -30,7 +30,15 @@ export type Op =
       /** 되돌리기 전용: 리다이렉트로 예약된 옛 id(new_id)를 되찾는다 */
       reclaim?: boolean;
     }
-  | { op: 'merge_station'; entity_type: 'station'; id: string; into_id: string; reason?: string };
+  | {
+      op: 'merge_station';
+      entity_type: 'station';
+      id: string;
+      into_id: string;
+      reason?: string;
+      /** 같은 역임을 확인한 근거 출처 — 옮겨진 노선별 역의 station_id 출처로 붙는다(C-1, Q73 A) */
+      source_id?: string;
+    };
 
 export interface ChangesetInput {
   /** 없으면 cs-YYYY-MM-DD-<임의> */
@@ -442,7 +450,7 @@ async function runOp(ctx: Ctx, op: Op): Promise<Omit<OpResult, 'seq' | 'op'>> {
     case 'rename_id':
       return renameId(ctx, op.entity_type, op.id, op.new_id, op.reason, op.reclaim);
     case 'merge_station':
-      return mergeStation(ctx, op.id, op.into_id, op.reason);
+      return mergeStation(ctx, op.id, op.into_id, op.reason, op.source_id);
   }
 }
 
@@ -629,11 +637,14 @@ async function mergeStation(
   fromId: string,
   intoId: string,
   reason?: string,
+  sourceId?: string,
 ): Promise<Omit<OpResult, 'seq' | 'op'>> {
   if (fromId === intoId) throw new DomainError('validation', '같은 역으로 병합할 수 없음');
   const db = ctx.db;
   const from = await requireEntity(db, 'station', fromId, { forUpdate: true });
   const intoBefore = await requireEntity(db, 'station', intoId, { forUpdate: true });
+  if (sourceId) await requireEntity(db, 'source', sourceId);
+  const keptLs: string[] = [];
   const fromLs = await db.query<{ id: string; line_id: string }>(
     `SELECT id, line_id FROM line_station WHERE station_id = $1 AND deleted_at IS NULL`,
     [fromId],
@@ -654,12 +665,24 @@ async function mergeStation(
         `UPDATE line_station SET deleted_at = now(), deleted_by = $2, delete_reason = $3, last_changeset_id = $4 WHERE id = $1`,
         [ls.id, ctx.authorId, `역 병합(${fromId} → ${intoId})`, ctx.changesetId],
       );
+      keptLs.push(t);
     } else {
+      keptLs.push(ls.id);
       await db.query(`UPDATE line_station SET station_id = $2, last_changeset_id = $3 WHERE id = $1`, [
         ls.id,
         intoId,
         ctx.changesetId,
       ]);
+    }
+  }
+  if (sourceId) {
+    for (const lsId of keptLs) {
+      await db.query(
+        `INSERT INTO record_source (entity_id, source_id, field, note, ord)
+         SELECT $1, $2, 'station_id', $3, coalesce((SELECT max(ord) + 1 FROM record_source WHERE entity_id = $1), 0)
+          WHERE NOT EXISTS (SELECT 1 FROM record_source WHERE entity_id = $1 AND source_id = $2 AND field = 'station_id')`,
+        [lsId, sourceId, `역 병합 근거(${fromId} → ${intoId})`],
+      );
     }
   }
   // from 을 가리키는 행 → into (PK 충돌이면 from 쪽 행을 지움)

@@ -302,6 +302,18 @@ describe('노선별 역 목록', () => {
 
 describe('역 병합', () => {
   it('stn-fx-e → stn-fx-b', async () => {
+    const pv = await req('GET', '/v1/admin/stations/stn-fx-e/merge-preview?into_id=stn-fx-b');
+    expect(pv.statusCode).toBe(200);
+    expect(pv.json()).toMatchObject({
+      from: { id: 'stn-fx-e' },
+      into: { id: 'stn-fx-b' },
+      line_stations: expect.arrayContaining([
+        expect.objectContaining({ id: 'ls-fx-two--fx-e', action: 'move' }),
+        expect.objectContaining({ id: 'ls-fx-one--fx-e', action: 'combine', twin_id: 'ls-fx-one--fx-b' }),
+      ]),
+      adds_former_name: true,
+    });
+    expect((await req('GET', '/v1/admin/stations/stn-fx-e/merge-preview')).statusCode).toBe(400);
     const dry = await req('POST', '/v1/admin/stations/stn-fx-e/merge?dry_run=true', { into_id: 'stn-fx-b' });
     expect(dry.statusCode).toBe(200);
     expect((await req('GET', '/v1/admin/station/stn-fx-e')).statusCode).toBe(200);

@@ -11,6 +11,7 @@ import { BookOpen, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { api, apiOptional, errorText, qs, type EntityResponse } from '../lib/api';
 import { toSlug } from '../lib/entity-types';
+import { KeepSplitButton, MergeStationButton } from '../editors/MergeStation';
 
 export interface QualityGuide {
   what: string;
@@ -30,7 +31,7 @@ interface QualityItem {
   entity_id: string;
   label: string | null;
   detail: string | null;
-  /** 행 처리 단추 값(V-S04: 거리 초과일 때 앞 노선별 역 id) */
+  /** 행 처리 단추 값(V-S04: 거리 초과일 때 앞 노선별 역 id, X-station-split: 병합할 역 id) */
   action_ref?: string | null;
 }
 
@@ -43,6 +44,7 @@ const ROW_TOOLS: Record<string, (it: QualityItem) => { label: string; href: stri
     label: '지도에서 찍기',
     href: `/map?tab=edit&station=${encodeURIComponent(it.entity_id)}`,
   }),
+  'X-station-split': (it) => ({ label: '지도', href: `/map?tab=edit&station=${encodeURIComponent(it.entity_id)}` }),
   'X-station-near-other-name': (it) => ({
     label: '지도',
     href: `/map?tab=edit&station=${encodeURIComponent(it.entity_id)}`,
@@ -90,6 +92,13 @@ function ConfirmGap({ it }: { it: QualityItem }) {
 /** 행 단위 처리(규칙별) — 지도 도구 링크 옆 */
 const ROW_ACTIONS: Record<string, (it: QualityItem) => ReactNode> = {
   'V-S04': (it) => <ConfirmGap it={it} />,
+  'X-station-split': (it) =>
+    it.action_ref ? (
+      <span className="inline-flex gap-1">
+        <MergeStationButton fromId={it.entity_id} intoId={it.action_ref} />
+        <KeepSplitButton stationId={it.entity_id} intoId={it.action_ref} />
+      </span>
+    ) : null,
 };
 
 function GuidePanel({

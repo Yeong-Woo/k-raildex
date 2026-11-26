@@ -18,6 +18,7 @@ import { RefInput } from '../form/widgets/RefInput';
 import { useGeoJsonLayer, useMapLibre, type FeatureCollection } from './useMap';
 import { useFeaturePopup } from './FeaturePopup';
 import { ReviewIssues, ReviewPicker, ReviewTag, useReviewList } from './ReviewPicker';
+import { KeepSplitButton, MergeStationButton } from '../editors/MergeStation';
 
 interface StationData {
   id: string;
@@ -25,6 +26,7 @@ interface StationData {
   geom: { lat: number; lng: number } | null;
   coord_source: string | null;
   coord_basis: string | null;
+  merge_into_id?: string | null;
 }
 type LngLat = { lng: number; lat: number };
 /** from = 좌표를 가져온 역(있으면 "기존 역 좌표"로 저장) */
@@ -242,6 +244,13 @@ export function EditMap() {
               </dl>
             ) : null}
             {selectedItem ? <ReviewIssues issues={selectedItem.issues} /> : null}
+            {data?.merge_into_id ? (
+              <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs" data-testid="map-split-actions">
+                <span className="text-fg-muted">분리 정거장 → {data.merge_into_id}</span>
+                <MergeStationButton fromId={data.id} intoId={data.merge_into_id} onDone={(into) => select(into)} />
+                <KeepSplitButton stationId={data.id} intoId={data.merge_into_id} />
+              </div>
+            ) : null}
             <div className="mt-3 flex flex-wrap gap-2">
               <Button size="sm" disabled={!pending || save.isPending} onClick={() => save.mutate()}>
                 {save.isPending ? '저장 중…' : '좌표 저장'}

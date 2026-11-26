@@ -135,3 +135,54 @@ test('품질 V-S04: 거리 초과 행을 [거리 맞음]으로 확인하면 목�
   await expect(toast(page, '거리를 확인했습니다')).toBeVisible();
   await expect(page.getByTestId('quality-items').locator('tr', { hasText: 'ls-fx-two--e2e-far' })).toHaveCount(0);
 });
+
+test('품질 X-station-split: [분리 유지]는 메모로 빠지고, [병합…]은 미리 보기 뒤 사유를 적어 합친다', async ({
+  page,
+}) => {
+  const api = process.env.E2E_API_URL;
+  const post = async (type: string, data: unknown) => {
+    const r = await page.request.post(`${api}/v1/admin/${type}`, { data });
+    expect(r.ok(), await r.text()).toBe(true);
+  };
+  for (const [id, seq] of [
+    ['e2e-split', 10],
+    ['e2e-split2', 11],
+  ] as const) {
+    await post('station', {
+      id: `stn-${id}`,
+      name_ko: '다(신설)',
+      region_code: '41',
+      merge_into_id: 'stn-fx-c',
+      checked_at: '2026-01-01',
+      sources: [{ source_id: 'src-fixture-notice' }],
+    });
+    await post('line-station', {
+      id: `ls-fx-two--${id}`,
+      line_id: 'line-fx-two',
+      station_id: `stn-${id}`,
+      seq,
+      status: 'under_construction',
+    });
+  }
+  await page.goto('/quality?rule=X-station-split');
+  const rowOf = (id: string) => page.getByTestId('quality-items').locator('tr', { hasText: id });
+  await expect(rowOf('stn-e2e-split2')).toContainText('→ 다(stn-fx-c)');
+
+  page.once('dialog', (d) => void d.accept('환승 통로 미정'));
+  await rowOf('stn-e2e-split2').getByTestId('keep-split').click();
+  await expect(toast(page, '분리 유지로 표시했습니다')).toBeVisible();
+  await expect(rowOf('stn-e2e-split2')).toHaveCount(0);
+
+  await rowOf('stn-e2e-split').getByTestId('merge-open').click();
+  const dlg = page.getByTestId('merge-dialog');
+  await expect(dlg.getByTestId('merge-line-stations')).toContainText('대상 역 아래로 옮김');
+  await expect(dlg).toContainText('원본의 "병합할 역"과 같음');
+  await expect(page.getByTestId('merge-apply')).toBeDisabled();
+  await dlg.getByLabel('병합 사유(필수)').fill('기본계획에 환승역으로 명시');
+  await page.getByTestId('merge-apply').click();
+  await expect(toast(page, '병합했습니다')).toBeVisible();
+  await expect(rowOf('stn-e2e-split')).toHaveCount(0);
+  expect((await page.request.get(`${api}/v1/admin/station/stn-e2e-split`)).status()).toBe(404);
+  const ls = await (await page.request.get(`${api}/v1/admin/line-station/ls-fx-two--e2e-split`)).json();
+  expect(ls.data.station_id).toBe('stn-fx-c');
+});
