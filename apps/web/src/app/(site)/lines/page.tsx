@@ -1,5 +1,10 @@
-/** 노선 목록(P1): 법적 분류 탭 + 권역 + 광역철도 지정 + 상태. 탭·필터는 링크(JS 없이 동작) */
+/**
+ * 노선 목록(P1): 법적 분류 탭 + 권역 + 광역철도 지정 + 상태. 탭·필터는 링크(JS 없이 동작).
+ * 지선(국토교통부 고시 노선번호로 계산, 2026-11-27): 기지선·연결선·삼각선은 본선이 목록에 있으면 본선 행 아래 접어 두고,
+ * 그 밖의 지선(수인선·교외선 등)은 독립 행에 "○○ 지선" 표시만 한다.
+ */
 import type { Metadata } from 'next';
+import { Fragment } from 'react';
 import { codeLabel, codes } from '@k-raildex/contracts';
 import { LineChip, ReviewBadge, StatusBadge, FuzzyDateText } from '@/components/badges';
 import { FilterRow, LinkTabs } from '@/components/tabs';
@@ -38,7 +43,19 @@ export default async function LinesPage({ searchParams }: { searchParams: SP }) 
   const [all, regions] = await Promise.all([getLines(), getRegionIndex()]);
   const base = all.filter((l) => (!wide || l.is_wide_area) && (status === 'all' || l.status === status));
   const inClass = base.filter((l) => inClassOf(l, cls));
-  const shown = inClass.filter((l) => areaMatches(l.areas, area)).sort(byKo);
+  const matched = inClass.filter((l) => areaMatches(l.areas, area)).sort(byKo);
+  // 시설 지선(기지선·연결선·삼각선) — 본선이 함께 보이면 본선 아래로 접는다
+  const matchedIds = new Set(matched.map((l) => l.id));
+  const folded = new Map<string, typeof matched>();
+  for (const l of matched) {
+    if (l.line_role && l.branch_of && matchedIds.has(l.branch_of.id)) {
+      const list = folded.get(l.branch_of.id) ?? [];
+      list.push(l);
+      folded.set(l.branch_of.id, list);
+    }
+  }
+  const foldedIds = new Set([...folded.values()].flat().map((l) => l.id));
+  const shown = matched.filter((l) => !foldedIds.has(l.id));
 
   const classTabs = CLASSES.map((c) => ({
     value: c,
@@ -85,7 +102,8 @@ export default async function LinesPage({ searchParams }: { searchParams: SP }) 
         </FilterRow>
       </div>
       <p className="muted num" style={{ fontSize: 'var(--kr-text-sm)' }} aria-live="polite">
-        {fmtNum(shown.length)}개 노선
+        {fmtNum(matched.length)}개 노선
+        {foldedIds.size ? ` (기지선·연결선·삼각선 ${fmtNum(foldedIds.size)}개는 본선 아래)` : ''}
       </p>
       {shown.length === 0 ? <p className="empty surface">조건에 맞는 노선이 없습니다.</p> : null}
       {groups
@@ -115,46 +133,80 @@ export default async function LinesPage({ searchParams }: { searchParams: SP }) 
                 </thead>
                 <tbody>
                   {g.items.map((l) => (
-                    <tr key={l.id}>
-                      <td>
-                        <LineChip line={l} short /> <a href={paths.line(l.id)}>{l.name_ko}</a>{' '}
-                        <ReviewBadge status={l.review_status} />
-                        {l.name_full && l.name_full !== l.name_ko ? (
-                          <span className="name-sub">{l.name_full}</span>
-                        ) : null}
-                        {l.name_en ? <span className="name-sub">{l.name_en}</span> : null}
-                      </td>
-                      <td data-label="분류">
-                        {codeLabel('lineCategory', l.category)}
-                        {l.line_role ? ` · ${codeLabel('lineRole', l.line_role)}` : ''}
-                        {l.is_wide_area ? (
-                          <>
-                            {' '}
-                            <span className="badge outline">광역철도 지정</span>
-                          </>
-                        ) : null}
-                      </td>
-                      <td data-label="상태">
-                        <StatusBadge status={l.status} />
-                        {l.target_open ? (
-                          <span className="name-sub">
-                            목표 <FuzzyDateText value={l.target_open} />
-                          </span>
-                        ) : null}
-                      </td>
-                      <td data-label="지역" style={{ fontSize: 'var(--kr-text-xs)' }}>
-                        {l.regions.map((r) => regions.byCode.get(r)?.short_ko ?? r).join(', ') || '—'}
-                      </td>
-                      <td data-label="역 수" className="r num">
-                        {fmtNum(l.station_count)}
-                      </td>
-                      <td data-label="연장" className="r num">
-                        {fmtKm(l.length_km)}
-                      </td>
-                      <td data-label="개통" className="nowrap">
-                        <FuzzyDateText value={l.opened} />
-                      </td>
-                    </tr>
+                    <Fragment key={l.id}>
+                      <tr>
+                        <td>
+                          <LineChip line={l} short /> <a href={paths.line(l.id)}>{l.name_ko}</a>{' '}
+                          <ReviewBadge status={l.review_status} />
+                          {l.name_full && l.name_full !== l.name_ko ? (
+                            <span className="name-sub">{l.name_full}</span>
+                          ) : null}
+                          {l.name_en ? <span className="name-sub">{l.name_en}</span> : null}
+                        </td>
+                        <td data-label="분류">
+                          {codeLabel('lineCategory', l.category)}
+                          {l.line_role ? ` · ${codeLabel('lineRole', l.line_role)}` : ''}
+                          {l.branch_of ? (
+                            <span className="name-sub">
+                              <a href={paths.line(l.branch_of.id)}>{l.branch_of.name_ko}</a> 지선
+                            </span>
+                          ) : null}
+                          {l.is_wide_area ? (
+                            <>
+                              {' '}
+                              <span className="badge outline">광역철도 지정</span>
+                            </>
+                          ) : null}
+                        </td>
+                        <td data-label="상태">
+                          <StatusBadge status={l.status} />
+                          {l.target_open ? (
+                            <span className="name-sub">
+                              목표 <FuzzyDateText value={l.target_open} />
+                            </span>
+                          ) : null}
+                        </td>
+                        <td data-label="지역" style={{ fontSize: 'var(--kr-text-xs)' }}>
+                          {l.regions.map((r) => regions.byCode.get(r)?.short_ko ?? r).join(', ') || '—'}
+                        </td>
+                        <td data-label="역 수" className="r num">
+                          {fmtNum(l.station_count)}
+                        </td>
+                        <td data-label="연장" className="r num">
+                          {fmtKm(l.length_km)}
+                        </td>
+                        <td data-label="개통" className="nowrap">
+                          <FuzzyDateText value={l.opened} />
+                        </td>
+                      </tr>
+                      {folded.get(l.id)?.length ? (
+                        <tr className="branch-row" data-testid="line-branches">
+                          <td colSpan={7}>
+                            <details>
+                              <summary>
+                                {l.name_ko} 지선 {fmtNum(folded.get(l.id)!.length)}개(기지선·연결선·삼각선)
+                              </summary>
+                              <ul className="chips" style={{ marginTop: 'var(--kr-space-2)' }}>
+                                {folded.get(l.id)!.map((b) => (
+                                  <li key={b.id}>
+                                    <a className="chip" href={paths.line(b.id)}>
+                                      {b.name_ko}
+                                      <span className="muted"> · {codeLabel('lineRole', b.line_role!)}</span>
+                                      {b.status !== 'operating' ? (
+                                        <>
+                                          {' '}
+                                          <StatusBadge status={b.status} />
+                                        </>
+                                      ) : null}
+                                    </a>
+                                  </li>
+                                ))}
+                              </ul>
+                            </details>
+                          </td>
+                        </tr>
+                      ) : null}
+                    </Fragment>
                   ))}
                 </tbody>
               </table>

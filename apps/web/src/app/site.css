@@ -1363,6 +1363,20 @@ form.bigsearch button {
   flex-wrap: wrap;
   gap: 4px;
 }
+/* 노선 목록: 본선 아래 접어 둔 지선(기지선·연결선·삼각선) */
+table.data tr.branch-row td {
+  padding-top: 0;
+  border-top: 0;
+}
+tr.branch-row summary {
+  cursor: pointer;
+  font-size: var(--kr-text-xs);
+  color: var(--kr-fg-muted);
+}
+tr.branch-row ul.chips {
+  list-style: none;
+  padding: 0;
+}
 table.data td a {
   font-weight: var(--kr-weight-semibold);
 }

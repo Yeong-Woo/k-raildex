@@ -274,6 +274,7 @@ export function ReviewPicker({
                         : [
                             it.status && isCode('status', it.status) ? codeLabel('status', it.status) : null,
                             `역 ${it.station_count ?? 0}개`,
+                            it.lines[0] ? `${it.lines[0]} 지선` : null,
                           ]
                             .filter(Boolean)
                             .map((s) => ` · ${s}`)

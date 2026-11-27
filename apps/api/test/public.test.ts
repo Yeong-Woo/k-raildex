@@ -163,6 +163,66 @@ describe('노선·역·운행 계통', () => {
     expect(line.events.some((e) => e.type === 'opened')).toBe(true);
   });
 
+  it('본선·지선: 고시 노선번호 앞 세 자리가 같은 노선이 본선(v_line_branch)', async () => {
+    const SRC = [{ source_id: 'src-fixture-notice' }];
+    await apply([
+      {
+        op: 'update',
+        entity_type: 'line',
+        id: 'line-fx-one',
+        data: { external_refs: [{ system: 'molit_line_no', code: '901', source_id: 'src-fixture-notice' }] },
+      },
+      {
+        op: 'create',
+        entity_type: 'line',
+        data: {
+          id: 'line-fx-depot',
+          name_ko: '시험기지선',
+          category: 'metro',
+          rail_class: 'urban',
+          line_role: 'depot_line',
+          status: 'operating',
+          external_refs: [{ system: 'molit_line_no', code: '90101', source_id: 'src-fixture-notice' }],
+          checked_at: '2026-11-27',
+          sources: SRC,
+        },
+      },
+      {
+        op: 'create',
+        entity_type: 'line',
+        data: {
+          id: 'line-fx-orphan',
+          name_ko: '본선없는삼각선',
+          category: 'metro',
+          rail_class: 'urban',
+          line_role: 'wye',
+          status: 'operating',
+          external_refs: [{ system: 'molit_line_no', code: '99901', source_id: 'src-fixture-notice' }],
+          checked_at: '2026-11-27',
+          sources: SRC,
+        },
+      },
+    ]);
+    const list = await ok('/v1/public/lines', publicLineListSchema);
+    const by = new Map(list.items.map((l) => [l.id, l]));
+    expect(by.get('line-fx-one')).toMatchObject({ line_no: '901', branch_of: null });
+    expect(by.get('line-fx-depot')).toMatchObject({
+      line_no: '90101',
+      branch_of: { id: 'line-fx-one', name_ko: '시험 1호선' },
+    });
+    expect(by.get('line-fx-orphan')).toMatchObject({ line_no: '99901', branch_of: null });
+    const one = await ok('/v1/public/lines/line-fx-one', publicLineDetailSchema);
+    expect(one.branches).toEqual([
+      { id: 'line-fx-depot', name_ko: '시험기지선', status: 'operating', line_role: 'depot_line', line_no: '90101' },
+    ]);
+    await apply([
+      { op: 'delete', entity_type: 'line', id: 'line-fx-depot' },
+      { op: 'delete', entity_type: 'line', id: 'line-fx-orphan' },
+      { op: 'update', entity_type: 'line', id: 'line-fx-one', data: { external_refs: [] } },
+    ]);
+    expect((await ok('/v1/public/lines/line-fx-one', publicLineDetailSchema)).branches).toEqual([]);
+  });
+
   it('역 목록(탭 숫자)·상세(노선별 절·이웃 역·시간표 요약·요일 설명 분리)', async () => {
     const list = await ok('/v1/public/stations', publicStationListSchema);
     expect(list.total).toBe(6);

@@ -117,6 +117,11 @@ export default async function LinePage({ params }: { params: Params }) {
             <span className="badge outline">{codeLabel('lineCategory', l.category)}</span>
             {l.is_wide_area ? <span className="badge outline">광역철도 지정</span> : null}
             {l.line_role ? <span className="badge outline">{codeLabel('lineRole', l.line_role)}</span> : null}
+            {l.branch_of ? (
+              <a className="badge outline" href={paths.line(l.branch_of.id)} data-testid="line-branch-of">
+                {l.branch_of.name_ko} 지선
+              </a>
+            ) : null}
             {!l.passenger_service ? <span className="badge outline">여객 미취급</span> : null}
             {l.region_names.length ? (
               <span className="badge outline badge-long">{l.region_names.map((r) => r.name_ko).join(' · ')}</span>
@@ -198,6 +203,7 @@ export default async function LinePage({ params }: { params: Params }) {
         items={[
           { id: 'stations', label: '역 순서', count: l.stations.length },
           { id: 'services', label: '운행 계통', count: l.services.length },
+          ...(l.branches.length ? [{ id: 'branches', label: '지선', count: l.branches.length }] : []),
           { id: 'history', label: '연혁', count: l.events.length },
           { id: 'plans', label: '관련 계획', count: l.plans.length },
           { id: 'specs', label: '제원' },
@@ -277,6 +283,20 @@ export default async function LinePage({ params }: { params: Params }) {
             )}
           </Section>
 
+          {l.branches.length ? (
+            <Section id="branches" title="지선" sub={`${l.branches.length}개 · 국토교통부 고시 노선번호 기준`}>
+              <div className="chips" data-testid="line-branches">
+                {l.branches.map((b) => (
+                  <a key={b.id} className="chip" href={paths.line(b.id)} style={{ paddingLeft: '0.6em' }}>
+                    {b.name_ko}
+                    {b.line_role ? <span className="muted"> · {codeLabel('lineRole', b.line_role)}</span> : null}
+                    {b.status !== 'operating' ? <StatusBadge status={b.status} /> : null}
+                  </a>
+                ))}
+              </div>
+            </Section>
+          ) : null}
+
           {l.child_lines.length ? (
             <Section id="children" title="하위 노선">
               <div className="chips">
@@ -337,6 +357,11 @@ export default async function LinePage({ params }: { params: Params }) {
               <summary>제원·식별자(상세)</summary>
               <div className="body">
                 <dl className="kv">
+                  <dt>노선번호</dt>
+                  <dd>
+                    {l.line_no ?? '미확인'}
+                    {l.line_no ? <span className="muted"> (국토교통부 고시)</span> : null}
+                  </dd>
                   <dt>선로</dt>
                   <dd>{track ?? '미확인'}</dd>
                   <dt>전철화</dt>

@@ -77,7 +77,7 @@ describe('목록·상세', () => {
       areas: ['capital'],
     });
     const line = (await req('GET', '/v1/admin/line/line-fx-one')).json();
-    expect(line.derived).toEqual({ areas: ['capital'] });
+    expect(line.derived).toEqual({ areas: ['capital'], branch_of_line_id: null, branch_line_ids: [] });
     expect((await req('GET', '/v1/admin/station/stn-fx-none')).statusCode).toBe(404);
   });
 

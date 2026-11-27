@@ -34,6 +34,23 @@ test('노선 목록 → 상세(역 순서·출처)', async ({ page }) => {
   await expect(page.locator('#sources-h')).toHaveText('출처');
 });
 
+test('노선 목록: 기지선·연결선·삼각선은 본선 아래 접히고, 지선 ↔ 본선이 서로 이어진다', async ({ page }) => {
+  await page.goto('/lines/');
+  const folded = page.locator('tr.branch-row[data-testid="line-branches"]').first();
+  await expect(folded).toBeAttached();
+  await folded.locator('summary').click();
+  const chip = folded.locator('a.chip').first();
+  const branchHref = await chip.getAttribute('href');
+  // 접힌 지선은 목록의 독립 행에 없다
+  await expect(page.locator(`table.data tbody tr:not(.branch-row) td a[href="${branchHref}"]`)).toHaveCount(0);
+  await page.goto(branchHref!);
+  const badge = page.getByTestId('line-branch-of');
+  await expect(badge).toContainText('지선');
+  await badge.click();
+  await expect(page.locator('#branches-h')).toHaveText('지선');
+  await expect(page.getByTestId('line-branches').locator(`a[href="${branchHref}"]`)).toBeVisible();
+});
+
 test('역 목록 탭은 링크, 역 상세에 노선별 절', async ({ page }) => {
   await page.goto('/stations/?opened=unopened');
   await expect(page.locator('a[aria-current="true"]', { hasText: '미개통' })).toBeVisible();

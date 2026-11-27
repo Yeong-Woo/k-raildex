@@ -31,6 +31,10 @@ const lineCommon = {
   regions: z.array(z.string()),
   operators: z.array(pubRefSchema.extend({ role: z.string().nullable() }).strict()),
   parent_line_id: z.string().nullable(),
+  /** 국토교통부 고시 사업용철도 노선번호(본선 세 자리, 지선 다섯 자리) */
+  line_no: z.string().nullable(),
+  /** 본선 — 지선이면 노선번호 앞 세 자리가 같은 노선(v_line_branch, 0033) */
+  branch_of: pubRefSchema.nullable(),
   review_status: z.enum(codes.reviewStatus.values),
 };
 
@@ -94,6 +98,16 @@ export const publicLineDetailSchema = z
     region_names: z.array(z.object({ code: z.string(), name_ko: z.string() }).strict()),
     stations: z.array(publicLineStopSchema),
     child_lines: z.array(pubRefSchema.extend({ status: pubStatus }).strict()),
+    /** 이 노선(본선)의 지선 — 고시 노선번호 순 */
+    branches: z.array(
+      pubRefSchema
+        .extend({
+          status: pubStatus,
+          line_role: z.enum(codes.lineRole.values).nullable(),
+          line_no: z.string().nullable(),
+        })
+        .strict(),
+    ),
     services: z.array(pubRefSchema.extend({ kind: z.string(), status: pubStatus }).strict()),
     plans: z.array(publicPlanLinkSchema),
     events: z.array(pubEventSchema),

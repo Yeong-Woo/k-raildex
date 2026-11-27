@@ -27,6 +27,10 @@ const LINE_COLS = `l.id, l.name_ko, l.name_en, l.name_full, l.category, l.rail_c
   coalesce((SELECT array_agg(lr.region_code ORDER BY lr.region_code) FROM line_region lr WHERE lr.line_id = l.id), '{}') AS regions,
   ${OPERATORS_JSON} AS operators,
   (SELECT p.id FROM line p WHERE p.id = l.parent_line_id AND p.deleted_at IS NULL) AS parent_line_id,
+  (SELECT e.code FROM external_ref e WHERE e.entity_id = l.id AND e.system = 'molit_line_no'
+    ORDER BY e.is_primary DESC, length(e.code), e.code LIMIT 1) AS line_no,
+  (SELECT json_build_object('id', p.id, 'name_ko', p.name_ko) FROM v_line_branch b JOIN line p ON p.id = b.branch_of_line_id
+    WHERE b.line_id = l.id) AS branch_of,
   l.review_status, ${UNOPENED_JSON('ut')} AS target_open`;
 
 const LINE_FROM = `FROM line l JOIN v_line_area la ON la.line_id = l.id
@@ -82,7 +86,7 @@ export async function publicLine(db: Queryable, id: string): Promise<PublicLineD
   );
   const line = rows[0];
   if (!line) return null;
-  const [stations, children, services, plans] = await Promise.all([
+  const [stations, children, services, plans, branches] = await Promise.all([
     db.query(
       `SELECT v.station_id, v.seq, v.branch, v.km::float8 AS km, v.station_code, v.order_confirmed, v.name_ko, v.name_en, v.status,
               ${fz('v.opened')} AS opened, ${fz('v.closed')} AS closed,
@@ -106,6 +110,12 @@ export async function publicLine(db: Queryable, id: string): Promise<PublicLineD
         WHERE pl.line_id = $1 ORDER BY t.date_from NULLS LAST, p.id`,
       [id],
     ),
+    // 고시 노선번호로 계산한 지선(v_line_branch, 0033)
+    db.query(
+      `SELECT c.id, c.name_ko, c.status, c.line_role, b.line_no FROM v_line_branch b JOIN line c ON c.id = b.line_id
+        WHERE b.branch_of_line_id = $1 ORDER BY b.line_no, c.id`,
+      [id],
+    ),
   ]);
   const [names, sources, attachments, events] = await Promise.all([
     namesOf(db, [id]),
@@ -117,6 +127,7 @@ export async function publicLine(db: Queryable, id: string): Promise<PublicLineD
     ...(line as unknown as PublicLineDetail),
     stations: stations.rows as PublicLineDetail['stations'],
     child_lines: children.rows as PublicLineDetail['child_lines'],
+    branches: branches.rows as PublicLineDetail['branches'],
     services: services.rows as PublicLineDetail['services'],
     plans: plans.rows as PublicLineDetail['plans'],
     events,

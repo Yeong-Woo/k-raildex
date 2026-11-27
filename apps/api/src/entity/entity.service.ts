@@ -159,7 +159,19 @@ export class EntityService {
       }
       case 'line': {
         const area = await one<{ areas: string[] }>(`SELECT areas FROM v_line_area WHERE line_id = $1`);
-        return { areas: area?.areas ?? null };
+        // 본선·지선(고시 노선번호로 계산 — v_line_branch, 0033)
+        const br = await one<{ branch_of_line_id: string | null; line_no: string }>(
+          `SELECT branch_of_line_id, line_no FROM v_line_branch WHERE line_id = $1`,
+        );
+        const kids = await this.db.query<{ line_id: string }>(
+          `SELECT line_id FROM v_line_branch WHERE branch_of_line_id = $1 ORDER BY line_no`,
+          [id],
+        );
+        return {
+          areas: area?.areas ?? null,
+          branch_of_line_id: br?.branch_of_line_id ?? null,
+          branch_line_ids: kids.rows.map((r) => r.line_id),
+        };
       }
       case 'service': {
         const area = await one<{ areas: string[] }>(`SELECT areas FROM v_service_area WHERE service_id = $1`);

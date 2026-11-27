@@ -469,7 +469,7 @@ export interface ReviewIssue {
 export interface ReviewListItem {
   id: string;
   name_ko: string;
-  /** 역: 지나는 노선 이름(가나다순) · 노선: 비움 · 계획: 이어진 노선 이름 */
+  /** 역 그룹: 지나는 노선 이름(가나다순) · 노선: 지선이면 본선 이름 하나(v_line_branch) · 계획: 이어진 노선 이름 */
   lines: string[];
   status: string | null;
   /** 역 종류(station·signal 등) · 노선: 노선 분류(category) · 계획: 표시 선형 품질(v_plan_shape.quality, 없으면 null) */
@@ -535,7 +535,9 @@ export async function reviewList(db: Queryable, type: ReviewListType): Promise<{
                               JOIN line l ON l.id = pl.line_id AND l.deleted_at IS NULL WHERE pl.plan_id = p.id), '{}') AS lines
              FROM plan p LEFT JOIN v_plan_stage st ON st.plan_id = p.id LEFT JOIN v_plan_shape sh ON sh.plan_id = p.id
             WHERE p.deleted_at IS NULL ORDER BY p.name_ko, p.id`
-        : `SELECT l.id, l.name_ko, l.status, l.category AS kind, NULL::boolean AS has_geom, l.color, '{}'::text[] AS lines,
+        : `SELECT l.id, l.name_ko, l.status, l.category AS kind, NULL::boolean AS has_geom, l.color,
+                coalesce((SELECT ARRAY[p.name_ko] FROM v_line_branch b JOIN line p ON p.id = b.branch_of_line_id WHERE b.line_id = l.id),
+                         '{}'::text[]) AS lines,
                 (SELECT count(*)::int FROM line_station x WHERE x.line_id = l.id AND x.deleted_at IS NULL) AS station_count
            FROM line l WHERE l.deleted_at IS NULL ORDER BY l.name_ko, l.id`;
   const { rows } = await db.query<Omit<ReviewListItem, 'issues'>>(sql);
