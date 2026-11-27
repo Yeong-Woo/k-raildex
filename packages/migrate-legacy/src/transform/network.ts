@@ -302,6 +302,8 @@ export function transformNetwork(input: NetworkInput, report: MigrationReport): 
       history_text: s.history ?? null,
       intro_text: s.intro ?? null,
       merge_into_id: s.merge_into ?? null,
+      depot: null,
+      depot_lines: [],
       own_status: noLines ? (s.status as StationCreate['own_status']) : null,
       own_opened: noLines ? stOpened : null,
       own_closed: noLines ? stClosed : null,

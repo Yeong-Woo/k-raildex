@@ -119,6 +119,7 @@ export default async function StationPage({ params, searchParams }: { params: Pa
       />
       <Toc
         items={[
+          ...(s.depot ? [{ id: 'depot', label: '차량기지' }] : []),
           { id: 'lines', label: '노선별', count: s.lines.length },
           { id: 'services', label: '정차 열차', count: s.services.length },
           { id: 'timetable', label: '시간표' },
@@ -130,6 +131,51 @@ export default async function StationPage({ params, searchParams }: { params: Pa
       />
       <div className="container two-col">
         <div>
+          {s.depot ? (
+            <Section id="depot" title="차량기지">
+              <dl className="kv" data-testid="depot-section">
+                <dt>기능</dt>
+                <dd>
+                  {s.depot.functions.length
+                    ? s.depot.functions.map((f) => codeLabel('depotFunction', f)).join(' · ')
+                    : '미확인'}
+                </dd>
+                <dt>운영기관</dt>
+                <dd>{s.depot.operator?.name_ko ?? '미확인'}</dd>
+                <dt>담당 노선</dt>
+                <dd>
+                  {s.depot.served_lines.length ? (
+                    <span className="chips">
+                      {s.depot.served_lines.map((l) => (
+                        <LineChip key={l.id} line={l} />
+                      ))}
+                    </span>
+                  ) : (
+                    '미확인'
+                  )}
+                </dd>
+                <dt>붙은 선로</dt>
+                <dd>
+                  {s.depot.connecting_lines.length
+                    ? s.depot.connecting_lines.map((l, i) => (
+                        <span key={l.id}>
+                          {i ? ', ' : ''}
+                          <a href={paths.line(l.id)}>{l.name_ko}</a>
+                        </span>
+                      ))
+                    : '미확인'}
+                </dd>
+                {s.depot.opened ? (
+                  <>
+                    <dt>개통</dt>
+                    <dd>
+                      <FuzzyDateText value={s.depot.opened} />
+                    </dd>
+                  </>
+                ) : null}
+              </dl>
+            </Section>
+          ) : null}
           <Section id="lines" title="노선별" sub="노선마다 역 이름·역번호·이웃 역·운영기관이 다릅니다">
             {s.lines.length === 0 ? (
               <p className="note">연결된 노선이 없습니다(미확인).</p>

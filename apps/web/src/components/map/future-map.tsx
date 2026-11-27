@@ -144,6 +144,15 @@ export function FutureMap({
   // 강조한 대상으로 지도를 옮길지: 링크·패널 목록 = 옮김, 지도 클릭(고르기 목록 포함) = 그대로(사용자 요청 2026-11-24)
   const [follow, setFollow] = useState(true);
   const [data, setData] = useState<{ lines: FC; stations: FC } | null>(null);
+  // 차량기지(현재 지도에서만, 켬/끔 — 0034)
+  const [showDepots, setShowDepots] = useState(false);
+  const [depots, setDepots] = useState<FC | null>(null);
+  useEffect(() => {
+    if (!showDepots || depots) return;
+    getJson<FC>('/api/map/depots/')
+      .then(setDepots)
+      .catch(() => setDepots({ type: 'FeatureCollection', features: [] } as unknown as FC));
+  }, [showDepots, depots]);
   const [diff, setDiff] = useState<MapDiff | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -318,7 +327,7 @@ export function FutureMap({
     setPicks(list);
     if (list.length === 1) {
       const p = list[0]!;
-      if (p.kind === 'station') setHash({ station: String(p.props.station_id) });
+      if (p.kind === 'station' || p.kind === 'depot') setHash({ station: String(p.props.station_id) });
       else if (p.props.plan_id) setHash({ plan: String(p.props.plan_id) });
       else if (p.props.line_id) setHash({ line: String(p.props.line_id) });
     } else if (list.length === 0) {
@@ -340,8 +349,10 @@ export function FutureMap({
   const max = Math.max(1, timeline.undated, ...timeline.years.map((y) => y.count));
   const atLabel = at.mode === 'current' ? '현재' : at.mode === 'future' ? '목표 미정까지' : `${at.year}`;
   const selLine = hash.line ? lines.find((f) => f.properties.line_id === hash.line)?.properties : undefined;
+  const depotOn = showDepots && at.mode === 'current';
   const selStation = hash.station
-    ? stations.find((f) => f.properties.station_id === hash.station)?.properties
+    ? (stations.find((f) => f.properties.station_id === hash.station)?.properties ??
+      (depotOn ? depots?.features.find((f) => f.properties.station_id === hash.station)?.properties : undefined))
     : undefined;
   const selPlanLine = hash.plan ? lines.find((f) => f.properties.plan_id === hash.plan)?.properties : undefined;
 
@@ -385,6 +396,19 @@ export function FutureMap({
                 </button>
               ))}
             </div>
+            <label
+              className="fp-check"
+              style={{ display: 'flex', gap: '0.4em', alignItems: 'center', marginTop: 'var(--kr-space-2)' }}
+            >
+              <input
+                type="checkbox"
+                checked={showDepots}
+                disabled={at.mode !== 'current'}
+                onChange={(e) => setShowDepots(e.target.checked)}
+                data-testid="toggle-depots"
+              />
+              차량기지 보기{at.mode !== 'current' ? ' (현재 지도에서만)' : ''}
+            </label>
           </section>
 
           {services.length ? (
@@ -562,6 +586,7 @@ export function FutureMap({
         <MapCanvas
           lines={data?.lines ?? null}
           stations={data?.stations ?? null}
+          depots={depotOn ? depots : null}
           service={serviceFc === 'loading' ? null : serviceFc}
           highlight={hash}
           follow={follow}
@@ -756,7 +781,7 @@ function InfoCard({
                 className="linkish strong"
                 onClick={() =>
                   onChoose(
-                    p.kind === 'station'
+                    p.kind !== 'line'
                       ? { station: String(p.props.station_id) }
                       : p.props.plan_id
                         ? { plan: String(p.props.plan_id) }
@@ -766,7 +791,9 @@ function InfoCard({
               >
                 {String(p.props.name_ko)}
               </button>
-              <span className="muted">{p.kind === 'station' ? '역' : p.props.plan_id ? '계획' : '노선'}</span>
+              <span className="muted">
+                {p.kind === 'station' ? '역' : p.kind === 'depot' ? '차량기지' : p.props.plan_id ? '계획' : '노선'}
+              </span>
             </li>
           ))}
         </ul>
@@ -902,6 +929,30 @@ function InfoCard({
           style={{ width: '100%', justifyContent: 'center' }}
         >
           노선 상세 보기
+        </a>
+      </>
+    );
+  } else if (hash.station && station?.kind === 'depot') {
+    const fn = Array.isArray(station.functions) ? (station.functions as string[]) : [];
+    const served = Array.isArray(station.served) ? (station.served as string[]) : [];
+    body = (
+      <>
+        <p className="eyebrow">차량기지</p>
+        <h2 className="info-title">{String(station.name_ko)}</h2>
+        <p className="fp-hint" data-testid="depot-info">
+          {fn.length
+            ? fn.map((f) => (isCode('depotFunction', f) ? codeLabel('depotFunction', f) : f)).join(' · ')
+            : '기능 미확인'}
+          {station.operator ? ` · ${String(station.operator)}` : ''}
+          {bool(station.approximate) ? ' · 근사 좌표' : ''}
+        </p>
+        {served.length ? <p className="fp-hint">담당 노선: {served.join(', ')}</p> : null}
+        <a
+          className="btn"
+          href={`/stations/${encodeURIComponent(hash.station)}/`}
+          style={{ width: '100%', justifyContent: 'center' }}
+        >
+          차량기지 상세 보기
         </a>
       </>
     );

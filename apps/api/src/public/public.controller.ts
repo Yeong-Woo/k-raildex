@@ -21,6 +21,7 @@ import {
   publicMapPlans,
   publicMapService,
   publicMapStations,
+  publicMapDepots,
   publicMapTimeline,
   publicNumberSearch,
   publicPlan,
@@ -303,6 +304,12 @@ export class PublicController {
       kind: at.mode === 'current' ? 'mv' : 'map',
       contentType: GEOJSON,
     });
+  }
+
+  /** 차량기지(현재, 0034) */
+  @Get('map/depots.geojson')
+  async mapDepots(@Req() req: Req_, @Res() rep: Rep) {
+    return this.cache.serve(req, rep, () => publicMapDepots(this.db), { kind: 'map', contentType: GEOJSON });
   }
 
   @Get('map/lines.geojson')

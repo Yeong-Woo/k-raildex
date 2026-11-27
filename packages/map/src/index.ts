@@ -205,6 +205,23 @@ export function currentLineLayers(source: string): LayerSpec[] {
 }
 
 /** 현재 역 레이어(상태 색, 근사 좌표(coord_basis 있음)는 테두리 주황) */
+/** 차량기지(0034): 흰 원 + 굵은 테두리(첫 담당 노선색, 없으면 회색) */
+export function depotLayers(source: string): LayerSpec[] {
+  return [
+    {
+      id: `${source}-depot`,
+      type: 'circle',
+      source,
+      paint: {
+        'circle-radius': ['interpolate', ['linear'], ['zoom'], 7, 4, 13, 8],
+        'circle-color': '#FFFFFF',
+        'circle-stroke-color': ['case', ['!=', ['coalesce', ['get', 'color'], ''], ''], ['get', 'color'], '#6B7480'],
+        'circle-stroke-width': 3,
+      },
+    },
+  ];
+}
+
 export function currentStationLayers(source: string): LayerSpec[] {
   const pairs: unknown[] = [];
   for (const [k, v] of Object.entries(STATUS_COLORS)) pairs.push(k, v);

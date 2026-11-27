@@ -1,5 +1,5 @@
 /**
- * 지도 GeoJSON·연도별 건수 중계(FR-WEB-002: 브라우저는 API 에 닿지 않는다). `/api/map/{lines|stations|plans|timeline}/?at=&stage_min=&include_undated=`
+ * 지도 GeoJSON·연도별 건수 중계(FR-WEB-002: 브라우저는 API 에 닿지 않는다). `/api/map/{lines|stations|plans|timeline|depots}/?at=&stage_min=&include_undated=`
  * → 공개 API `/v1/public/map/*`. 연도별 응답은 API 가 판 단위로 메모(public-cache.ts)하고, 여기서는 ETag·Cache-Control 을 그대로 넘겨
  * 브라우저가 연도마다 HTTP 캐시·304 를 쓴다(NFR-WEB-001 연도 전환 < 300ms — 화면도 연도별로 메모리에 둔다).
  */
@@ -10,6 +10,7 @@ const UPSTREAM: Record<string, string> = {
   stations: '/v1/public/map/stations.geojson',
   plans: '/v1/public/map/plans.geojson',
   timeline: '/v1/public/map/timeline',
+  depots: '/v1/public/map/depots.geojson',
 };
 const ALLOWED = ['at', 'stage_min', 'include_undated'] as const;
 

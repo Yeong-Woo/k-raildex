@@ -50,7 +50,7 @@ export interface FC {
 }
 
 export interface Pick {
-  kind: 'station' | 'line';
+  kind: 'station' | 'line' | 'depot';
   props: Record<string, unknown>;
 }
 
@@ -202,6 +202,39 @@ function stationLayers(): LayerSpecification[] {
   ];
 }
 
+/** 차량기지(0034): 둥근 네모 대신 굵은 테두리 원 — 첫 담당 노선색, 없으면 회색. 현재 지도·"차량기지" 켬일 때만 */
+function depotLayers(): LayerSpecification[] {
+  const color = ['case', ['!=', ['coalesce', ['get', 'color'], ''], ''], ['get', 'color'], '#6B7480'];
+  return [
+    {
+      id: 'depot',
+      type: 'circle',
+      source: 'depots',
+      paint: {
+        'circle-radius': ['interpolate', ['linear'], ['zoom'], 6, 3, 10, 5, 14, 8],
+        'circle-color': '#FFFFFF',
+        'circle-stroke-color': color,
+        'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 6, 2, 12, 3.5],
+      },
+    } as unknown as LayerSpecification,
+    {
+      id: 'depot-label',
+      type: 'symbol',
+      source: 'depots',
+      minzoom: 9.5,
+      layout: {
+        'text-field': ['get', 'name_ko'],
+        'text-font': FONT,
+        'text-size': 11,
+        'text-offset': [0, 1],
+        'text-anchor': 'top',
+        'text-optional': true,
+      },
+      paint: { 'text-color': '#4B5563', 'text-halo-color': '#FFFFFF', 'text-halo-width': 1.6 },
+    } as unknown as LayerSpecification,
+  ];
+}
+
 const SERVICE_FALLBACK_COLOR = '#F5B700';
 const SERVICE_COLOR = [
   'case',
@@ -249,7 +282,7 @@ function serviceLayers(): LayerSpecification[] {
 const LINE_OPACITY = ['case', isSchematic, 0.75, 0.95];
 const LINE_OPACITY_DIM = ['case', isSchematic, 0.2, 0.28];
 
-const PICK_LAYERS = ['station', 'line-solid', 'line-dashed_bold', 'line-dashed_thin'];
+const PICK_LAYERS = ['station', 'depot', 'line-solid', 'line-dashed_bold', 'line-dashed_thin'];
 
 function boundsOf(features: FC['features']): [[number, number], [number, number]] | null {
   let minX = Infinity;
@@ -308,6 +341,7 @@ const BASEMAP_DIM = { 'raster-saturation': -0.75, 'raster-contrast': -0.15, 'ras
 export default function MapCanvas({
   lines,
   stations,
+  depots = null,
   service = null,
   highlight,
   follow = true,
@@ -320,6 +354,8 @@ export default function MapCanvas({
 }: {
   lines: FC | null;
   stations: FC | null;
+  /** 차량기지 점(null 이면 숨김) */
+  depots?: FC | null;
   /** 강조할 운행 계통 선형(#service=) */
   service?: FC | null;
   highlight: MapHash;
@@ -410,8 +446,10 @@ export default function MapCanvas({
       m.addSource('lines', { type: 'geojson', data: EMPTY as never, attribution: ODBL_ATTR });
       m.addSource('stations', { type: 'geojson', data: EMPTY as never });
       m.addSource('service', { type: 'geojson', data: EMPTY as never });
+      m.addSource('depots', { type: 'geojson', data: EMPTY as never });
       for (const l of lineLayers()) m.addLayer(l);
       for (const l of serviceLayers()) m.addLayer(l);
+      for (const l of depotLayers()) m.addLayer(l);
       for (const l of stationLayers()) m.addLayer(l);
       readyRef.current = true;
       mapRef.current = m;
@@ -431,13 +469,14 @@ export default function MapCanvas({
       const picks: Pick[] = [];
       for (const f of feats) {
         const p = f.properties as Record<string, unknown>;
-        const kind = f.layer.id === 'station' ? 'station' : 'line';
-        const key = kind === 'station' ? `s:${String(p.station_id)}` : `l:${String(p.feature_id)}`;
+        const kind = f.layer.id === 'station' ? 'station' : f.layer.id === 'depot' ? 'depot' : 'line';
+        const key = kind === 'line' ? `l:${String(p.feature_id)}` : `s:${String(p.station_id)}`;
         if (seen.has(key)) continue;
         seen.add(key);
         picks.push({ kind, props: p });
       }
-      picks.sort((a, b) => (a.kind === b.kind ? 0 : a.kind === 'station' ? -1 : 1));
+      const rank = { station: 0, depot: 1, line: 2 } as const;
+      picks.sort((a, b) => rank[a.kind] - rank[b.kind]);
       pickRef.current(picks.slice(0, 8));
     };
     m.on('click', onClick);
@@ -462,6 +501,7 @@ export default function MapCanvas({
       if (!m) return;
       (m.getSource('lines') as GeoJSONSource | undefined)?.setData((lines ?? EMPTY) as never);
       (m.getSource('stations') as GeoJSONSource | undefined)?.setData((stations ?? EMPTY) as never);
+      (m.getSource('depots') as GeoJSONSource | undefined)?.setData((depots ?? EMPTY) as never);
     };
     if (readyRef.current) apply();
     else {
@@ -473,7 +513,7 @@ export default function MapCanvas({
       }, 50);
       return () => clearInterval(t);
     }
-  }, [lines, stations]);
+  }, [lines, stations, depots]);
 
   // 운행 계통 강조: 계통 선형을 위에, 나머지 선은 흐리게. 패널에서 고른 것만 그 범위로 이동
   const fittedService = useRef<string>('');

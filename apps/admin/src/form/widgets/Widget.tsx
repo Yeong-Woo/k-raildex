@@ -98,6 +98,28 @@ export function WidgetInput({ widget, value, onChange, schema, id, disabled }: W
           nullable={schema ? unwrap(schema).nullable : true}
         />
       );
+    case 'codes': {
+      const cur = new Set((value as string[] | null) ?? []);
+      const t = codes[widget.domain] as { values: readonly string[]; labels: Record<string, { ko: string }> };
+      return (
+        <div id={id} className="flex flex-wrap gap-x-3 gap-y-1 text-sm" role="group">
+          {t.values.map((v) => (
+            <label key={v} className="inline-flex items-center gap-1">
+              <input
+                type="checkbox"
+                disabled={disabled}
+                checked={cur.has(v)}
+                onChange={(e) => {
+                  const next = t.values.filter((x) => (x === v ? e.target.checked : cur.has(x)));
+                  onChange(next);
+                }}
+              />
+              {t.labels[v]?.ko ?? v}
+            </label>
+          ))}
+        </div>
+      );
+    }
     case 'fuzzy':
       return <FuzzyInput value={value as FuzzyDate | null} onChange={onChange} />;
     case 'point':

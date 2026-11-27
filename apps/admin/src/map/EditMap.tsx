@@ -10,7 +10,7 @@ import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Marker, type MapLayerMouseEvent } from 'maplibre-gl';
 import { codeLabel, isCode } from '@k-raildex/contracts';
-import { currentLineLayers, currentStationLayers, STATUS_COLORS } from '@k-raildex/map';
+import { currentLineLayers, currentStationLayers, depotLayers, STATUS_COLORS } from '@k-raildex/map';
 import { Button, Card } from '@k-raildex/ui';
 import { Copy, Crosshair, ExternalLink, MapPin, X } from 'lucide-react';
 import { api, apiOptional, errorText, type EntityResponse } from '../lib/api';
@@ -68,6 +68,12 @@ export function EditMap() {
 
   useGeoJsonLayer(map, 'current-lines', lines.data, currentLineLayers('current-lines'));
   useGeoJsonLayer(map, 'current-stations', stations.data, currentStationLayers('current-stations'));
+  // 차량기지(시설, 0034) — 좌표가 있는 것만
+  const depots = useQuery({
+    queryKey: ['map', 'depots'],
+    queryFn: () => apiOptional<FeatureCollection>('/v1/admin/map/depots'),
+  });
+  useGeoJsonLayer(map, 'depots', depots.data, depotLayers('depots'));
   // 역·노선 클릭 → 정보 팝업(좌표 찍기 중에는 끔). 역 클릭은 아래에서 옆 패널 선택도 한다
   useFeaturePopup(map, ['current-station', 'current-line', 'current-line-construction'], !placing && !picking);
 
@@ -89,13 +95,18 @@ export function EditMap() {
     };
     const enter = () => (map.getCanvas().style.cursor = 'pointer');
     const leave = () => (map.getCanvas().style.cursor = '');
-    map.on('click', 'current-station', onClick);
-    map.on('mouseenter', 'current-station', enter);
-    map.on('mouseleave', 'current-station', leave);
+    const ids = ['current-station', 'depots-depot'];
+    for (const id of ids) {
+      map.on('click', id, onClick);
+      map.on('mouseenter', id, enter);
+      map.on('mouseleave', id, leave);
+    }
     return () => {
-      map.off('click', 'current-station', onClick);
-      map.off('mouseenter', 'current-station', enter);
-      map.off('mouseleave', 'current-station', leave);
+      for (const id of ids) {
+        map.off('click', id, onClick);
+        map.off('mouseenter', id, enter);
+        map.off('mouseleave', id, leave);
+      }
     };
     // select·takeFrom 은 ref·navigate 로만 상태를 바꾼다
   }, [map]);

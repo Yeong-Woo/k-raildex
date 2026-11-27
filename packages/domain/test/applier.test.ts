@@ -351,6 +351,59 @@ describe('ID 변경·역 병합', () => {
       await apply([{ op: 'delete', entity_type: 'line_station', id }]);
   });
 
+  it('차량기지(0034): kind depot 만 기지 정보·담당 노선, 붙은 기지선은 노선역(V-H19)', async () => {
+    const SRCS = [{ source_id: 'src-fixture-notice' }];
+    await apply([
+      {
+        op: 'create',
+        entity_type: 'station',
+        data: {
+          id: 'stn-fx-depot',
+          name_ko: '시험차량기지',
+          kind: 'depot',
+          geom: { lat: 37.6, lng: 127.1 },
+          coord_source: 'official',
+          depot: {
+            functions: ['stabling', 'inspection'],
+            operator_id: 'op-fx-metro',
+            opened: { value: '1990', precision: 'year' },
+          },
+          depot_lines: [{ line_id: 'line-fx-one' }],
+          checked_at: '2026-11-27',
+          sources: SRCS,
+        },
+      },
+    ]);
+    expect(await readEntity(db, 'station', 'stn-fx-depot')).toMatchObject({
+      depot: {
+        functions: ['stabling', 'inspection'],
+        operator_id: 'op-fx-metro',
+        opened: { value: '1990', precision: 'year' },
+      },
+      depot_lines: [{ line_id: 'line-fx-one', note: null }],
+    });
+    // 여객역에 기지 정보를 넣으면 거부(계약 또는 V-H19)
+    await expectDomainError(
+      apply([
+        { op: 'update', entity_type: 'station', id: 'stn-fx-a', data: { depot_lines: [{ line_id: 'line-fx-one' }] } },
+      ]),
+      'validation',
+      'V-H19',
+    );
+    await expectDomainError(
+      apply([{ op: 'update', entity_type: 'station', id: 'stn-fx-depot', data: { kind: 'station' } }]),
+      'validation',
+    );
+    // 기능 코드값 밖은 거부
+    await expectDomainError(
+      apply([
+        { op: 'update', entity_type: 'station', id: 'stn-fx-depot', data: { depot: { functions: ['parking'] } } },
+      ]),
+      'validation',
+    );
+    await apply([{ op: 'delete', entity_type: 'station', id: 'stn-fx-depot' }]);
+  });
+
   it('공사 중 분리 정거장을 기존 역으로 병합', async () => {
     await apply([
       {

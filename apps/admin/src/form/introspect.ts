@@ -103,6 +103,9 @@ export function inferWidget(name: string, s: Z): Widget {
   }
   if (t === 'array') {
     const el = arrayElement(b);
+    const elEnum = el ? enumValues(el) : null;
+    const elDomain = elEnum ? codeDomainOf(elEnum) : null;
+    if (elDomain) return { kind: 'codes', domain: elDomain };
     if (el && def(unwrap(el).base).type === 'string') return { kind: 'string_list' };
     return { kind: 'json' };
   }
@@ -113,6 +116,8 @@ export function inferWidget(name: string, s: Z): Widget {
 
 /** 하위 항목 필드 라벨(공통 이름) */
 export const CHILD_LABELS: Record<string, string> = {
+  functions: '기능',
+  opened: '개통',
   program_id: '상위 계획',
   edition: '판',
   timing: '시기 구분',

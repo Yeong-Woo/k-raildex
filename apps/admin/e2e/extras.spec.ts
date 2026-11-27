@@ -359,3 +359,29 @@ test('노선역 상세 [관리역]: 코레일 노선역을 관리역으로 저�
   await expect(page.getByTestId('managed-stations')).toContainText('소속 노선역 0곳');
   for (const id of ['ls-e2e-korail--fx-b', 'ls-e2e-korail--fx-a']) await removeEntity(page, 'line-station', id);
 });
+
+test('역 그룹 [정보]: 역 종류가 차량기지일 때만 기지 정보(기능 체크)·담당 노선을 쓴다', async ({ page }) => {
+  const api = process.env.E2E_API_URL;
+  const r = await page.request.post(`${api}/v1/admin/station`, {
+    data: {
+      id: 'stn-e2e-depot',
+      name_ko: '시험기지',
+      kind: 'station',
+      checked_at: '2026-11-27',
+      sources: [{ source_id: 'src-fixture-notice' }],
+    },
+  });
+  expect(r.ok(), await r.text()).toBe(true);
+  await page.goto('/data/station/stn-e2e-depot');
+  await expect(page.getByTestId('depot-hint')).toContainText('차량기지');
+  await page.getByLabel('역 종류').selectOption('depot');
+  const ed = page.getByTestId('depot-editor');
+  await ed.getByRole('checkbox', { name: '주박' }).check();
+  await ed.getByRole('checkbox', { name: '중정비' }).check();
+  await page.getByRole('button', { name: /^저장/ }).first().click();
+  await page.getByRole('dialog').getByRole('button', { name: '저장', exact: true }).click();
+  await expect(toast(page, '저장했습니다')).toBeVisible();
+  const d = await (await page.request.get(`${api}/v1/admin/station/stn-e2e-depot`)).json();
+  expect(d.data.depot.functions).toEqual(['stabling', 'heavy_maintenance']);
+  await removeEntity(page, 'station', 'stn-e2e-depot');
+});

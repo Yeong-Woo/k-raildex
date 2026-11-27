@@ -4,6 +4,7 @@
  */
 import {
   splitDayNote,
+  type PublicDepot,
   type PublicLineDetail,
   type PublicLineListItem,
   type PublicServiceDetail,
@@ -224,6 +225,24 @@ export async function publicStations(db: Queryable, q: StationListQuery) {
   return { ...paginate(rows, q), facets };
 }
 
+/** 차량기지 정보(0034). 붙은 기지선 = 이 역 그룹의 노선역이 있는 노선 */
+export async function depotOf(db: Queryable, stationId: string): Promise<PublicDepot | null> {
+  const { rows } = await db.query<PublicDepot>(
+    `SELECT coalesce(d.functions, '{}') AS functions,
+            (SELECT json_build_object('id', o.id, 'name_ko', o.name_ko) FROM operator o WHERE o.id = d.operator_id AND o.deleted_at IS NULL) AS operator,
+            ${fz('d.opened')} AS opened,
+            coalesce((SELECT json_agg(json_build_object('id', l.id, 'name_ko', l.name_ko, 'color', l.color) ORDER BY dl.ord, l.id)
+                        FROM station_depot_line dl JOIN line l ON l.id = dl.line_id AND l.deleted_at IS NULL WHERE dl.station_id = s.id), '[]'::json) AS served_lines,
+            coalesce((SELECT json_agg(DISTINCT jsonb_build_object('id', l.id, 'name_ko', l.name_ko, 'line_role', l.line_role))
+                        FROM line_station x JOIN line l ON l.id = x.line_id AND l.deleted_at IS NULL
+                       WHERE x.station_id = s.id AND x.deleted_at IS NULL), '[]'::json) AS connecting_lines
+       FROM station s LEFT JOIN station_depot d ON d.station_id = s.id
+      WHERE s.id = $1 AND s.deleted_at IS NULL AND s.kind = 'depot'`,
+    [stationId],
+  );
+  return rows[0] ?? null;
+}
+
 export async function publicStation(db: Queryable, id: string): Promise<PublicStationDetail | null> {
   const { rows } = await db.query<Row>(
     `SELECT s.id, s.name_ko, s.name_en, s.name_hanja, s.name_full, s.kind, st.status, ${fz('st.opened')} AS opened,
@@ -290,6 +309,7 @@ export async function publicStation(db: Queryable, id: string): Promise<PublicSt
     ),
   ]);
   const lsIds = lines.rows.map((r) => r.line_station_id);
+  const depot = stn.kind === 'depot' ? await depotOf(db, id) : null;
   const [names, sources, attachments, events] = await Promise.all([
     namesOf(db, [id]),
     sourcesOf(db, [id, ...lsIds]),
@@ -304,6 +324,7 @@ export async function publicStation(db: Queryable, id: string): Promise<PublicSt
     timetables: tts as PublicStationDetail['timetables'],
     plans: plans.rows as PublicStationDetail['plans'],
     transfer_centers: centers.rows as PublicStationDetail['transfer_centers'],
+    depot,
     events,
     names: names.get(id) ?? [],
     sources,

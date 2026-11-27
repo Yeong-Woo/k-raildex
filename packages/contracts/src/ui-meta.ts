@@ -13,6 +13,8 @@ export type Widget =
   | { kind: 'number'; integer?: boolean }
   | { kind: 'boolean' }
   | { kind: 'code'; domain: CodeDomain }
+  /** 코드값 여러 개(체크 상자) */
+  | { kind: 'codes'; domain: CodeDomain }
   | { kind: 'fuzzy' }
   | { kind: 'date' }
   | { kind: 'point' }
@@ -206,6 +208,12 @@ export const entityUiMeta: Readonly<Record<EntityType, EntityUiMeta>> = {
       history_text: f('역연혁(원문)', W.textarea, 'detail'),
       intro_text: f('역소개(원문)', W.textarea, 'detail'),
       merge_into_id: f('개통 때 병합할 역', ref('station'), 'relations', { help: '공사 중 분리 정거장(Q73)' }),
+      depot: f('차량기지 정보', editor('station_depot'), 'class', {
+        help: '역 종류가 차량기지일 때만 — 기능·운영기관·개통. 붙은 기지선은 [노선별] 탭의 노선역',
+      }),
+      depot_lines: f('차량기지 담당 노선', editor('station_depot_lines'), 'class', {
+        help: '이 기지가 차량을 맡는 노선',
+      }),
       own_status: f('단독 상태', code('status'), 'dates', { help: '노선역이 없는 역에서만' }),
       own_opened: f('단독 개통일', W.fuzzy, 'dates'),
       own_closed: f('단독 폐지일', W.fuzzy, 'dates'),

@@ -16,6 +16,7 @@ import {
   parseMapAt,
   parseStageMin,
   type MapAtQuery,
+  publicMapDepots,
 } from '@k-raildex/domain';
 import { RequireScope } from '../auth/principal';
 import { boolParam } from '../common/http';
@@ -51,6 +52,13 @@ export class MapController {
   @RequireScope('admin:read')
   async currentStations() {
     return currentMapStations(this.dbs.db);
+  }
+
+  /** 차량기지 점(공개 지도와 같은 자료, 0034) */
+  @Get('depots')
+  @RequireScope('admin:read')
+  async depots() {
+    return publicMapDepots(this.dbs.db);
   }
 
   @Get('current-lines')

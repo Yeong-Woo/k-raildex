@@ -60,7 +60,10 @@ export const ENTITY_SPECS: Readonly<Record<EntityType, EntitySpec>> = {
     true, // REC 열(reviewed_at 등)이 있다. 출처 ≥1 요구는 없음(DB entity_table.curated = false)
   ),
   operator: spec('operator'),
-  station: spec('station'),
+  station: spec('station', [
+    { field: 'depot', table: 'station_depot', fk: 'station_id', kind: 'single' },
+    { field: 'depot_lines', table: 'station_depot_line', fk: 'station_id', kind: 'objects', orderColumn: 'ord' },
+  ]),
   line_station: spec('line_station', [], false),
   line: spec('line', [
     {
