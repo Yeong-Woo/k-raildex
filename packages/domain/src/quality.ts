@@ -135,7 +135,10 @@ export const QUALITY_RULES: readonly QualityRule[] = [
             FROM station a JOIN station b ON b.name_ko = a.name_ko AND b.id > a.id
            WHERE a.deleted_at IS NULL AND b.deleted_at IS NULL AND a.geom IS NOT NULL AND b.geom IS NOT NULL
              AND a.merge_into_id IS DISTINCT FROM b.id AND b.merge_into_id IS DISTINCT FROM a.id
-             AND ST_DWithin(a.geom, b.geom, 1000)`,
+             AND ST_DWithin(a.geom, b.geom, 1000)
+             -- 별개 역으로 확인하면 어느 한쪽 내부 메모에 상대 id(2026-11-27 — X-station-near-other-name 과 같은 방식)
+             AND position(b.id IN coalesce(a.editor_note, '')) = 0
+             AND position(a.id IN coalesce(b.editor_note, '')) = 0`,
   },
   {
     id: 'V-S07',
@@ -350,7 +353,7 @@ export const QUALITY_RULES: readonly QualityRule[] = [
     // 기존 노선을 잇거나 [새 노선 만들기](계획 상태 노선 + 신설 역할)로 만든다. 노선이 아닌 사업이면 내부 메모에 "노선 연결 안 함".
     // 폐기·휴면 계획은 뺀다
     id: 'X-plan-no-line',
-    title: '노선 단위 계획인데 노선 연결 없음(기존 노선 연결 또는 새 노선 만들기)',
+    title: '기본계획 이상 노선 계획인데 노선 연결 없음(기존 노선 연결 또는 새 노선 만들기)',
     sql: `SELECT 'plan' AS entity_type, p.id AS entity_id,
                  coalesce(st.stage, '단계 없음') || CASE WHEN sh.plan_id IS NULL THEN '' ELSE ' · 선형 ' || sh.quality END AS detail,
                  p.name_ko || p.id AS sort_key
@@ -358,7 +361,8 @@ export const QUALITY_RULES: readonly QualityRule[] = [
             LEFT JOIN v_plan_stage st ON st.plan_id = p.id
             LEFT JOIN v_plan_shape sh ON sh.plan_id = p.id
            WHERE p.deleted_at IS NULL AND p.scope = 'line'
-             AND coalesce(st.stage, '') NOT IN ('abandoned', 'dormant')
+             -- 2026-11-27 사용자 결정: 노선 개체는 기본계획 이상 계획만 만든다(그 전 단계는 계획 선형으로만)
+             AND st.stage IN ('basic_plan', 'basic_design', 'eia', 'detail_design', 'construction', 'trial_run', 'opened')
              AND NOT EXISTS (SELECT 1 FROM plan_line pl JOIN line l ON l.id = pl.line_id AND l.deleted_at IS NULL WHERE pl.plan_id = p.id)
              AND coalesce(p.editor_note, '') NOT LIKE '%노선 연결 안 함%'`,
   },

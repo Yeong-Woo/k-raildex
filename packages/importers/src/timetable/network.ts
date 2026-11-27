@@ -18,6 +18,8 @@ export interface NetLineStation {
   station_id: string;
   seq: number;
   station_code: string | null;
+  /** 노선 역할(기지선·연결선·삼각선이면 값) — 시간표 노선역 해석에서 후보가 여럿이면 뺀다 */
+  line_role?: string | null;
 }
 
 export interface NetService {
@@ -53,7 +55,7 @@ export async function loadNetworkContext(db: Queryable): Promise<NetworkContext>
     st.rows.map((r) => [r.id, { id: r.id, name_ko: r.name_ko, aliases: r.aliases ?? [], status: r.status }]),
   );
   const ls = await db.query<NetLineStation>(
-    `SELECT ls.id, ls.line_id, ls.station_id, ls.seq, ls.station_code
+    `SELECT ls.id, ls.line_id, ls.station_id, ls.seq, ls.station_code, l.line_role
        FROM line_station ls JOIN line l ON l.id = ls.line_id
       WHERE ls.deleted_at IS NULL AND l.deleted_at IS NULL
       ORDER BY ls.line_id, ls.seq`,
@@ -112,10 +114,10 @@ export async function loadNetworkContext(db: Queryable): Promise<NetworkContext>
 
 /** 세트의 노선역: 운행 계통 노선 ∩ 역의 노선역이 하나일 때만(Q72 A) */
 export function lineStationResolver(
-  lineStations: Iterable<Pick<NetLineStation, 'id' | 'line_id' | 'station_id'>>,
+  lineStations: Iterable<Pick<NetLineStation, 'id' | 'line_id' | 'station_id' | 'line_role'>>,
   serviceLines: (serviceId: string) => string[] | undefined,
 ): (stationId: string, serviceId: string | null) => string | null {
-  const byStation = new Map<string, { id: string; line_id: string }[]>();
+  const byStation = new Map<string, { id: string; line_id: string; line_role?: string | null }[]>();
   for (const ls of lineStations) {
     const l = byStation.get(ls.station_id) ?? [];
     byStation.set(ls.station_id, l);
@@ -125,6 +127,9 @@ export function lineStationResolver(
     if (!serviceId) return null;
     const lines = new Set(serviceLines(serviceId) ?? []);
     const cand = (byStation.get(stationId) ?? []).filter((x) => lines.has(x.line_id));
-    return cand.length === 1 ? cand[0]!.id : null;
+    if (cand.length === 1) return cand[0]!.id;
+    // 후보가 여럿이면 기지선·연결선·삼각선(line_role) 노선역을 뺀다(예: 병점 = 경부선·병점기지선 → 경부선, 2026-11-27)
+    const main = cand.filter((x) => !x.line_role);
+    return main.length === 1 ? main[0]!.id : null;
   };
 }

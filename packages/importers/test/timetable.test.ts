@@ -360,3 +360,19 @@ describe('공통 도구', () => {
     expect(sha256Of({ a: 1, b: 2 })).toBe(sha256Of({ b: 2, a: 1 }));
   });
 });
+
+describe('lineStationResolver(2026-11-27)', () => {
+  it('운행 계통 노선 후보가 여럿이면 기지선·연결선 노선역을 빼고 하나면 그것', () => {
+    const lsOf = lineStationResolver(
+      [
+        { id: 'ls-gyeongbu--bj', line_id: 'line-gyeongbu', station_id: 'stn-bj', line_role: null },
+        { id: 'ls-depot--bj', line_id: 'line-depot', station_id: 'stn-bj', line_role: 'depot_line' },
+        { id: 'ls-a--j', line_id: 'line-a', station_id: 'stn-j', line_role: null },
+        { id: 'ls-b--j', line_id: 'line-b', station_id: 'stn-j', line_role: null },
+      ],
+      () => ['line-gyeongbu', 'line-depot', 'line-a', 'line-b'],
+    );
+    expect(lsOf('stn-bj', 'svc')).toBe('ls-gyeongbu--bj');
+    expect(lsOf('stn-j', 'svc')).toBeNull();
+  });
+});

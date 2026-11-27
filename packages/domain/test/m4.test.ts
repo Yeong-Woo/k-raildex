@@ -474,13 +474,14 @@ describe('품질·지도(픽스처)', () => {
           refs: [{ program_id: 'pp-fx-national-rail-4', class: 'new', source_id: 'src-fixture-notice' }],
           stage_events: [
             { stage: 'plan_listed', date: { value: '2021', precision: 'year' }, source_id: 'src-fixture-notice' },
+            { stage: 'basic_plan', date: { value: '2023', precision: 'year' }, source_id: 'src-fixture-notice' },
           ],
           checked_at: '2026-01-01',
           sources: SRC,
         },
       },
     ]);
-    expect((await hits())[0]).toMatchObject({ entity_type: 'plan', detail: 'plan_listed' });
+    expect((await hits())[0]).toMatchObject({ entity_type: 'plan', detail: 'basic_plan' });
     await apply([
       { op: 'update', entity_type: 'plan', id: 'plan-q-noline', data: { editor_note: '노선 연결 안 함: 시험' } },
     ]);

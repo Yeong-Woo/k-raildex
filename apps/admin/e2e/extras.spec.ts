@@ -251,6 +251,9 @@ test('계획 편집: 노선 없는 계획에 [새 노선 만들기]로 노선을
       id: 'plan-e2e-noline',
       name_ko: '이투이선',
       refs: [{ program_id: 'pp-fx-national-rail-4', class: 'new', source_id: 'src-fixture-notice' }],
+      stage_events: [
+        { stage: 'basic_plan', date: { value: '2024', precision: 'year' }, source_id: 'src-fixture-notice' },
+      ],
       checked_at: '2026-01-01',
       sources: [{ source_id: 'src-fixture-notice' }],
     },
