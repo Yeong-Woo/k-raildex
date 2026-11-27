@@ -1,6 +1,7 @@
 /** 특수 편집기(FR-ADM-050~) — UI 메타데이터 widget editor 이름으로 일반 하위 목록 편집기를 바꾼다 */
 import type { ReactNode } from 'react';
 import type { Code, FuzzyDate, PlanMilestone, PlanStageEvent, StopPattern } from '@k-raildex/contracts';
+import { PlanLinesEditor } from '../editors/PlanLinesEditor';
 import { PlanStagesEditor } from '../editors/PlanStagesEditor';
 import { StopPatternMatrix } from '../editors/StopPatternMatrix';
 
@@ -40,6 +41,9 @@ const SPECIAL: Record<string, SpecialEditor> = {
     ),
   },
   plan_milestones: { hidden: true, render: () => null },
+  plan_lines: {
+    render: ({ name, record, onChange }) => <PlanLinesEditor name={name} record={record} onChange={onChange} />,
+  },
 };
 
 export function specialEditor(name: string): SpecialEditor | null {

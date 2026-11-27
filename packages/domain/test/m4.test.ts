@@ -440,6 +440,63 @@ describe('품질·지도(픽스처)', () => {
     ]);
   });
 
+  it('노선 없는 계획(X-plan-no-line): 메모로 빠지고, 새 노선을 만들어 이으면 빠진다', async () => {
+    const hits = async () =>
+      (await qualityItems(db, 'X-plan-no-line', { limit: 200, offset: 0 })).items.filter(
+        (i) => i.entity_id === 'plan-q-noline',
+      );
+    await apply([
+      {
+        op: 'create',
+        entity_type: 'plan',
+        data: {
+          id: 'plan-q-noline',
+          name_ko: '노선없는선',
+          refs: [{ program_id: 'pp-fx-national-rail-4', class: 'new', source_id: 'src-fixture-notice' }],
+          stage_events: [
+            { stage: 'plan_listed', date: { value: '2021', precision: 'year' }, source_id: 'src-fixture-notice' },
+          ],
+          checked_at: '2026-01-01',
+          sources: SRC,
+        },
+      },
+    ]);
+    expect((await hits())[0]).toMatchObject({ entity_type: 'plan', detail: 'plan_listed' });
+    await apply([
+      { op: 'update', entity_type: 'plan', id: 'plan-q-noline', data: { editor_note: '노선 연결 안 함: 시험' } },
+    ]);
+    expect(await hits()).toEqual([]);
+    await apply([{ op: 'update', entity_type: 'plan', id: 'plan-q-noline', data: { editor_note: null } }]);
+    expect(await hits()).toHaveLength(1);
+    await apply([
+      {
+        op: 'create',
+        entity_type: 'line',
+        data: {
+          id: 'line-q-noline',
+          name_ko: '노선없는선',
+          category: 'light_rail',
+          rail_class: 'urban',
+          status: 'planned',
+          checked_at: '2026-01-01',
+          sources: SRC,
+        },
+      },
+      {
+        op: 'update',
+        entity_type: 'plan',
+        id: 'plan-q-noline',
+        data: { lines: [{ line_id: 'line-q-noline', role: 'new' }] },
+      },
+    ]);
+    expect(await hits()).toEqual([]);
+    await apply([
+      { op: 'update', entity_type: 'plan', id: 'plan-q-noline', data: { lines: [] } },
+      { op: 'delete', entity_type: 'plan', id: 'plan-q-noline' },
+      { op: 'delete', entity_type: 'line', id: 'line-q-noline' },
+    ]);
+  });
+
   it('분리 정거장(X-station-split): 분리 유지 메모면 빠지고, 미리 보기 → 근거 출처와 함께 병합', async () => {
     const hits = async () =>
       (await qualityItems(db, 'X-station-split', { limit: 50, offset: 0 })).items.filter(

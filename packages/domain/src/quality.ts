@@ -346,6 +346,23 @@ export const QUALITY_RULES: readonly QualityRule[] = [
              AND coalesce(s.editor_note, '') NOT LIKE '%분리 유지(' || m.id || ')%'`,
   },
   {
+    // 2026-11-27 사용자 지시: 노선 단위 계획인데 노선 연결(plan_line)이 하나도 없다 — 관리 앱 계획 편집 "노선과 역할"에서
+    // 기존 노선을 잇거나 [새 노선 만들기](계획 상태 노선 + 신설 역할)로 만든다. 노선이 아닌 사업이면 내부 메모에 "노선 연결 안 함".
+    // 폐기·휴면 계획은 뺀다
+    id: 'X-plan-no-line',
+    title: '노선 단위 계획인데 노선 연결 없음(기존 노선 연결 또는 새 노선 만들기)',
+    sql: `SELECT 'plan' AS entity_type, p.id AS entity_id,
+                 coalesce(st.stage, '단계 없음') || CASE WHEN sh.plan_id IS NULL THEN '' ELSE ' · 선형 ' || sh.quality END AS detail,
+                 p.name_ko || p.id AS sort_key
+            FROM plan p
+            LEFT JOIN v_plan_stage st ON st.plan_id = p.id
+            LEFT JOIN v_plan_shape sh ON sh.plan_id = p.id
+           WHERE p.deleted_at IS NULL AND p.scope = 'line'
+             AND coalesce(st.stage, '') NOT IN ('abandoned', 'dormant')
+             AND NOT EXISTS (SELECT 1 FROM plan_line pl JOIN line l ON l.id = pl.line_id AND l.deleted_at IS NULL WHERE pl.plan_id = p.id)
+             AND coalesce(p.editor_note, '') NOT LIKE '%노선 연결 안 함%'`,
+  },
+  {
     id: 'X-source-license-unknown',
     title: '라이선스 미상(unknown) 출처',
     sql: `SELECT 'source' AS entity_type, s.id AS entity_id, s.title AS detail, s.id AS sort_key

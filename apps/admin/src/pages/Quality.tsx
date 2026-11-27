@@ -45,6 +45,7 @@ const ROW_TOOLS: Record<string, (it: QualityItem) => { label: string; href: stri
     href: `/map?tab=edit&station=${encodeURIComponent(it.entity_id)}`,
   }),
   'X-station-split': (it) => ({ label: '지도', href: `/map?tab=edit&station=${encodeURIComponent(it.entity_id)}` }),
+  'X-plan-no-line': (it) => ({ label: '노선 연결', href: `/data/plan/${encodeURIComponent(it.entity_id)}` }),
   'X-station-near-other-name': (it) => ({
     label: '지도',
     href: `/map?tab=edit&station=${encodeURIComponent(it.entity_id)}`,
@@ -89,9 +90,51 @@ function ConfirmGap({ it }: { it: QualityItem }) {
   );
 }
 
+/** 내부 메모에 표시 줄을 붙여 목록에서 뺀다(X-plan-no-line "노선 연결 안 함: 이유") */
+function NoteMarkButton({ it, marker, label, ask }: { it: QualityItem; marker: string; label: string; ask: string }) {
+  const qc = useQueryClient();
+  const m = useMutation({
+    mutationFn: async (why: string) => {
+      const path = `/v1/admin/${toSlug(it.entity_type as EntityType)}/${encodeURIComponent(it.entity_id)}`;
+      const cur = await api<EntityResponse<{ editor_note?: string | null }>>(path);
+      const line = `${marker}: ${why}`;
+      const note = cur.data.editor_note ? `${cur.data.editor_note}\n${line}` : line;
+      return api(path, { method: 'PATCH', ifMatch: cur.version, json: { editor_note: note } });
+    },
+    onSuccess: async () => {
+      toast.success(`${label}으로 표시했습니다(내부 메모)`);
+      await qc.invalidateQueries({ queryKey: ['quality'] });
+    },
+    onError: (e) => toast.error(errorText(e)),
+  });
+  return (
+    <Button
+      size="sm"
+      variant="ghost"
+      className="h-7 text-xs"
+      data-testid="note-mark"
+      disabled={m.isPending}
+      onClick={() => {
+        const why = window.prompt(ask);
+        if (why?.trim()) m.mutate(why.trim());
+      }}
+    >
+      {label}
+    </Button>
+  );
+}
+
 /** 행 단위 처리(규칙별) — 지도 도구 링크 옆 */
 const ROW_ACTIONS: Record<string, (it: QualityItem) => ReactNode> = {
   'V-S04': (it) => <ConfirmGap it={it} />,
+  'X-plan-no-line': (it) => (
+    <NoteMarkButton
+      it={it}
+      marker="노선 연결 안 함"
+      label="노선 연결 안 함"
+      ask="노선이 아닌 사업인 이유(예: 차량 도입 사업)"
+    />
+  ),
   'X-station-split': (it) =>
     it.action_ref ? (
       <span className="inline-flex gap-1">

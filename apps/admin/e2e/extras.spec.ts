@@ -239,3 +239,46 @@ test('역 상세: 중복 역을 [병합…]으로 합치고 [ID 변경…]으로
   await page.getByTestId('rename-check').click();
   await expect(rd.getByTestId('rename-error')).toContainText(/이미 있음|예약된 옛 id/);
 });
+
+test('계획 편집: 노선 없는 계획에 [새 노선 만들기]로 노선을 만들고 저장하면 이어진다(X-plan-no-line)', async ({
+  page,
+}) => {
+  const api = process.env.E2E_API_URL;
+  const r = await page.request.post(`${api}/v1/admin/plan`, {
+    data: {
+      id: 'plan-e2e-noline',
+      name_ko: '이투이선',
+      refs: [{ program_id: 'pp-fx-national-rail-4', class: 'new', source_id: 'src-fixture-notice' }],
+      checked_at: '2026-01-01',
+      sources: [{ source_id: 'src-fixture-notice' }],
+    },
+  });
+  expect(r.ok(), await r.text()).toBe(true);
+  await page.goto('/quality?rule=X-plan-no-line');
+  const row = page.getByTestId('quality-items').locator('tr', { hasText: 'plan-e2e-noline' });
+  await row.getByRole('link', { name: '노선 연결' }).click();
+  await expect(page).toHaveURL(/\/data\/plan\/plan-e2e-noline/);
+
+  const ed = page.getByTestId('plan-lines-editor');
+  await expect(ed).toContainText('이어진 노선이 없습니다');
+  await ed.getByTestId('new-line-open').click();
+  const dlg = page.getByTestId('new-line-dialog');
+  await expect(dlg.getByLabel('노선 id')).toHaveValue('line-e2e-noline');
+  await expect(dlg.getByLabel('이름', { exact: true })).toHaveValue('이투이선');
+  await dlg.getByLabel('노선 종류').selectOption('light_rail');
+  await dlg.getByLabel('철도 구분').selectOption('urban');
+  await expect(dlg).toContainText('src-fixture-notice');
+  await page.getByTestId('new-line-create').click();
+  await expect(toast(page, '계획을 저장하면 연결됩니다')).toBeVisible();
+  await expect(ed).not.toContainText('이어진 노선이 없습니다');
+
+  await page.getByRole('button', { name: /^저장/ }).first().click();
+  await page.getByRole('dialog').getByRole('button', { name: '저장', exact: true }).click();
+  await expect(toast(page, '저장했습니다')).toBeVisible();
+  const plan = await (await page.request.get(`${api}/v1/admin/plan/plan-e2e-noline`)).json();
+  expect(plan.data.lines).toEqual([expect.objectContaining({ line_id: 'line-e2e-noline', role: 'new' })]);
+  const line = await (await page.request.get(`${api}/v1/admin/line/line-e2e-noline`)).json();
+  expect(line.data).toMatchObject({ status: 'planned', category: 'light_rail', rail_class: 'urban' });
+  await page.goto('/quality?rule=X-plan-no-line');
+  await expect(page.getByTestId('quality-items').locator('tr', { hasText: 'plan-e2e-noline' })).toHaveCount(0);
+});
