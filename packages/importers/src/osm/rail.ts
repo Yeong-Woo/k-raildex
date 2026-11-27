@@ -50,6 +50,11 @@ area["ISO3166-1"="KR"]["admin_level"="2"]->.kr;
 rel(area.kr)["route"="tracks"]->.t;
 way(r.t)["railway"~"^(rail|construction)$"]["service"]["service"!~"^(siding|crossover)$"];
 out geom;`,
+  /** 차량기지·조차장 안 선로(service=yard) — 시설 선로(2026-11-27, 시설 OSM 보완). 노선 이름 배정에는 쓰지 않는다(v_line_way) */
+  ways_yards_kr: `[out:json][timeout:600];
+area["ISO3166-1"="KR"]["admin_level"="2"]->.kr;
+way(area.kr)["railway"~"^(rail|subway|light_rail|monorail)$"]["service"="yard"][!"railway:preserved"];
+out geom;`,
   ways_construction_kr: `[out:json][timeout:300];
 area["ISO3166-1"="KR"]["admin_level"="2"]->.kr;
 way(area.kr)["railway"="construction"][!"service"];
@@ -462,6 +467,7 @@ export async function fetchOsmLive(
     ...r.ways_capital.json.elements,
     ...r.ways_highspeed.json.elements,
     ...r.ways_tracks_members_kr.json.elements,
+    ...r.ways_yards_kr.json.elements,
   ])
     if (el.type === 'way') waysMap.set(el.id, el);
   const rels = new Map<number, OverpassElement>();
@@ -481,13 +487,13 @@ export async function fetchOsmLive(
     });
   return {
     ways: {
-      name: 'overpass ways_capital+ways_highspeed+ways_tracks_members_kr',
+      name: 'overpass ways_capital+ways_highspeed+ways_tracks_members_kr+ways_yards_kr',
       data: waysToFile([...waysMap.values()], {
         extracted_at: fetchedAt,
-        osm_base_timestamp: base('ways_capital', 'ways_highspeed', 'ways_tracks_members_kr'),
-        query: `${OSM_QUERIES.ways_capital}\n\n${OSM_QUERIES.ways_highspeed}\n\n${OSM_QUERIES.ways_tracks_members_kr}`,
+        osm_base_timestamp: base('ways_capital', 'ways_highspeed', 'ways_tracks_members_kr', 'ways_yards_kr'),
+        query: `${OSM_QUERIES.ways_capital}\n\n${OSM_QUERIES.ways_highspeed}\n\n${OSM_QUERIES.ways_tracks_members_kr}\n\n${OSM_QUERIES.ways_yards_kr}`,
       }),
-      sha256: hash('ways_capital', 'ways_highspeed', 'ways_tracks_members_kr'),
+      sha256: hash('ways_capital', 'ways_highspeed', 'ways_tracks_members_kr', 'ways_yards_kr'),
     },
     construction: {
       name: 'overpass ways_construction_kr',

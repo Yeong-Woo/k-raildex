@@ -206,6 +206,7 @@ export const ENTITY_SPECS: Readonly<Record<EntityType, EntitySpec>> = {
   glossary_term: spec('glossary_term'),
   facility: spec('facility', [
     { field: 'lines', table: 'facility_line', fk: 'facility_id', kind: 'objects', orderColumn: 'ord' },
+    { field: 'osm_map', table: 'facility_osm_map', fk: 'facility_id', kind: 'single' },
   ]),
 };
 

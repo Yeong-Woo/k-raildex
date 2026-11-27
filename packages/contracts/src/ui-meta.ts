@@ -523,6 +523,9 @@ export const entityUiMeta: Readonly<Record<EntityType, EntityUiMeta>> = {
       lines: f('노선(담당 노선·붙은 선로)', editor('facility_lines'), 'relations', {
         help: '담당 노선 = 차량을 맡는 노선, 붙은 선로 = 시설이 이어진 기지선 등',
       }),
+      osm_map: f('OSM 시설 선로', editor('facility_osm_map'), 'location', {
+        help: 'OSM way 이름·id(예: 울산기지선). 좌표가 있으면 둘레 반경(m) 안 기지 선로(service=yard)는 자동. 지도 표시만',
+      }),
       ...recFields,
     },
   },

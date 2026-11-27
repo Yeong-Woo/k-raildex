@@ -11,6 +11,7 @@ const UPSTREAM: Record<string, string> = {
   plans: '/v1/public/map/plans.geojson',
   timeline: '/v1/public/map/timeline',
   depots: '/v1/public/map/depots.geojson',
+  'facility-tracks': '/v1/public/map/facility-tracks.geojson',
 };
 const ALLOWED = ['at', 'stage_min', 'include_undated'] as const;
 

@@ -222,6 +222,23 @@ export function depotLayers(source: string): LayerSpec[] {
   ];
 }
 
+/** 시설 OSM 선로(기지 안 선로·기지선, 0036): 보라 가는 선 */
+export function facilityTrackLayers(source: string): LayerSpec[] {
+  return [
+    {
+      id: `${source}-track`,
+      type: 'line',
+      source,
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: {
+        'line-color': '#7C3AED',
+        'line-width': ['interpolate', ['linear'], ['zoom'], 9, 0.8, 14, 2.2],
+        'line-opacity': 0.75,
+      },
+    },
+  ];
+}
+
 export function currentStationLayers(source: string): LayerSpec[] {
   const pairs: unknown[] = [];
   for (const [k, v] of Object.entries(STATUS_COLORS)) pairs.push(k, v);

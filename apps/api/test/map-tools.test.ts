@@ -149,3 +149,62 @@ describe('GET /v1/admin/map/current-stations', () => {
     expect(a.properties.own_coord).toBeNull();
   });
 });
+
+describe('시설 OSM 선로(0036)', () => {
+  it('이름 배정 way + 시설 좌표 반경 안 기지 선로(service=yard), 미배정 보기에는 기지 선로가 안 나온다', async () => {
+    const c = t.fx.client;
+    const ex = await c.query<{ id: string }>(`SELECT id FROM osm.extract ORDER BY id LIMIT 1`);
+    const way = (id: number, tags: Record<string, string>, coords: [number, number][]) =>
+      c.query(
+        `INSERT INTO osm.way (id, extract_id, tags, is_construction, geom) VALUES ($1, $2, $3, false, ST_SetSRID(ST_GeomFromGeoJSON($4), 4326))`,
+        [id, ex.rows[0]!.id, JSON.stringify(tags), JSON.stringify({ type: 'LineString', coordinates: coords })],
+      );
+    await way(31, { railway: 'rail', service: 'yard' }, [
+      [127.2, 37.3],
+      [127.201, 37.301],
+    ]);
+    await way(32, { railway: 'rail', service: 'spur', name: '시험기지선' }, [
+      [127.3, 37.3],
+      [127.31, 37.31],
+    ]);
+    await way(33, { railway: 'rail', service: 'yard' }, [
+      [128.5, 36.0],
+      [128.501, 36.001],
+    ]);
+    await applyChangeset(c, {
+      title: '시설',
+      origin: 'admin_edit',
+      author_id: await ensureServiceUser(c, 'system', 'test'),
+      ops: [
+        {
+          op: 'create',
+          entity_type: 'facility',
+          data: {
+            id: 'fac-fx-tracks',
+            name_ko: '시험기지',
+            geom: { lat: 37.3002, lng: 127.2002 },
+            coord_source: 'manual',
+            osm_map: { way_names: ['시험기지선'], radius_m: 500 },
+            checked_at: '2026-11-27',
+            sources: [{ source_id: 'src-fixture-notice' }],
+          },
+        },
+      ],
+    });
+    const fc = (await get('/v1/admin/map/facility-tracks')).json() as {
+      attribution: string;
+      features: { properties: Record<string, unknown> }[];
+    };
+    expect(fc.attribution).toContain('OpenStreetMap');
+    expect(fc.features.map((f) => [f.properties.way_id, f.properties.source]).sort()).toEqual([
+      [31, 'yard'],
+      [32, 'names'],
+    ]);
+    const un = (await get('/v1/admin/map/osm-ways?unassigned=true&bbox=127.1,37.2,129,37.5')).json() as {
+      features: { properties: { way_id: number } }[];
+    };
+    const ids = un.features.map((f) => f.properties.way_id);
+    expect(ids).toContain(32);
+    expect(ids).not.toContain(31);
+  });
+});

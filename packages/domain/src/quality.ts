@@ -381,6 +381,15 @@ export const QUALITY_RULES: readonly QualityRule[] = [
            WHERE vo.basis IN ('ambiguous', 'none') AND x.status IN ('operating', 'suspended')`,
   },
   {
+    // 2026-11-27 사용자 지시: 시설(차량기지) 좌표 — 역·시설 편집에서 지도에 찍는다(OSM 좌표는 저장하지 않음). 폐지·계획은 뺀다
+    id: 'X-facility-no-coord',
+    title: '시설 좌표 없음(역·시설 편집에서 찍기)',
+    sql: `SELECT 'facility' AS entity_type, x.id AS entity_id,
+                 coalesce(x.address, '주소 미확인') AS detail, x.name_ko || x.id AS sort_key
+            FROM facility x
+           WHERE x.deleted_at IS NULL AND x.geom IS NULL AND x.status IN ('operating', 'suspended', 'under_construction')`,
+  },
+  {
     id: 'X-source-license-unknown',
     title: '라이선스 미상(unknown) 출처',
     sql: `SELECT 'source' AS entity_type, s.id AS entity_id, s.title AS detail, s.id AS sort_key
@@ -485,7 +494,7 @@ export interface ReviewListItem {
  * 지도 편집·노선 편집의 고르기 목록(FR-ADM-070): 역·노선 전체 + 개체별 품질 규칙 걸림(빨강 = 검수 필요, 초록 = 걸린 규칙 없음).
  * 규칙 SQL 을 그대로 합쳐 쓰므로 품질 대시보드와 항상 같은 결과다.
  */
-export type ReviewListType = 'station' | 'line' | 'plan';
+export type ReviewListType = 'station' | 'line' | 'plan' | 'facility';
 
 /** status 는 역·노선 = 상태, 계획 = 현재 단계(v_plan_stage) */
 export async function reviewList(db: Queryable, type: ReviewListType): Promise<{ items: ReviewListItem[] }> {
@@ -528,14 +537,22 @@ export async function reviewList(db: Queryable, type: ReviewListType): Promise<{
                            WHERE x.station_id = s.id AND x.deleted_at IS NULL), '{}') AS lines
            FROM station s LEFT JOIN v_station_status vs ON vs.station_id = s.id
           WHERE s.deleted_at IS NULL ORDER BY s.name_ko, s.id`
-      : type === 'plan'
-        ? `SELECT p.id, p.name_ko, st.stage AS status, sh.quality AS kind, sh.plan_id IS NOT NULL AS has_geom,
+      : type === 'facility'
+        ? `SELECT x.id, x.name_ko, x.status, x.kind, x.geom IS NOT NULL AS has_geom, NULL::int AS station_count,
+                  (SELECT l.color FROM facility_line fl JOIN line l ON l.id = fl.line_id AND l.deleted_at IS NULL
+                    WHERE fl.facility_id = x.id AND fl.role = 'serves' ORDER BY fl.ord, l.id LIMIT 1) AS color,
+                  coalesce((SELECT array_agg(l.name_ko ORDER BY fl.ord, l.id) FROM facility_line fl
+                              JOIN line l ON l.id = fl.line_id AND l.deleted_at IS NULL
+                             WHERE fl.facility_id = x.id AND fl.role = 'serves'), '{}') AS lines
+             FROM facility x WHERE x.deleted_at IS NULL ORDER BY x.name_ko, x.id`
+        : type === 'plan'
+          ? `SELECT p.id, p.name_ko, st.stage AS status, sh.quality AS kind, sh.plan_id IS NOT NULL AS has_geom,
                   NULL::int AS station_count, p.color,
                   coalesce((SELECT array_agg(l.name_ko ORDER BY l.name_ko) FROM plan_line pl
                               JOIN line l ON l.id = pl.line_id AND l.deleted_at IS NULL WHERE pl.plan_id = p.id), '{}') AS lines
              FROM plan p LEFT JOIN v_plan_stage st ON st.plan_id = p.id LEFT JOIN v_plan_shape sh ON sh.plan_id = p.id
             WHERE p.deleted_at IS NULL ORDER BY p.name_ko, p.id`
-        : `SELECT l.id, l.name_ko, l.status, l.category AS kind, NULL::boolean AS has_geom, l.color,
+          : `SELECT l.id, l.name_ko, l.status, l.category AS kind, NULL::boolean AS has_geom, l.color,
                 coalesce((SELECT ARRAY[p.name_ko] FROM v_line_branch b JOIN line p ON p.id = b.branch_of_line_id WHERE b.line_id = l.id),
                          '{}'::text[]) AS lines,
                 (SELECT count(*)::int FROM line_station x WHERE x.line_id = l.id AND x.deleted_at IS NULL) AS station_count

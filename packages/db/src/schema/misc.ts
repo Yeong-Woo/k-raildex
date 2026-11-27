@@ -296,3 +296,20 @@ export const facilityLine = pgTable(
   },
   (t) => [primaryKey({ columns: [t.facilityId, t.lineId, t.role] })],
 );
+
+/** 시설 OSM 선로 배정(0036) */
+export const facilityOsmMap = pgTable('facility_osm_map', {
+  facilityId: text('facility_id')
+    .primaryKey()
+    .references(() => facility.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+  wayNames: text('way_names')
+    .array()
+    .notNull()
+    .default(sql`'{}'`),
+  wayIds: bigint('way_ids', { mode: 'number' })
+    .array()
+    .notNull()
+    .default(sql`'{}'`),
+  radiusM: integer('radius_m').notNull().default(800),
+  note: text('note'),
+});

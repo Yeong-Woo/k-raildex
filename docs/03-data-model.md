@@ -757,6 +757,7 @@ CREATE TABLE facility_line (facility_id text REFERENCES facility(id), line_id te
 
 - 0034 의 역 그룹 하위 표(`station_depot`·`station_depot_line`)는 0035 에서 없앴다. `station.kind = depot` 인 역 그룹은 시설로 옮긴다.
 - 공개: `/facilities/<id>/`, 지도 현재 보기 "차량기지" 레이어(`/v1/public/map/depots.geojson`).
+- OSM 시설 선로(0036): `facility_osm_map`(facility_id, way_names, way_ids, radius_m 기본 800) — OSM id·이름만. 뷰 `osm.v_facility_way` = 이름·개별 way + 시설 좌표 반경 안 기지 안 선로(`service=yard`, 수집기 `ways_yards_kr`) + 붙은 기지선(role connects·line_role depot_line)의 노선 선형. 기지 안 선로는 노선 이름 배정(`osm.v_line_way`)에 쓰지 않는다.
 
 ### 4-19. OSM 스키마 `osm` (Q31 A)
 

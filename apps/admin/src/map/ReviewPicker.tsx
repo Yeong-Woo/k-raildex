@@ -31,12 +31,13 @@ export interface ReviewListItem {
   issues: ReviewIssue[];
 }
 type Filter = 'all' | 'issue' | 'ok' | 'nogeom' | 'schematic';
-export type ReviewType = 'station' | 'line' | 'plan';
+export type ReviewType = 'station' | 'line' | 'plan' | 'facility';
 
 const TEXT: Record<ReviewType, { placeholder: string; label: string }> = {
   station: { placeholder: '역 그룹 이름·노선 이름·id', label: '역 그룹 검색' },
   line: { placeholder: '노선 이름·id', label: '노선 검색' },
   plan: { placeholder: '계획 이름·노선 이름·id', label: '계획 검색' },
+  facility: { placeholder: '시설 이름·담당 노선·id', label: '시설 검색' },
 };
 
 export function useReviewList(type: ReviewType) {
@@ -158,7 +159,9 @@ export function ReviewPicker({
     { key: 'all', label: '전체', tone: '' },
     { key: 'issue', label: '검수 필요', tone: 'text-danger' },
     { key: 'ok', label: '정상', tone: 'text-good' },
-    ...(type === 'station' ? [{ key: 'nogeom' as const, label: '좌표 없음', tone: 'text-warn' }] : []),
+    ...(type === 'station' || type === 'facility'
+      ? [{ key: 'nogeom' as const, label: '좌표 없음', tone: 'text-warn' }]
+      : []),
     ...(type === 'plan'
       ? [
           { key: 'nogeom' as const, label: '선형 없음', tone: 'text-warn' },
@@ -252,33 +255,42 @@ export function ReviewPicker({
                   </span>
                   <span className="block truncate text-[10px] text-fg-muted">
                     {it.id}
-                    {type === 'plan'
+                    {type === 'facility'
                       ? [
-                          it.status && isCode('planStage', it.status) ? codeLabel('planStage', it.status) : null,
-                          it.kind ? `선형 ${GEOMETRY_QUALITY_LABELS[it.kind] ?? it.kind}` : '선형 없음',
+                          it.kind && isCode('facilityKind', it.kind) ? codeLabel('facilityKind', it.kind) : null,
+                          it.status && isCode('status', it.status) ? codeLabel('status', it.status) : null,
+                          it.has_geom === false ? '좌표 없음' : null,
                         ]
                           .filter(Boolean)
                           .map((s) => ` · ${s}`)
                           .join('')
-                      : type === 'station'
+                      : type === 'plan'
                         ? [
-                            it.kind && it.kind !== 'station' && isCode('stationKind', it.kind)
-                              ? codeLabel('stationKind', it.kind)
-                              : null,
-                            it.status && isCode('status', it.status) ? codeLabel('status', it.status) : null,
-                            it.has_geom === false ? '좌표 없음' : null,
+                            it.status && isCode('planStage', it.status) ? codeLabel('planStage', it.status) : null,
+                            it.kind ? `선형 ${GEOMETRY_QUALITY_LABELS[it.kind] ?? it.kind}` : '선형 없음',
                           ]
                             .filter(Boolean)
                             .map((s) => ` · ${s}`)
                             .join('')
-                        : [
-                            it.status && isCode('status', it.status) ? codeLabel('status', it.status) : null,
-                            `역 ${it.station_count ?? 0}개`,
-                            it.lines[0] ? `${it.lines[0]} 지선` : null,
-                          ]
-                            .filter(Boolean)
-                            .map((s) => ` · ${s}`)
-                            .join('')}
+                        : type === 'station'
+                          ? [
+                              it.kind && it.kind !== 'station' && isCode('stationKind', it.kind)
+                                ? codeLabel('stationKind', it.kind)
+                                : null,
+                              it.status && isCode('status', it.status) ? codeLabel('status', it.status) : null,
+                              it.has_geom === false ? '좌표 없음' : null,
+                            ]
+                              .filter(Boolean)
+                              .map((s) => ` · ${s}`)
+                              .join('')
+                          : [
+                              it.status && isCode('status', it.status) ? codeLabel('status', it.status) : null,
+                              `역 ${it.station_count ?? 0}개`,
+                              it.lines[0] ? `${it.lines[0]} 지선` : null,
+                            ]
+                              .filter(Boolean)
+                              .map((s) => ` · ${s}`)
+                              .join('')}
                   </span>
                 </span>
                 <ReviewTag issues={it.issues} />

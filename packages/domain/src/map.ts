@@ -193,6 +193,9 @@ export async function osmWays(db: Queryable, q: OsmWaysQuery): Promise<FeatureCo
         WHERE ($1::float8 IS NULL OR w.geom && ST_MakeEnvelope($1, $2, $3, $4, 4326))
           AND ($5::text IS NULL OR lw.line_id = $5)
           AND (NOT $6 OR lw.line_id IS NULL)
+          -- 미배정 보기에서 기지 안 선로(service=yard, 노선 relation 밖)는 빼다(시설 선로 — 0036)
+          AND (NOT $6 OR coalesce(w.tags->>'service', '') <> 'yard'
+               OR EXISTS (SELECT 1 FROM osm.relation_member rm WHERE rm.way_id = w.id))
         ORDER BY w.id
         LIMIT $7
      ), rel AS (
@@ -351,4 +354,15 @@ export async function planGeometry(db: Queryable, planId: string): Promise<Featu
     refs: refs.rows.map((r) => ({ ...r, length_km: r.length_km == null ? null : Number(r.length_km) })),
     features: [...collect(geoms.rows), ...collect(via.rows)],
   };
+}
+
+/** 시설 OSM 선로(osm.v_facility_way, 0036) — 지도 표시만(ODbL). 속성: facility_id·name_ko·source·way_id */
+export async function facilityTracks(db: Queryable): Promise<FeatureCollection> {
+  const { rows } = await db.query<{ id: string; geometry: unknown; properties: Record<string, unknown> }>(
+    `SELECT v.facility_id || ':' || v.way_id AS id, ST_AsGeoJSON(v.geom, 6)::json AS geometry,
+            json_build_object('facility_id', v.facility_id, 'name_ko', f.name_ko, 'source', v.source, 'way_id', v.way_id) AS properties
+       FROM osm.v_facility_way v JOIN facility f ON f.id = v.facility_id
+      ORDER BY v.facility_id, v.way_id`,
+  );
+  return { type: 'FeatureCollection', attribution: OSM_ATTRIBUTION, features: collect(rows) };
 }

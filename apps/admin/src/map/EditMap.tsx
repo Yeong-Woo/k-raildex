@@ -99,7 +99,14 @@ export function EditMap() {
     const onDepot = (e: MapLayerMouseEvent) => {
       const id = e.features?.[0]?.properties?.facility_id;
       if (typeof id === 'string')
-        void navigate({ to: '/data/$type/$id', params: { type: 'facility', id }, search: {} });
+        void navigate({
+          search: ((s: Record<string, unknown>) => ({
+            ...s,
+            station: undefined,
+            target: 'facility',
+            facility: id,
+          })) as never,
+        });
     };
     map.on('click', 'current-station', onClick);
     map.on('click', 'depots-depot', onDepot);

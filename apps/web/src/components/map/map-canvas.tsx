@@ -342,6 +342,7 @@ export default function MapCanvas({
   lines,
   stations,
   depots = null,
+  facilityTracks = null,
   service = null,
   highlight,
   follow = true,
@@ -356,6 +357,8 @@ export default function MapCanvas({
   stations: FC | null;
   /** 차량기지 점(null 이면 숨김) */
   depots?: FC | null;
+  /** 시설 OSM 선로(차량기지와 함께 켬) */
+  facilityTracks?: FC | null;
   /** 강조할 운행 계통 선형(#service=) */
   service?: FC | null;
   highlight: MapHash;
@@ -447,8 +450,20 @@ export default function MapCanvas({
       m.addSource('stations', { type: 'geojson', data: EMPTY as never });
       m.addSource('service', { type: 'geojson', data: EMPTY as never });
       m.addSource('depots', { type: 'geojson', data: EMPTY as never });
+      m.addSource('facility-tracks', { type: 'geojson', data: EMPTY as never, attribution: ODBL_ATTR });
       for (const l of lineLayers()) m.addLayer(l);
       for (const l of serviceLayers()) m.addLayer(l);
+      m.addLayer({
+        id: 'facility-track',
+        type: 'line',
+        source: 'facility-tracks',
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: {
+          'line-color': '#7C3AED',
+          'line-width': ['interpolate', ['linear'], ['zoom'], 9, 0.8, 14, 2.2],
+          'line-opacity': 0.7,
+        },
+      } as never);
       for (const l of depotLayers()) m.addLayer(l);
       for (const l of stationLayers()) m.addLayer(l);
       readyRef.current = true;
@@ -507,6 +522,7 @@ export default function MapCanvas({
       (m.getSource('lines') as GeoJSONSource | undefined)?.setData((lines ?? EMPTY) as never);
       (m.getSource('stations') as GeoJSONSource | undefined)?.setData((stations ?? EMPTY) as never);
       (m.getSource('depots') as GeoJSONSource | undefined)?.setData((depots ?? EMPTY) as never);
+      (m.getSource('facility-tracks') as GeoJSONSource | undefined)?.setData((facilityTracks ?? EMPTY) as never);
     };
     if (readyRef.current) apply();
     else {
@@ -518,7 +534,7 @@ export default function MapCanvas({
       }, 50);
       return () => clearInterval(t);
     }
-  }, [lines, stations, depots]);
+  }, [lines, stations, depots, facilityTracks]);
 
   // 운행 계통 강조: 계통 선형을 위에, 나머지 선은 흐리게. 패널에서 고른 것만 그 범위로 이동
   const fittedService = useRef<string>('');

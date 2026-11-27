@@ -369,3 +369,39 @@ test('계획 선형 편집: 계획 목록을 품질 규칙으로 걸러 고른�
   await expect(page.getByTestId('plan-selected')).toContainText(rule);
   await expect(page.getByTestId('plan-shape')).toBeVisible();
 });
+
+test('역·시설 편집 [시설]: 좌표 없는 시설을 고르고 지도에서 찍어 저장한다', async ({ page }) => {
+  const api = process.env.E2E_API_URL;
+  const r = await page.request.post(`${api}/v1/admin/facility`, {
+    data: {
+      id: 'fac-e2e-place',
+      name_ko: '찍기시험기지',
+      checked_at: '2026-11-27',
+      sources: [{ source_id: 'src-fixture-notice' }],
+    },
+  });
+  expect(r.ok(), await r.text()).toBe(true);
+  await page.goto('/map?tab=edit&target=facility');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('역·시설 편집');
+  await expect(page.getByTestId('edit-target-facility')).toHaveAttribute('aria-pressed', 'true');
+  await waitMapReady(page, 'current-lines');
+  const list = page.getByTestId('review-list-facility');
+  await list.locator('li[data-id="fac-e2e-place"]').getByTestId('review-row').click();
+  await expect(page.getByTestId('facility-selected')).toContainText('찍기시험기지');
+  // 좌표 없는 시설은 바로 찍기 모드
+  await expect(page.getByTestId('facility-place')).toContainText('지도를 누르세요');
+  await clickLngLat(page, 'facility-map', [127.05, 37.5]);
+  await expect(page.getByTestId('facility-pending-coord')).toBeVisible();
+  await page.getByRole('button', { name: '좌표 저장' }).click();
+  await expect(
+    page.locator('[data-sonner-toast]').filter({ hasText: '시설 좌표를 저장했습니다' }).first(),
+  ).toBeVisible();
+  const d = await (await page.request.get(`${api}/v1/admin/facility/fac-e2e-place`)).json();
+  expect(d.data.coord_source).toBe('manual');
+  expect(Math.abs(d.data.geom.lat - 37.5)).toBeLessThan(0.01);
+  expect(Math.abs(d.data.geom.lng - 127.05)).toBeLessThan(0.01);
+  const del = await page.request.delete(`${api}/v1/admin/facility/fac-e2e-place`, {
+    headers: { 'If-Match': String(d.version) },
+  });
+  expect(del.ok()).toBe(true);
+});

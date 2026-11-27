@@ -20,7 +20,7 @@ export class QualityController {
   @Get('entities/:type')
   @RequireScope('admin:read')
   async entities(@Param('type') type: string) {
-    return reviewList(this.dbs.db, z.enum(['station', 'line', 'plan']).parse(type));
+    return reviewList(this.dbs.db, z.enum(['station', 'line', 'plan', 'facility']).parse(type));
   }
 
   @Get(':rule')

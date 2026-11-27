@@ -147,11 +147,15 @@ export function FutureMap({
   // 차량기지(현재 지도에서만, 켬/끔 — 0034)
   const [showDepots, setShowDepots] = useState(false);
   const [depots, setDepots] = useState<FC | null>(null);
+  const [facilityTracks, setFacilityTracks] = useState<FC | null>(null);
   useEffect(() => {
     if ((!showDepots && !hash.facility) || depots) return;
     getJson<FC>('/api/map/depots/')
       .then(setDepots)
       .catch(() => setDepots({ type: 'FeatureCollection', features: [] } as unknown as FC));
+    getJson<FC>('/api/map/facility-tracks/')
+      .then(setFacilityTracks)
+      .catch(() => setFacilityTracks(null));
   }, [showDepots, depots, hash.facility]);
   // #facility= 로 들어오면 차량기지 층을 켠다
   useEffect(() => {
@@ -594,6 +598,7 @@ export function FutureMap({
           lines={data?.lines ?? null}
           stations={data?.stations ?? null}
           depots={depotOn ? depots : null}
+          facilityTracks={depotOn ? facilityTracks : null}
           service={serviceFc === 'loading' ? null : serviceFc}
           highlight={hash}
           follow={follow}

@@ -1,4 +1,4 @@
-/** 지도(FR-ADM-070~076): 역 편집 · 현재 노선 편집 · 미래 노선 편집 · 미래 지도 · 위성 비교 · OSM 매핑 점검.
+/** 지도(FR-ADM-070~076): 역·시설 편집(역 그룹 / 시설 좌표) · 현재 노선 편집 · 미래 노선 편집 · 미래 지도 · 위성 비교 · OSM 매핑 점검.
  * 화면 전환은 사이드바 메뉴만 쓴다(탭 줄 없음). 역·선 클릭 → 정보 팝업(map/FeaturePopup). */
 import { lazy, Suspense } from 'react';
 import { useNavigate, useRouterState, useSearch } from '@tanstack/react-router';
@@ -6,6 +6,7 @@ import { Empty } from '@k-raildex/ui';
 
 // MapLibre 는 무거우므로 지도 화면에서만 불러온다
 const EditMap = lazy(() => import('../map/EditMap').then((m) => ({ default: m.EditMap })));
+const FacilityEditMap = lazy(() => import('../map/FacilityEditMap').then((m) => ({ default: m.FacilityEditMap })));
 const FutureMap = lazy(() => import('../map/FutureMap').then((m) => ({ default: m.FutureMap })));
 const SatelliteCompare = lazy(() => import('../map/SatelliteCompare').then((m) => ({ default: m.SatelliteCompare })));
 const PlanGeometryEditor = lazy(() =>
@@ -24,11 +25,14 @@ interface ToolSearch {
   tool?: ToolTab;
   plan?: string;
   line?: string;
+  /** 역·시설 편집: 시설 쪽(target=facility, facility=fac-…) */
+  target?: 'facility';
+  facility?: string;
 }
 
 /** 화면 이름(전환은 사이드바 "지도" 메뉴에서) */
 const TITLES: Record<RouteTab | ToolTab, string> = {
-  edit: '역 편집',
+  edit: '역·시설 편집',
   line: '현재 노선 편집',
   geometry: '미래 노선 편집',
   future: '미래 지도',
@@ -79,7 +83,45 @@ export function MapPage() {
               onLineChange={(id) => setTool({ tool: 'osm', line: id ?? undefined })}
             />
           ) : tab === 'edit' ? (
-            <EditMap />
+            <div className="absolute inset-0 flex flex-col">
+              <div
+                className="flex gap-1 border-b border-border bg-bg-elevated px-3 py-1.5 text-sm"
+                role="group"
+                aria-label="편집 대상"
+              >
+                {(
+                  [
+                    ['station', '역 그룹'],
+                    ['facility', '시설'],
+                  ] as const
+                ).map(([k, label]) => (
+                  <button
+                    key={k}
+                    type="button"
+                    aria-pressed={(raw.target === 'facility' ? 'facility' : 'station') === k}
+                    data-testid={`edit-target-${k}`}
+                    className={
+                      (raw.target === 'facility' ? 'facility' : 'station') === k
+                        ? 'rounded-full border border-primary bg-primary/10 px-3 py-0.5 font-semibold'
+                        : 'rounded-full border border-border px-3 py-0.5 hover:bg-muted'
+                    }
+                    onClick={() => setTool({ target: k === 'facility' ? 'facility' : undefined })}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <div className="relative min-h-0 flex-1">
+                {raw.target === 'facility' ? (
+                  <FacilityEditMap
+                    facilityId={str(raw.facility)}
+                    onSelect={(id) => setTool({ target: 'facility', facility: id ?? undefined })}
+                  />
+                ) : (
+                  <EditMap />
+                )}
+              </div>
+            </div>
           ) : tab === 'future' ? (
             <FutureMap />
           ) : (

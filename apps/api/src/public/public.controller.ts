@@ -22,6 +22,7 @@ import {
   publicMapService,
   publicMapStations,
   publicMapDepots,
+  facilityTracks,
   publicFacility,
   publicMapTimeline,
   publicNumberSearch,
@@ -317,6 +318,12 @@ export class PublicController {
   @Get('map/depots.geojson')
   async mapDepots(@Req() req: Req_, @Res() rep: Rep) {
     return this.cache.serve(req, rep, () => publicMapDepots(this.db), { kind: 'map', contentType: GEOJSON });
+  }
+
+  /** 시설 OSM 선로(차량기지 안 선로·기지선, 0036 — ODbL) */
+  @Get('map/facility-tracks.geojson')
+  async mapFacilityTracks(@Req() req: Req_, @Res() rep: Rep) {
+    return this.cache.serve(req, rep, () => facilityTracks(this.db), { kind: 'map', contentType: GEOJSON });
   }
 
   @Get('map/lines.geojson')

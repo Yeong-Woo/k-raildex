@@ -31,6 +31,17 @@ export const facilityLineSchema = z
   .strict();
 export type FacilityLine = z.infer<typeof facilityLineSchema>;
 
+/** 시설 OSM 선로 배정 facility_osm_map(0036): OSM id·이름만 보관(C-5). 시설 좌표 둘레 radius_m 안 기지 선로는 자동 */
+export const facilityOsmMapSchema = z
+  .object({
+    way_names: z.array(z.string().min(1)).default([]),
+    way_ids: z.array(z.number().int().positive()).default([]),
+    radius_m: z.number().int().min(0).max(5000).default(800),
+    note: optText(),
+  })
+  .strict();
+export type FacilityOsmMap = z.infer<typeof facilityOsmMapSchema>;
+
 const shape = {
   id: idSchema('facility'),
   ...nameFieldsNoHanja,
@@ -50,6 +61,7 @@ const shape = {
   description: optText(),
   ...curatedFields,
   lines: z.array(facilityLineSchema).default([]),
+  osm_map: nullish(facilityOsmMapSchema),
 };
 
 const contract = defineContract(shape, recReadFields, (row, ctx) => {

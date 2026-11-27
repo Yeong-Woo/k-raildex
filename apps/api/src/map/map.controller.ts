@@ -17,6 +17,7 @@ import {
   parseStageMin,
   type MapAtQuery,
   publicMapDepots,
+  facilityTracks,
 } from '@k-raildex/domain';
 import { RequireScope } from '../auth/principal';
 import { boolParam } from '../common/http';
@@ -54,7 +55,14 @@ export class MapController {
     return currentMapStations(this.dbs.db);
   }
 
-  /** 차량기지 점(공개 지도와 같은 자료, 0034) */
+  /** 시설 OSM 선로(0036, ODbL — 지도 표시만) */
+  @Get('facility-tracks')
+  @RequireScope('admin:read')
+  async facilityTracks() {
+    return facilityTracks(this.dbs.db);
+  }
+
+  /** 차량기지 점(공개 지도와 같은 자료) */
   @Get('depots')
   @RequireScope('admin:read')
   async depots() {
