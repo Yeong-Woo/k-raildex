@@ -111,6 +111,13 @@ export const HARD_RULES: HardRule[] = [
              AND x.status NOT IN ('under_construction', 'planned')`,
   },
   {
+    id: 'V-H18',
+    message: '관리역(managed_by_id)은 정거장 등급이 관리역인 역이어야 하고, 관리역 자신은 다른 관리역에 속하지 않음',
+    sql: `SELECT s.id AS entity_id, s.managed_by_id AS detail FROM station s JOIN station m ON m.id = s.managed_by_id
+           WHERE (s.id = ANY($1) OR m.id = ANY($1)) AND s.deleted_at IS NULL
+             AND (m.korail_class IS DISTINCT FROM 'management' OR s.korail_class = 'management')`,
+  },
+  {
     id: 'V-H17',
     message: '활성 행이 삭제(휴지통)된 개체를 가리킴',
     sql: `SELECT r.plan_id AS entity_id, r.line_id AS detail FROM plan_line r JOIN entity e ON e.id = r.line_id

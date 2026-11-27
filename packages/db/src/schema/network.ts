@@ -1,5 +1,15 @@
 // 0006 운영기관·역·노선·노선별 역
-import { bigint, boolean, integer, numeric, pgTable, primaryKey, text, type AnyPgColumn } from 'drizzle-orm/pg-core';
+import {
+  bigint,
+  boolean,
+  integer,
+  numeric,
+  pgTable,
+  primaryKey,
+  smallint,
+  text,
+  type AnyPgColumn,
+} from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 import { entityPk, fuzzy, meta, names, rec } from './columns';
 import { refRegion } from './reference';
@@ -36,6 +46,9 @@ export const station = pgTable('station', {
   historyText: text('history_text'),
   introText: text('intro_text'),
   mergeIntoId: text('merge_into_id').references((): AnyPgColumn => station.id, { onUpdate: 'cascade' }),
+  korailClass: text('korail_class'),
+  korailMgmtGrade: smallint('korail_mgmt_grade'),
+  managedById: text('managed_by_id').references((): AnyPgColumn => station.id, { onUpdate: 'cascade' }),
   ownStatus: text('own_status'),
   ...fuzzy('own_opened'),
   ...fuzzy('own_closed'),

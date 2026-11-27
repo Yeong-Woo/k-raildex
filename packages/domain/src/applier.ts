@@ -702,6 +702,8 @@ async function mergeStation(
   await db.query(`UPDATE station SET merge_into_id = NULL WHERE id = $1`, [fromId]);
   await db.query(`UPDATE station SET merge_into_id = $2 WHERE merge_into_id = $1`, [fromId, intoId]);
   await db.query(`UPDATE station SET coord_same_as_id = $2 WHERE coord_same_as_id = $1`, [fromId, intoId]);
+  await db.query(`UPDATE station SET managed_by_id = $2 WHERE managed_by_id = $1 AND id <> $2`, [fromId, intoId]);
+  await db.query(`UPDATE station SET managed_by_id = NULL WHERE id = $1 AND managed_by_id = $2`, [intoId, fromId]);
   await db.query(`UPDATE line SET start_station_id = $2 WHERE start_station_id = $1`, [fromId, intoId]);
   await db.query(`UPDATE line SET end_station_id = $2 WHERE end_station_id = $1`, [fromId, intoId]);
   await db.query(

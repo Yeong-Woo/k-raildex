@@ -52,6 +52,19 @@ export const codes = {
     depot: { ko: '차량기지' },
     freight: { ko: '화물역' },
   }),
+  /** 한국철도공사 정거장 등급(직제상 지위, 직제규정 시행세칙 — 0031) */
+  korailStationClass: table({
+    management: { ko: '관리역', desc: '소속 역을 거느리는 역(1~3급)' },
+    ordinary: { ko: '보통역' },
+    operating_halt: { ko: '운전간이역' },
+    staffed_halt: { ko: '배치간이역' },
+    consigned_ticket: { ko: '갑종 위탁발매소' },
+    unstaffed_halt: { ko: '무배치간이역', desc: '을종 위탁 포함' },
+    temporary_platform: { ko: '임시승강장' },
+    yard: { ko: '조차장' },
+    signal_station: { ko: '신호장' },
+    signal_post: { ko: '신호소' },
+  }),
   coordSource: table({
     official: { ko: '기관 공개 좌표' },
     manual: { ko: '수기 확인' },

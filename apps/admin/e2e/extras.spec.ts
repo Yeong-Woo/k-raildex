@@ -1,4 +1,4 @@
-import { expect, pickRef, test, toast } from './fixtures';
+import { expect, pickRef, removeEntity, test, toast } from './fixtures';
 
 test('정차 패턴 매트릭스: 셀을 눌러 정차/통과를 바꾸고 저장', async ({ page }) => {
   await page.goto('/data/service/svc-fx-one');
@@ -185,6 +185,7 @@ test('품질 X-station-split: [분리 유지]는 메모로 빠지고, [병합…
   expect((await page.request.get(`${api}/v1/admin/station/stn-e2e-split`)).status()).toBe(404);
   const ls = await (await page.request.get(`${api}/v1/admin/line-station/ls-fx-two--e2e-split`)).json();
   expect(ls.data.station_id).toBe('stn-fx-c');
+  for (const id of ['ls-fx-two--e2e-split', 'ls-fx-two--e2e-split2']) await removeEntity(page, 'line-station', id);
 });
 
 test('역 상세: 중복 역을 [병합…]으로 합치고 [ID 변경…]으로 대표 id 를 바꾼다', async ({ page }) => {
@@ -238,6 +239,7 @@ test('역 상세: 중복 역을 [병합…]으로 합치고 [ID 변경…]으로
   await rd.getByLabel(/새 id/).fill('stn-e2e-dup-b');
   await page.getByTestId('rename-check').click();
   await expect(rd.getByTestId('rename-error')).toContainText(/이미 있음|예약된 옛 id/);
+  for (const id of ['ls-fx-one--e2e-dup-a', 'ls-fx-two--e2e-dup-b']) await removeEntity(page, 'line-station', id);
 });
 
 test('계획 편집: 노선 없는 계획에 [새 노선 만들기]로 노선을 만들고 저장하면 이어진다(X-plan-no-line)', async ({
@@ -281,4 +283,45 @@ test('계획 편집: 노선 없는 계획에 [새 노선 만들기]로 노선을
   expect(line.data).toMatchObject({ status: 'planned', category: 'light_rail', rail_class: 'urban' });
   await page.goto('/quality?rule=X-plan-no-line');
   await expect(page.getByTestId('quality-items').locator('tr', { hasText: 'plan-e2e-noline' })).toHaveCount(0);
+});
+
+test('역 상세 [관리역]: 정거장 등급을 관리역으로 저장하고 소속 역을 넣고 뺀다', async ({ page }) => {
+  const api = process.env.E2E_API_URL;
+  for (const id of ['stn-e2e-mgr', 'stn-e2e-sub']) {
+    const r = await page.request.post(`${api}/v1/admin/station`, {
+      data: {
+        id,
+        name_ko: id === 'stn-e2e-mgr' ? '관리역시험' : '소속역시험',
+        checked_at: '2026-11-27',
+        sources: [{ source_id: 'src-fixture-notice' }],
+      },
+    });
+    expect(r.ok(), await r.text()).toBe(true);
+  }
+  await page.goto('/data/station/stn-e2e-mgr');
+  await page.getByLabel('정거장 등급(코레일)').selectOption('management');
+  await page.getByLabel('관리역 등급(급)').fill('2');
+  await page.getByRole('button', { name: /^저장/ }).first().click();
+  await page.getByRole('dialog').getByRole('button', { name: '저장', exact: true }).click();
+  await expect(toast(page, '저장했습니다')).toBeVisible();
+
+  await page.getByRole('tab', { name: '관리역' }).click();
+  const box = page.getByTestId('managed-stations');
+  await expect(box).toContainText('관리역 2급 · 소속 역 0곳');
+  await pickRef(page, box, 'stn-e2e-sub', /소속역시험/);
+  await box.getByTestId('managed-add').click();
+  await expect(toast(page, '소속 역으로 넣었습니다')).toBeVisible();
+  await expect(box.getByTestId('managed-list')).toContainText('소속역시험');
+  await expect(box).toContainText('소속 역 1곳');
+  const sub = await (await page.request.get(`${api}/v1/admin/station/stn-e2e-sub`)).json();
+  expect(sub.data.managed_by_id).toBe('stn-e2e-mgr');
+
+  // 소속 역에서는 관리역이 보인다
+  await page.goto('/data/station/stn-e2e-sub?tab=managed');
+  await expect(page.getByTestId('managed-stations')).toContainText('관리역: 관리역시험');
+
+  await page.goto('/data/station/stn-e2e-mgr?tab=managed');
+  await page.getByRole('button', { name: '소속역시험 소속에서 빼기' }).click();
+  await expect(toast(page, '소속에서 뺐습니다')).toBeVisible();
+  await expect(page.getByTestId('managed-stations')).toContainText('소속 역 0곳');
 });

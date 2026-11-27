@@ -334,6 +334,10 @@ CREATE TABLE station (
   coord_note      text,
   grade           text, history_text text, intro_text text,   -- 철도역 정보 원문
   merge_into_id   text REFERENCES station(id),   -- 공사 중 분리 정거장(환승 미확정) → 개통 때 병합할 역 (Q73 A)
+  -- 한국철도공사 정거장 등급(직제상 지위, 직제규정 시행세칙 — 0031, 2026-11-27). kind(시설 기능)와 별개, 코레일 관리 역만
+  korail_class    text,            -- korailStationClass 코드
+  korail_mgmt_grade smallint,      -- 관리역 1~3급(korail_class = management 일 때만)
+  managed_by_id   text REFERENCES station(id),   -- 이 역을 관할하는 관리역(V-H18)
   -- 단독 상태: 노선별 역이 하나도 없는 역(71곳: 폐역·시설 등)에서만 쓴다. 노선별 역이 있으면 NULL(V-H13)
   own_status      text,
   FUZZY(own_opened), FUZZY(own_closed),
@@ -855,6 +859,7 @@ CREATE TABLE app_setting (key text PRIMARY KEY, value jsonb NOT NULL, updated_at
 | `entity_type`                              | source, operator, station, line_station, line, train_class, service, plan_program, plan, event, train_number_range, rolling_stock_range, transfer_center, route_map, glossary_term                                                                                                                                 |
 | `status`(역 단독·노선별 역·노선·운행 계통) | operating 운영 중 / suspended 휴업 / under_construction 공사 중 / planned 계획 / abandoned 계획 폐기 / closed 폐선·폐역·운행 종료                                                                                                                                                                                  |
 | `station.kind`                             | station 여객역 / signal_box 신호장·신호소 / junction 분기점·연결선 / yard 조차장 / depot 차량기지 / freight 화물역                                                                                                                                                                                                 |
+| `station.korail_class`                     | management 관리역 / ordinary 보통역 / operating_halt 운전간이역 / staffed_halt 배치간이역 / consigned_ticket 갑종 위탁발매소 / unstaffed_halt 무배치간이역(을종 위탁 포함) / temporary_platform 임시승강장 / yard 조차장 / signal_station 신호장 / signal_post 신호소 (한국철도공사 직제규정 시행세칙, 0031)       |
 | `coord_source` / `coord_basis`             | official, manual, derived / parcel, district, township, existing_station                                                                                                                                                                                                                                           |
 | `line.category`                            | high_speed, conventional, metro, light_rail, tram, monorail, maglev                                                                                                                                                                                                                                                |
 | `rail_class`                               | high_speed 고속철도 / conventional 일반철도 / urban 도시철도                                                                                                                                                                                                                                                       |
@@ -971,6 +976,7 @@ FK 전부, CHECK(코드값·좌표 범위·퍼지 날짜·범위·자기 참조 
 | V-H14 | `merge_into_id` 가 있는 역은 노선별 역이 모두 미개통(under_construction·planned)                                          |
 | V-H15 | 공개 첨부(`is_public`)의 문서는 `publishable`                                                                             |
 | V-H16 | `plan_milestone` basis official·press 는 출처 필수                                                                        |
+| V-H18 | `managed_by_id` 가 가리키는 역은 `korail_class = management`, 관리역 자신은 `managed_by_id` 없음(0031)                    |
 
 ### 8-3. Soft (경고, 품질 대시보드)
 

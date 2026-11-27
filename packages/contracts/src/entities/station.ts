@@ -39,6 +39,12 @@ const shape = {
   history_text: optText(),
   intro_text: optText(),
   merge_into_id: nullish(idSchema('station')),
+  /** 한국철도공사 정거장 등급(코레일 관리 역만, 0031) */
+  korail_class: nullish(z.enum(codes.korailStationClass.values)),
+  /** 관리역 등급 1~3급 — korail_class 관리역일 때만 */
+  korail_mgmt_grade: nullish(z.number().int().min(1).max(3)),
+  /** 이 역을 관할하는 관리역(V-H18) */
+  managed_by_id: nullish(idSchema('station')),
   /** 노선별 역이 없는 역에서만(V-H13) */
   own_status: nullish(z.enum(codes.status.values)),
   own_opened: optFuzzy(),
@@ -53,6 +59,13 @@ const checkStation: RowCheck = (row, ctx) => {
     issue(ctx, ['coord_basis'], "coord_basis 는 coord_source 'derived' 일 때만 쓸 수 있음");
   checkNotSelf(row, ctx, 'merge_into_id');
   checkNotSelf(row, ctx, 'coord_same_as_id');
+  checkNotSelf(row, ctx, 'managed_by_id');
+  if (
+    known(row, 'korail_mgmt_grade', 'korail_class') &&
+    row.korail_mgmt_grade != null &&
+    row.korail_class !== 'management'
+  )
+    issue(ctx, ['korail_mgmt_grade'], '관리역 등급은 정거장 등급이 관리역일 때만 쓸 수 있음');
 };
 
 const contract = defineContract(shape, recReadFields, checkStation);

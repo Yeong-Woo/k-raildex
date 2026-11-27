@@ -23,6 +23,7 @@ import { fromSlug, toSlug } from '../lib/entity-types';
 import { emptyRecord, FormEngine } from '../form/FormEngine';
 import { LineStationsEditor } from '../editors/LineStationsEditor';
 import { StationLineStations } from '../editors/StationLineStations';
+import { ManagedStations } from '../editors/ManagedStations';
 import { AttachmentsTab } from '../editors/AttachmentsTab';
 import { MergeStationButton } from '../editors/MergeStation';
 import { RenameIdButton } from '../editors/RenameId';
@@ -289,6 +290,7 @@ function Detail({ type, id, tab }: { type: EntityType; id: string; tab: string }
           <TabsTrigger value="info">정보</TabsTrigger>
           {!isNew && type === 'line' ? <TabsTrigger value="stations">역 순서</TabsTrigger> : null}
           {!isNew && type === 'station' ? <TabsTrigger value="line-stations">노선별</TabsTrigger> : null}
+          {!isNew && type === 'station' ? <TabsTrigger value="managed">관리역</TabsTrigger> : null}
           {!isNew ? <TabsTrigger value="attachments">첨부</TabsTrigger> : null}
           {!isNew ? <TabsTrigger value="derived">파생 값</TabsTrigger> : null}
           {!isNew ? <TabsTrigger value="history">이력</TabsTrigger> : null}
@@ -313,6 +315,13 @@ function Detail({ type, id, tab }: { type: EntityType; id: string; tab: string }
             {type === 'station' ? (
               <TabsContent value="line-stations" className="pt-4">
                 <StationLineStations stationId={id} derived={q.data.derived} />
+              </TabsContent>
+            ) : null}
+            {type === 'station' ? (
+              <TabsContent value="managed" className="pt-4">
+                <ManagedStations
+                  station={q.data.data as { id: string; name_ko: string; korail_class?: string | null }}
+                />
               </TabsContent>
             ) : null}
             <TabsContent value="attachments" className="pt-4">

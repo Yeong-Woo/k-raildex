@@ -257,6 +257,48 @@ describe('ID 변경·역 병합', () => {
     expect(src.some((r) => r.owner_id === 'stn-fx-e2')).toBe(true);
   });
 
+  it('코레일 정거장 등급·관리역(V-H18): 관리역만 소속 역을 갖고, 병합하면 소속이 옮겨진다', async () => {
+    const st = (id: string, data: Record<string, unknown> = {}) => ({
+      op: 'create' as const,
+      entity_type: 'station' as const,
+      data: { id, name_ko: id, checked_at: '2026-11-27', sources: [{ source_id: 'src-fixture-notice' }], ...data },
+    });
+    await apply([
+      st('stn-kc-mgr', { korail_class: 'management', korail_mgmt_grade: 2 }),
+      st('stn-kc-sub', { korail_class: 'unstaffed_halt', managed_by_id: 'stn-kc-mgr' }),
+      st('stn-kc-plain', { korail_class: 'ordinary' }),
+    ]);
+    expect(await readEntity(db, 'station', 'stn-kc-sub')).toMatchObject({ managed_by_id: 'stn-kc-mgr' });
+    // 관리역이 아닌 역을 관리역으로
+    await expectDomainError(
+      apply([{ op: 'update', entity_type: 'station', id: 'stn-kc-sub', data: { managed_by_id: 'stn-kc-plain' } }]),
+      'validation',
+      'V-H18',
+    );
+    // 소속 역이 있는 관리역의 등급을 내리면 거부
+    await expectDomainError(
+      apply([
+        {
+          op: 'update',
+          entity_type: 'station',
+          id: 'stn-kc-mgr',
+          data: { korail_class: 'ordinary', korail_mgmt_grade: null },
+        },
+      ]),
+      'validation',
+      'V-H18',
+    );
+    // 관리역 등급(급)은 관리역에만
+    await expectDomainError(
+      apply([{ op: 'update', entity_type: 'station', id: 'stn-kc-plain', data: { korail_mgmt_grade: 1 } }]),
+      'validation',
+    );
+    // 관리역끼리 병합 → 소속 역이 남는 관리역으로
+    await apply([st('stn-kc-mgr2', { korail_class: 'management' })]);
+    await apply([{ op: 'merge_station', entity_type: 'station', id: 'stn-kc-mgr', into_id: 'stn-kc-mgr2' }]);
+    expect(await readEntity(db, 'station', 'stn-kc-sub')).toMatchObject({ managed_by_id: 'stn-kc-mgr2' });
+  });
+
   it('공사 중 분리 정거장을 기존 역으로 병합', async () => {
     await apply([
       {

@@ -21,3 +21,13 @@ export async function pickRef(page: Page, scope: ReturnType<Page['locator']>, qu
 /** sonner 토스트 */
 export const toast = (page: Page, text: string | RegExp) =>
   page.locator('[data-sonner-toast]').filter({ hasText: text }).first();
+
+/** 시험이 만든 행 지우기(뒤 시험의 픽스처 노선을 건드리지 않게) */
+export async function removeEntity(page: Page, type: string, id: string) {
+  const api = process.env.E2E_API_URL;
+  const cur = await page.request.get(`${api}/v1/admin/${type}/${id}`);
+  if (!cur.ok()) return;
+  const { version } = (await cur.json()) as { version: number };
+  const r = await page.request.delete(`${api}/v1/admin/${type}/${id}`, { headers: { 'If-Match': String(version) } });
+  expect(r.ok(), await r.text()).toBe(true);
+}

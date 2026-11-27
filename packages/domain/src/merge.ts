@@ -70,8 +70,8 @@ export async function mergePreview(db: Queryable, fromId: string, intoId: string
        UNION ALL SELECT 'timetable_set', count(*) FROM timetable_set WHERE station_id = $1
        UNION ALL SELECT 'timetable_entry', count(*) FROM timetable_entry WHERE dest_station_id = $1
        UNION ALL SELECT 'line(시종점)', count(*) FROM line WHERE (start_station_id = $1 OR end_station_id = $1) AND deleted_at IS NULL
-       UNION ALL SELECT 'station(병합할 역·좌표 같음)', count(*) FROM station
-                  WHERE (merge_into_id = $1 OR coord_same_as_id = $1) AND id <> $1 AND deleted_at IS NULL
+       UNION ALL SELECT 'station(병합할 역·좌표 같음·관리역)', count(*) FROM station
+                  WHERE (merge_into_id = $1 OR coord_same_as_id = $1 OR managed_by_id = $1) AND id <> $1 AND deleted_at IS NULL
        UNION ALL SELECT 'plan_geometry(경유 역)', count(*) FROM plan_geometry WHERE $1 = ANY (via_station_ids)
        UNION ALL SELECT 'entity_attachment', count(*) FROM entity_attachment WHERE entity_id = $1
      ) q WHERE c > 0`,
