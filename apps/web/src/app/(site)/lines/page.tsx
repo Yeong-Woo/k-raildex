@@ -44,10 +44,11 @@ export default async function LinesPage({ searchParams }: { searchParams: SP }) 
   const base = all.filter((l) => (!wide || l.is_wide_area) && (status === 'all' || l.status === status));
   const inClass = base.filter((l) => inClassOf(l, cls));
   const matched = inClass.filter((l) => areaMatches(l.areas, area)).sort(byKo);
-  // 시설 지선(기지선·연결선·삼각선) — 본선이 함께 보이면 본선 아래로 접는다
+  // 시설 지선(기지선·연결선·삼각선) — 본선이 보이면 본선 아래로 접는다. 시설 지선은 대개 여객 미취급이라
+  // 법적 분류 탭과 상관없이(권역·상태 조건만 맞으면) 본선 아래에 모은다
   const matchedIds = new Set(matched.map((l) => l.id));
   const folded = new Map<string, typeof matched>();
-  for (const l of matched) {
+  for (const l of base.filter((x) => areaMatches(x.areas, area)).sort(byKo)) {
     if (l.line_role && l.branch_of && matchedIds.has(l.branch_of.id)) {
       const list = folded.get(l.branch_of.id) ?? [];
       list.push(l);
@@ -102,8 +103,8 @@ export default async function LinesPage({ searchParams }: { searchParams: SP }) 
         </FilterRow>
       </div>
       <p className="muted num" style={{ fontSize: 'var(--kr-text-sm)' }} aria-live="polite">
-        {fmtNum(matched.length)}개 노선
-        {foldedIds.size ? ` (기지선·연결선·삼각선 ${fmtNum(foldedIds.size)}개는 본선 아래)` : ''}
+        {fmtNum(shown.length)}개 노선
+        {foldedIds.size ? ` · 본선 아래 접은 기지선·연결선·삼각선 ${fmtNum(foldedIds.size)}개` : ''}
       </p>
       {shown.length === 0 ? <p className="empty surface">조건에 맞는 노선이 없습니다.</p> : null}
       {groups
