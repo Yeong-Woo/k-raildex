@@ -364,7 +364,7 @@ export const QUALITY_RULES: readonly QualityRule[] = [
   },
   {
     // 2026-11-27 운영기관 정리(사용자 지시): 노선역의 현재 운영기관을 정할 수 없다 — 노선 운영기관이 둘 이상(구간 분할·공동 운영)인데
-    // 노선역에 운영기관이 없거나, 노선에 운영기관이 없다(v_line_station_operator basis ambiguous·none). 폐지·계획 노선역은 뺀다
+    // 노선역에 운영기관이 없거나, 노선에 운영기관이 없다(v_line_station_operator basis ambiguous·none). 운영 중·휴업 노선역만(공사 중·계획은 운영기관 미정이 정상)
     id: 'X-line-station-operator',
     title: '노선역 운영기관 미정(노선 운영기관이 둘 이상이거나 없음)',
     sql: `SELECT 'line_station' AS entity_type, x.id AS entity_id,
@@ -378,7 +378,7 @@ export const QUALITY_RULES: readonly QualityRule[] = [
             JOIN line_station x ON x.id = vo.line_station_id
             JOIN line l ON l.id = x.line_id AND l.deleted_at IS NULL
             JOIN station s ON s.id = x.station_id AND s.deleted_at IS NULL
-           WHERE vo.basis IN ('ambiguous', 'none') AND x.status IN ('operating', 'suspended', 'under_construction')`,
+           WHERE vo.basis IN ('ambiguous', 'none') AND x.status IN ('operating', 'suspended')`,
   },
   {
     id: 'X-source-license-unknown',
