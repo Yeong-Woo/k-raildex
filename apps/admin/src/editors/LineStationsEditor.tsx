@@ -1,4 +1,7 @@
-/** 노선 역 순서 편집기(FR-ADM-050): 드래그 순서·행 추가/삭제·구간 일괄 상태·km 역행 경고. 저장 = 전체 교체(PUT) */
+/**
+ * 노선 역 순서 편집기(FR-ADM-050): 드래그 순서·행 추가/삭제·구간 일괄 상태·km 역행 경고. 저장 = 전체 교체(PUT).
+ * 역 추가: 기존 역 그룹 고르기 또는 [새 역 그룹 만들어 넣기](2026-11-27). 행을 하나 고르면 그 뒤에, 아니면 끝에 넣는다.
+ */
 import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { useState } from 'react';
@@ -25,6 +28,7 @@ import { api, errorText, qs } from '../lib/api';
 import { FuzzyCell } from '../form/widgets/FuzzyCell';
 import { kmRegressions, rangeKeys, setStatusFor, type LsRow } from '../lib/line-stations';
 import { RefInput, useLabel } from '../form/widgets/RefInput';
+import { NewStationForLine } from './NewStationForLine';
 import { newLineStationRow, useLineStations } from './useLineStations';
 
 export function LineStationsEditor({ lineId }: { lineId: string }) {
@@ -69,10 +73,25 @@ export function LineStationsEditor({ lineId }: { lineId: string }) {
     });
     setAnchor(key);
   };
+  // 넣을 자리: 행을 하나만 골랐으면 그 뒤, 아니면 끝
+  const afterKey = selected.size === 1 ? [...selected][0]! : null;
+  const afterIndex = afterKey ? rows.findIndex((r) => r._key === afterKey) : -1;
+  const insertRow = (stationId: string, status?: string) =>
+    setRows((rs) => {
+      const at = afterKey ? rs.findIndex((r) => r._key === afterKey) : -1;
+      const row = newLineStationRow(
+        stationId,
+        status ?? (at >= 0 ? rs[at]!.status : (rs.at(-1)?.status ?? 'operating')),
+      );
+      return at >= 0 ? [...rs.slice(0, at + 1), row, ...rs.slice(at + 1)] : [...rs, row];
+    });
   const addStation = (stationId: string | null) => {
-    if (!stationId) return;
-    setRows((rs) => [...rs, newLineStationRow(stationId, rs.at(-1)?.status ?? 'operating')]);
+    if (stationId) insertRow(stationId);
   };
+  const lineStatus = useQuery({
+    queryKey: ['entity', 'line', lineId],
+    queryFn: () => api<{ data: { status: string } }>(`/v1/admin/line/${encodeURIComponent(lineId)}`),
+  }).data?.data.status;
 
   if (q.isLoading) return <Empty>불러오는 중…</Empty>;
   if (q.error) return <Empty>{errorText(q.error)}</Empty>;
@@ -198,13 +217,25 @@ export function LineStationsEditor({ lineId }: { lineId: string }) {
           </table>
         </div>
       </DndContext>
-      {rows.length === 0 ? <Empty>노선역이 없습니다. 아래에서 역을 추가하세요.</Empty> : null}
-      <div className="flex items-center gap-2 border-t border-border px-4 py-3">
+      {rows.length === 0 ? (
+        <Empty>노선역이 없습니다. 아래에서 기존 역 그룹을 고르거나 새 역 그룹을 만들어 넣으세요.</Empty>
+      ) : null}
+      <div className="flex flex-wrap items-center gap-2 border-t border-border px-4 py-3">
         <Plus className="size-4 text-fg-muted" />
-        <span className="shrink-0 text-sm text-fg-muted">역 추가(끝에)</span>
+        <span className="shrink-0 text-sm text-fg-muted" data-testid="add-where">
+          역 추가({afterIndex >= 0 ? `${afterIndex + 1}번째 역 뒤에` : '끝에'})
+        </span>
         <div className="w-80" data-testid="add-line-station">
           <RefInput target="station" value={null} onChange={addStation} />
         </div>
+        <NewStationForLine
+          lineId={lineId}
+          defaultStatus={
+            lineStatus === 'closed' || lineStatus === 'abandoned' ? lineStatus : (rows.at(-1)?.status ?? 'operating')
+          }
+          where={afterIndex >= 0 ? `${afterIndex + 1}번째 역 뒤` : '끝'}
+          onCreated={(sid, status) => insertRow(sid, status)}
+        />
       </div>
     </Card>
   );
