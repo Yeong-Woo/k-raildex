@@ -60,10 +60,7 @@ export const ENTITY_SPECS: Readonly<Record<EntityType, EntitySpec>> = {
     true, // REC 열(reviewed_at 등)이 있다. 출처 ≥1 요구는 없음(DB entity_table.curated = false)
   ),
   operator: spec('operator'),
-  station: spec('station', [
-    { field: 'depot', table: 'station_depot', fk: 'station_id', kind: 'single' },
-    { field: 'depot_lines', table: 'station_depot_line', fk: 'station_id', kind: 'objects', orderColumn: 'ord' },
-  ]),
+  station: spec('station'),
   line_station: spec('line_station', [], false),
   line: spec('line', [
     {
@@ -207,6 +204,9 @@ export const ENTITY_SPECS: Readonly<Record<EntityType, EntitySpec>> = {
   ]),
   route_map: spec('route_map'),
   glossary_term: spec('glossary_term'),
+  facility: spec('facility', [
+    { field: 'lines', table: 'facility_line', fk: 'facility_id', kind: 'objects', orderColumn: 'ord' },
+  ]),
 };
 
 /** 운행 계통 정차 패턴(2단 하위) */

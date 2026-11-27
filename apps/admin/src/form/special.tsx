@@ -2,7 +2,6 @@
 import type { ReactNode } from 'react';
 import type { Code, FuzzyDate, PlanMilestone, PlanStageEvent, StopPattern } from '@k-raildex/contracts';
 import { PlanLinesEditor } from '../editors/PlanLinesEditor';
-import { DepotField } from '../editors/DepotEditors';
 import { PlanStagesEditor } from '../editors/PlanStagesEditor';
 import { StopPatternMatrix } from '../editors/StopPatternMatrix';
 
@@ -42,12 +41,6 @@ const SPECIAL: Record<string, SpecialEditor> = {
     ),
   },
   plan_milestones: { hidden: true, render: () => null },
-  station_depot: {
-    render: ({ record, onChange }) => <DepotField name="depot" record={record} onChange={onChange} />,
-  },
-  station_depot_lines: {
-    render: ({ record, onChange }) => <DepotField name="depot_lines" record={record} onChange={onChange} />,
-  },
   plan_lines: {
     render: ({ name, record, onChange }) => <PlanLinesEditor name={name} record={record} onChange={onChange} />,
   },

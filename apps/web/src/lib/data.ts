@@ -21,6 +21,7 @@ import {
   publicTrainClassListSchema,
   publicTrainsSchema,
   publicTransferCenterDetailSchema,
+  publicFacilityDetailSchema,
   publicTransferCenterListSchema,
   publicUpcomingSchema,
   publicHomeSchema,
@@ -158,6 +159,9 @@ export const getProgram = cache((id: string) =>
 );
 export const getTransferCenters = cache(() =>
   apiGetAll<TransferCenterItem>('/transfer-centers', publicTransferCenterListSchema),
+);
+export const getFacility = cache((id: string) =>
+  apiGet(`/facilities/${encodeURIComponent(id)}`, publicFacilityDetailSchema, { tags: [`kr-id:${id}`] }),
 );
 export const getTransferCenter = cache((id: string) =>
   apiGet(`/transfer-centers/${encodeURIComponent(id)}`, publicTransferCenterDetailSchema, { tags: [`kr-id:${id}`] }),

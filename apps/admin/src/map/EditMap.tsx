@@ -68,7 +68,7 @@ export function EditMap() {
 
   useGeoJsonLayer(map, 'current-lines', lines.data, currentLineLayers('current-lines'));
   useGeoJsonLayer(map, 'current-stations', stations.data, currentStationLayers('current-stations'));
-  // 차량기지(시설, 0034) — 좌표가 있는 것만
+  // 차량기지(시설 facility, 0035) — 좌표가 있는 것만. 누르면 시설 편집
   const depots = useQuery({
     queryKey: ['map', 'depots'],
     queryFn: () => apiOptional<FeatureCollection>('/v1/admin/map/depots'),
@@ -95,15 +95,22 @@ export function EditMap() {
     };
     const enter = () => (map.getCanvas().style.cursor = 'pointer');
     const leave = () => (map.getCanvas().style.cursor = '');
-    const ids = ['current-station', 'depots-depot'];
-    for (const id of ids) {
-      map.on('click', id, onClick);
+    // 차량기지(시설) 점 → 시설 편집 화면
+    const onDepot = (e: MapLayerMouseEvent) => {
+      const id = e.features?.[0]?.properties?.facility_id;
+      if (typeof id === 'string')
+        void navigate({ to: '/data/$type/$id', params: { type: 'facility', id }, search: {} });
+    };
+    map.on('click', 'current-station', onClick);
+    map.on('click', 'depots-depot', onDepot);
+    for (const id of ['current-station', 'depots-depot']) {
       map.on('mouseenter', id, enter);
       map.on('mouseleave', id, leave);
     }
     return () => {
-      for (const id of ids) {
-        map.off('click', id, onClick);
+      map.off('click', 'current-station', onClick);
+      map.off('click', 'depots-depot', onDepot);
+      for (const id of ['current-station', 'depots-depot']) {
         map.off('mouseenter', id, enter);
         map.off('mouseleave', id, leave);
       }

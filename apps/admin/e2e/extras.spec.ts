@@ -360,28 +360,36 @@ test('노선역 상세 [관리역]: 코레일 노선역을 관리역으로 저�
   for (const id of ['ls-e2e-korail--fx-b', 'ls-e2e-korail--fx-a']) await removeEntity(page, 'line-station', id);
 });
 
-test('역 그룹 [정보]: 역 종류가 차량기지일 때만 기지 정보(기능 체크)·담당 노선을 쓴다', async ({ page }) => {
+test('시설(차량기지): 망 메뉴에서 만들고 기능 체크·담당 노선을 저장한다', async ({ page }) => {
   const api = process.env.E2E_API_URL;
-  const r = await page.request.post(`${api}/v1/admin/station`, {
+  // 사이드바 "망" 에 역 그룹 → 노선역 → 노선 … → 시설 순서
+  await page.goto('/');
+  await expect(page.getByRole('link', { name: '시설', exact: true })).toBeVisible();
+  const labels = await page.locator('nav a').allInnerTexts();
+  const at = (t: string) => labels.findIndex((x) => x.trim() === t);
+  expect(at('역 그룹')).toBeLessThan(at('노선역'));
+  expect(at('노선역')).toBeLessThan(at('노선'));
+  expect(at('시설')).toBeGreaterThan(at('노선'));
+  expect(labels.map((x) => x.trim())).toEqual(expect.arrayContaining(['역 편집', '현재 노선 편집', '미래 노선 편집']));
+  const r = await page.request.post(`${api}/v1/admin/facility`, {
     data: {
-      id: 'stn-e2e-depot',
+      id: 'fac-e2e-depot',
       name_ko: '시험기지',
-      kind: 'station',
+      functions: ['stabling', 'heavy_maintenance'],
+      lines: [{ line_id: 'line-fx-one', role: 'serves' }],
       checked_at: '2026-11-27',
       sources: [{ source_id: 'src-fixture-notice' }],
     },
   });
   expect(r.ok(), await r.text()).toBe(true);
-  await page.goto('/data/station/stn-e2e-depot');
-  await expect(page.getByTestId('depot-hint')).toContainText('차량기지');
-  await page.getByLabel('역 종류').selectOption('depot');
-  const ed = page.getByTestId('depot-editor');
-  await ed.getByRole('checkbox', { name: '주박' }).check();
-  await ed.getByRole('checkbox', { name: '중정비' }).check();
+  await page.goto('/data/facility/fac-e2e-depot');
+  await expect(page.getByRole('checkbox', { name: '주박' })).toBeChecked();
+  await expect(page.getByRole('checkbox', { name: '검수' })).not.toBeChecked();
+  await page.getByRole('checkbox', { name: '검수' }).check();
   await page.getByRole('button', { name: /^저장/ }).first().click();
   await page.getByRole('dialog').getByRole('button', { name: '저장', exact: true }).click();
   await expect(toast(page, '저장했습니다')).toBeVisible();
-  const d = await (await page.request.get(`${api}/v1/admin/station/stn-e2e-depot`)).json();
-  expect(d.data.depot.functions).toEqual(['stabling', 'heavy_maintenance']);
-  await removeEntity(page, 'station', 'stn-e2e-depot');
+  const d = await (await page.request.get(`${api}/v1/admin/facility/fac-e2e-depot`)).json();
+  expect(d.data.functions).toEqual(['stabling', 'inspection', 'heavy_maintenance']);
+  await removeEntity(page, 'facility', 'fac-e2e-depot');
 });

@@ -194,18 +194,6 @@ export const publicTimetableSummarySchema = z
   })
   .strict();
 
-/** 차량기지 정보(역 그룹 kind depot): 기능·운영기관·담당 노선·붙은 기지선(노선역의 노선) */
-export const publicDepotSchema = z
-  .object({
-    functions: z.array(z.enum(codes.depotFunction.values)),
-    operator: pubRefSchema.nullable(),
-    opened: pubFuzzy,
-    served_lines: z.array(pubRefSchema.extend({ color: z.string().nullable() }).strict()),
-    connecting_lines: z.array(pubRefSchema.extend({ line_role: z.enum(codes.lineRole.values).nullable() }).strict()),
-  })
-  .strict();
-export type PublicDepot = z.infer<typeof publicDepotSchema>;
-
 export const publicStationDetailSchema = z
   .object({
     id: z.string(),
@@ -235,8 +223,6 @@ export const publicStationDetailSchema = z
     timetables: z.array(publicTimetableSummarySchema),
     plans: z.array(publicPlanLinkSchema),
     transfer_centers: z.array(pubRefSchema.extend({ status: z.string() }).strict()),
-    /** 차량기지(kind depot) 정보 — 아니면 null(0034) */
-    depot: publicDepotSchema.nullable(),
     events: z.array(pubEventSchema),
     ...pubDetailTail,
   })
@@ -338,3 +324,31 @@ export const publicTimetableSchema = z
   })
   .strict();
 export type PublicTimetable = z.infer<typeof publicTimetableSchema>;
+
+// ------------------------------------------------------------------ 시설(0035)
+
+/** 시설(차량기지 등) 상세: 기능·운영기관·담당 노선·붙은 선로·위치 */
+export const publicFacilityDetailSchema = z
+  .object({
+    id: z.string(),
+    name_ko: z.string(),
+    name_en: z.string().nullable(),
+    name_full: z.string().nullable(),
+    kind: z.enum(codes.facilityKind.values),
+    functions: z.array(z.enum(codes.facilityFunction.values)),
+    operator: pubRefSchema.nullable(),
+    status: pubStatus,
+    opened: pubFuzzy,
+    closed: pubFuzzy,
+    region: z.object({ code: z.string(), name_ko: z.string(), slug: z.string() }).strict().nullable(),
+    address: z.string().nullable(),
+    coord: z.object({ lat: z.number(), lng: z.number() }).strict().nullable(),
+    approximate: z.boolean(),
+    description: z.string().nullable(),
+    served_lines: z.array(pubRefSchema.extend({ color: z.string().nullable() }).strict()),
+    connecting_lines: z.array(pubRefSchema.extend({ line_role: z.enum(codes.lineRole.values).nullable() }).strict()),
+    review_status: z.enum(codes.reviewStatus.values),
+    ...pubDetailTail,
+  })
+  .strict();
+export type PublicFacilityDetail = z.infer<typeof publicFacilityDetailSchema>;

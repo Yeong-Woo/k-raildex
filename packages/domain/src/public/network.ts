@@ -4,7 +4,7 @@
  */
 import {
   splitDayNote,
-  type PublicDepot,
+  type PublicFacilityDetail,
   type PublicLineDetail,
   type PublicLineListItem,
   type PublicServiceDetail,
@@ -225,24 +225,6 @@ export async function publicStations(db: Queryable, q: StationListQuery) {
   return { ...paginate(rows, q), facets };
 }
 
-/** 차량기지 정보(0034). 붙은 기지선 = 이 역 그룹의 노선역이 있는 노선 */
-export async function depotOf(db: Queryable, stationId: string): Promise<PublicDepot | null> {
-  const { rows } = await db.query<PublicDepot>(
-    `SELECT coalesce(d.functions, '{}') AS functions,
-            (SELECT json_build_object('id', o.id, 'name_ko', o.name_ko) FROM operator o WHERE o.id = d.operator_id AND o.deleted_at IS NULL) AS operator,
-            ${fz('d.opened')} AS opened,
-            coalesce((SELECT json_agg(json_build_object('id', l.id, 'name_ko', l.name_ko, 'color', l.color) ORDER BY dl.ord, l.id)
-                        FROM station_depot_line dl JOIN line l ON l.id = dl.line_id AND l.deleted_at IS NULL WHERE dl.station_id = s.id), '[]'::json) AS served_lines,
-            coalesce((SELECT json_agg(DISTINCT jsonb_build_object('id', l.id, 'name_ko', l.name_ko, 'line_role', l.line_role))
-                        FROM line_station x JOIN line l ON l.id = x.line_id AND l.deleted_at IS NULL
-                       WHERE x.station_id = s.id AND x.deleted_at IS NULL), '[]'::json) AS connecting_lines
-       FROM station s LEFT JOIN station_depot d ON d.station_id = s.id
-      WHERE s.id = $1 AND s.deleted_at IS NULL AND s.kind = 'depot'`,
-    [stationId],
-  );
-  return rows[0] ?? null;
-}
-
 export async function publicStation(db: Queryable, id: string): Promise<PublicStationDetail | null> {
   const { rows } = await db.query<Row>(
     `SELECT s.id, s.name_ko, s.name_en, s.name_hanja, s.name_full, s.kind, st.status, ${fz('st.opened')} AS opened,
@@ -309,7 +291,6 @@ export async function publicStation(db: Queryable, id: string): Promise<PublicSt
     ),
   ]);
   const lsIds = lines.rows.map((r) => r.line_station_id);
-  const depot = stn.kind === 'depot' ? await depotOf(db, id) : null;
   const [names, sources, attachments, events] = await Promise.all([
     namesOf(db, [id]),
     sourcesOf(db, [id, ...lsIds]),
@@ -324,7 +305,6 @@ export async function publicStation(db: Queryable, id: string): Promise<PublicSt
     timetables: tts as PublicStationDetail['timetables'],
     plans: plans.rows as PublicStationDetail['plans'],
     transfer_centers: centers.rows as PublicStationDetail['transfer_centers'],
-    depot,
     events,
     names: names.get(id) ?? [],
     sources,
@@ -441,4 +421,34 @@ export async function publicTimetable(db: Queryable, stationId: string): Promise
   );
   const sets = rows.map((r) => ({ ...r, day_note: splitDayNote(r.day_note).shown }));
   return { station: st.rows[0], sets: sets as PublicTimetable['sets'] };
+}
+
+/** 시설 상세(0035) */
+export async function publicFacility(db: Queryable, id: string): Promise<PublicFacilityDetail | null> {
+  const { rows } = await db.query<Row>(
+    `SELECT f.id, f.name_ko, f.name_en, f.name_full, f.kind, f.functions, f.status, ${fz('f.opened')} AS opened, ${fz('f.closed')} AS closed,
+            (SELECT json_build_object('id', o.id, 'name_ko', o.name_ko) FROM operator o WHERE o.id = f.operator_id AND o.deleted_at IS NULL) AS operator,
+            (SELECT json_build_object('code', r.code, 'name_ko', r.name_ko, 'slug', r.slug) FROM ref_region r WHERE r.code = f.region_code) AS region,
+            f.address,
+            CASE WHEN f.geom IS NULL THEN NULL ELSE json_build_object('lat', round(ST_Y(f.geom::geometry)::numeric, 6)::float8,
+                                                                       'lng', round(ST_X(f.geom::geometry)::numeric, 6)::float8) END AS coord,
+            (f.coord_basis IS NOT NULL) AS approximate, f.description, f.review_status,
+            coalesce((SELECT json_agg(json_build_object('id', l.id, 'name_ko', l.name_ko, 'color', l.color) ORDER BY fl.ord, l.id)
+                        FROM facility_line fl JOIN line l ON l.id = fl.line_id AND l.deleted_at IS NULL
+                       WHERE fl.facility_id = f.id AND fl.role = 'serves'), '[]'::json) AS served_lines,
+            coalesce((SELECT json_agg(json_build_object('id', l.id, 'name_ko', l.name_ko, 'line_role', l.line_role) ORDER BY fl.ord, l.id)
+                        FROM facility_line fl JOIN line l ON l.id = fl.line_id AND l.deleted_at IS NULL
+                       WHERE fl.facility_id = f.id AND fl.role = 'connects'), '[]'::json) AS connecting_lines,
+            ${REC_JSON('f')} AS meta
+       FROM facility f WHERE f.id = $1 AND f.deleted_at IS NULL`,
+    [id],
+  );
+  const f = rows[0];
+  if (!f) return null;
+  const [names, sources, attachments] = await Promise.all([
+    namesOf(db, [id]),
+    sourcesOf(db, [id]),
+    attachmentsOf(db, [id]),
+  ]);
+  return { ...(f as unknown as PublicFacilityDetail), names: names.get(id) ?? [], sources, attachments };
 }

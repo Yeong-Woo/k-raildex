@@ -59,6 +59,8 @@ export function urlPath(type: EntityType | string, id: string): string | null {
       return `/plans/programs/#${id}`;
     case 'transfer_center':
       return `/transfer-centers/${id}/`;
+    case 'facility':
+      return `/facilities/${id}/`;
     case 'glossary_term':
       return `/terms/#${id}`;
     case 'route_map':
@@ -81,7 +83,7 @@ export function urlPath(type: EntityType | string, id: string): string | null {
 export const URL_PATH_SQL = (type: string, id: string): string => `CASE ${type}
   WHEN 'line' THEN '/lines/' || ${id} || '/' WHEN 'station' THEN '/stations/' || ${id} || '/'
   WHEN 'service' THEN '/services/' || ${id} || '/' WHEN 'plan' THEN '/plans/' || ${id} || '/'
-  WHEN 'plan_program' THEN '/plans/programs/#' || ${id} WHEN 'transfer_center' THEN '/transfer-centers/' || ${id} || '/'
+  WHEN 'plan_program' THEN '/plans/programs/#' || ${id} WHEN 'transfer_center' THEN '/transfer-centers/' || ${id} || '/' WHEN 'facility' THEN '/facilities/' || ${id} || '/'
   WHEN 'glossary_term' THEN '/terms/#' || ${id} WHEN 'route_map' THEN '/maps/#' || ${id}
   WHEN 'train_class' THEN '/train-classes/#' || ${id}
   WHEN 'train_number_range' THEN '/trains/#' || ${id} WHEN 'rolling_stock_range' THEN '/trains/#' || ${id}

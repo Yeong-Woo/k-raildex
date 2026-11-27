@@ -22,28 +22,28 @@ function header(q: PublicMapAt) {
 }
 
 /**
- * 차량기지 지도 점(0034): 역 그룹 kind depot 이면서 좌표가 있는 것. 색은 첫 담당 노선색.
- * 현재 지도 전용(시점 지도에는 넣지 않는다).
+ * 차량기지 지도 점(시설 kind depot, 좌표 있음 — 0035). 색은 첫 담당 노선색. 현재 지도 전용.
  */
 export async function publicMapDepots(db: Queryable): Promise<FeatureCollection> {
   const { rows } = await db.query<{ fc: FeatureCollection }>(
-    `SELECT json_build_object('type', 'FeatureCollection', 'features', coalesce(json_agg(f ORDER BY f->'properties'->>'station_id'), '[]'::json)) AS fc
+    `SELECT json_build_object('type', 'FeatureCollection', 'features', coalesce(json_agg(f ORDER BY f->'properties'->>'facility_id'), '[]'::json)) AS fc
        FROM (
          SELECT json_build_object(
                   'type', 'Feature',
                   'geometry', json_build_object('type', 'Point', 'coordinates',
-                                json_build_array(round(ST_X(s.geom::geometry)::numeric, 6), round(ST_Y(s.geom::geometry)::numeric, 6))),
+                                json_build_array(round(ST_X(x.geom::geometry)::numeric, 6), round(ST_Y(x.geom::geometry)::numeric, 6))),
                   'properties', json_build_object(
-                    'station_id', s.id, 'name_ko', s.name_ko, 'kind', 'depot',
-                    'functions', coalesce(d.functions, '{}'),
-                    'operator', (SELECT o.name_ko FROM operator o WHERE o.id = d.operator_id),
-                    'served', coalesce((SELECT json_agg(l.name_ko ORDER BY dl.ord, l.id) FROM station_depot_line dl
-                                          JOIN line l ON l.id = dl.line_id AND l.deleted_at IS NULL WHERE dl.station_id = s.id), '[]'::json),
-                    'color', (SELECT l.color FROM station_depot_line dl JOIN line l ON l.id = dl.line_id AND l.deleted_at IS NULL
-                               WHERE dl.station_id = s.id ORDER BY dl.ord, l.id LIMIT 1),
-                    'approximate', s.coord_basis IS NOT NULL)) AS f
-           FROM station s LEFT JOIN station_depot d ON d.station_id = s.id
-          WHERE s.deleted_at IS NULL AND s.kind = 'depot' AND s.geom IS NOT NULL
+                    'facility_id', x.id, 'name_ko', x.name_ko, 'kind', x.kind, 'status', x.status,
+                    'functions', x.functions,
+                    'operator', (SELECT o.name_ko FROM operator o WHERE o.id = x.operator_id),
+                    'served', coalesce((SELECT json_agg(l.name_ko ORDER BY fl.ord, l.id) FROM facility_line fl
+                                          JOIN line l ON l.id = fl.line_id AND l.deleted_at IS NULL
+                                         WHERE fl.facility_id = x.id AND fl.role = 'serves'), '[]'::json),
+                    'color', (SELECT l.color FROM facility_line fl JOIN line l ON l.id = fl.line_id AND l.deleted_at IS NULL
+                               WHERE fl.facility_id = x.id AND fl.role = 'serves' ORDER BY fl.ord, l.id LIMIT 1),
+                    'approximate', x.coord_basis IS NOT NULL)) AS f
+           FROM facility x
+          WHERE x.deleted_at IS NULL AND x.kind = 'depot' AND x.geom IS NOT NULL
        ) q`,
   );
   return rows[0]!.fc;

@@ -17,6 +17,7 @@ export const paths = {
   planProgram: (id: string) => `/plans/programs/${enc(id)}/`,
   transferCenters: () => '/transfer-centers/',
   transferCenter: (id: string) => `/transfer-centers/${enc(id)}/`,
+  facility: (id: string) => `/facilities/${enc(id)}/`,
   term: (id: string) => `/terms/#${enc(id)}`,
   search: (q?: string) => (q ? `/search/?q=${enc(q)}` : '/search/'),
   map: (hash?: string) => `/map/${hash ? `#${hash}` : ''}`,
@@ -54,6 +55,8 @@ export function entityPath(type: string, id: string): string | null {
       return paths.plan(id);
     case 'transfer_center':
       return paths.transferCenter(id);
+    case 'facility':
+      return paths.facility(id);
     case 'glossary_term':
       return paths.term(id);
     default:
@@ -115,6 +118,7 @@ export function idPath(id: string): string | null {
   if (id.startsWith('svc-')) return paths.service(id);
   if (id.startsWith('plan-')) return paths.plan(id);
   if (id.startsWith('xc-')) return paths.transferCenter(id);
+  if (id.startsWith('fac-')) return paths.facility(id);
   if (id.startsWith('pp-')) return paths.planProgram(id);
   return null;
 }

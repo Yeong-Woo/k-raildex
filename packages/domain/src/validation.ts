@@ -127,14 +127,6 @@ export const HARD_RULES: HardRule[] = [
                   OR mo.operator_id IS DISTINCT FROM 'op-korail')`,
   },
   {
-    id: 'V-H19',
-    message: '차량기지 정보·담당 노선은 역 종류가 차량기지(depot)인 역 그룹만',
-    sql: `SELECT s.id AS entity_id, s.kind AS detail FROM station s
-           WHERE s.id = ANY($1) AND s.deleted_at IS NULL AND s.kind <> 'depot'
-             AND (EXISTS (SELECT 1 FROM station_depot d WHERE d.station_id = s.id)
-                  OR EXISTS (SELECT 1 FROM station_depot_line d WHERE d.station_id = s.id))`,
-  },
-  {
     id: 'V-H17',
     message: '활성 행이 삭제(휴지통)된 개체를 가리킴',
     sql: `SELECT r.plan_id AS entity_id, r.line_id AS detail FROM plan_line r JOIN entity e ON e.id = r.line_id

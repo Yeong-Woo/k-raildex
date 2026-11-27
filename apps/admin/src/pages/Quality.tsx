@@ -50,10 +50,10 @@ const ROW_TOOLS: Record<string, (it: QualityItem) => { label: string; href: stri
     label: '지도',
     href: `/map?tab=edit&station=${encodeURIComponent(it.entity_id)}`,
   }),
-  'V-S12': (it) => ({ label: '계획 선형 편집', href: `/map?tool=geometry&plan=${encodeURIComponent(it.entity_id)}` }),
+  'V-S12': (it) => ({ label: '미래 노선 편집', href: `/map?tool=geometry&plan=${encodeURIComponent(it.entity_id)}` }),
   'X-construction-no-geometry': (it) =>
     it.entity_type === 'plan'
-      ? { label: '계획 선형 편집', href: `/map?tool=geometry&plan=${encodeURIComponent(it.entity_id)}` }
+      ? { label: '미래 노선 편집', href: `/map?tool=geometry&plan=${encodeURIComponent(it.entity_id)}` }
       : { label: 'OSM 매핑 점검', href: `/map?tool=osm&line=${encodeURIComponent(it.entity_id)}` },
 };
 

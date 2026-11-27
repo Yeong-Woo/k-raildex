@@ -22,6 +22,7 @@ export const ID_PREFIX: Readonly<Record<EntityType, string>> = {
   transfer_center: 'xc',
   route_map: 'map',
   glossary_term: 'term',
+  facility: 'fac',
 };
 
 /** 슬러그: 소문자·숫자·하이픈. 노선역(ls-)은 `--` 구분자를 허용한다 */

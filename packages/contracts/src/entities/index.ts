@@ -4,6 +4,7 @@
 import type { EntityType } from '../ids';
 import type { ContractSet } from './common';
 import { EventCreateSchema, EventReadSchema, EventUpdateSchema } from './event';
+import { FacilityCreateSchema, FacilityReadSchema, FacilityUpdateSchema } from './facility';
 import { GlossaryTermCreateSchema, GlossaryTermReadSchema, GlossaryTermUpdateSchema } from './glossary-term';
 import { LineCreateSchema, LineReadSchema, LineUpdateSchema } from './line';
 import { LineStationCreateSchema, LineStationReadSchema, LineStationUpdateSchema } from './line-station';
@@ -74,6 +75,7 @@ export * from './rolling-stock-range';
 export * from './transfer-center';
 export * from './route-map';
 export * from './glossary-term';
+export * from './facility';
 export * from './document';
 export * from './timetable';
 
@@ -106,6 +108,7 @@ export const entityContracts = {
   },
   route_map: { create: RouteMapCreateSchema, update: RouteMapUpdateSchema, read: RouteMapReadSchema },
   glossary_term: { create: GlossaryTermCreateSchema, update: GlossaryTermUpdateSchema, read: GlossaryTermReadSchema },
+  facility: { create: FacilityCreateSchema, update: FacilityUpdateSchema, read: FacilityReadSchema },
 } as const satisfies Record<EntityType, ContractSet>;
 
 export type EntityContracts = typeof entityContracts;

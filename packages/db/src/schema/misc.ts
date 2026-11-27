@@ -1,6 +1,8 @@
 // 0009 연표·열차번호대·차량번호대·환승센터·노선도·용어
 import { bigint, integer, numeric, pgTable, primaryKey, text, uuid } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 import { entityPk, fuzzy, meta, names, rec } from './columns';
+import { geographyPoint } from './types';
 import { line, operator, station } from './network';
 import { plan, planProgram } from './plan';
 import { refArea, refRegion } from './reference';
@@ -252,3 +254,45 @@ export const glossaryTerm = pgTable('glossary_term', {
   ...rec(),
   ...meta(),
 });
+
+/** 시설(차량기지 등, 0035) */
+export const facility = pgTable('facility', {
+  id: entityPk(),
+  ...names(),
+  kind: text('kind').notNull().default('depot'),
+  functions: text('functions')
+    .array()
+    .notNull()
+    .default(sql`'{}'`),
+  operatorId: text('operator_id').references(() => operator.id, { onUpdate: 'cascade' }),
+  status: text('status').notNull().default('operating'),
+  ...fuzzy('opened'),
+  ...fuzzy('closed'),
+  regionCode: text('region_code').references(() => refRegion.code),
+  address: text('address'),
+  geom: geographyPoint('geom'),
+  coordSource: text('coord_source'),
+  coordBasis: text('coord_basis'),
+  coordQuery: text('coord_query'),
+  coordNote: text('coord_note'),
+  description: text('description'),
+  ...rec(),
+  ...meta(),
+});
+
+/** 시설 ↔ 노선(serves 담당 노선 / connects 붙은 선로, 0035) */
+export const facilityLine = pgTable(
+  'facility_line',
+  {
+    facilityId: text('facility_id')
+      .notNull()
+      .references(() => facility.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+    lineId: text('line_id')
+      .notNull()
+      .references(() => line.id, { onUpdate: 'cascade' }),
+    role: text('role').notNull().default('serves'),
+    note: text('note'),
+    ord: integer('ord').notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.facilityId, t.lineId, t.role] })],
+);

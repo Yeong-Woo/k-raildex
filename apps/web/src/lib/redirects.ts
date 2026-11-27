@@ -20,6 +20,7 @@ const DETAIL_SECTIONS: Record<string, string> = {
   services: 'service',
   plans: 'plan',
   'transfer-centers': 'transfer_center',
+  facilities: 'facility',
 };
 
 function detailPath(r: RedirectEntry, section: string): string {

@@ -35,6 +35,7 @@ export const codes = {
     transfer_center: { ko: '환승센터' },
     route_map: { ko: '노선도' },
     glossary_term: { ko: '용어' },
+    facility: { ko: '시설' },
   }),
   status: table({
     operating: { ko: '운영 중' },
@@ -65,8 +66,17 @@ export const codes = {
     signal_station: { ko: '신호장' },
     signal_post: { ko: '신호소' },
   }),
-  /** 차량기지 기능(0034) */
-  depotFunction: table({
+  /** 시설 종류(0035) */
+  facilityKind: table({
+    depot: { ko: '차량기지' },
+  }),
+  /** 시설 ↔ 노선 역할(0035) */
+  facilityLineRole: table({
+    serves: { ko: '담당 노선', desc: '이 시설이 차량을 맡는 노선' },
+    connects: { ko: '붙은 선로', desc: '시설이 이어진 노선(기지선 등)' },
+  }),
+  /** 시설(차량기지) 기능(0035) */
+  facilityFunction: table({
     stabling: { ko: '주박', desc: '열차를 세워 두는 곳' },
     inspection: { ko: '검수', desc: '일상·월상 점검' },
     light_maintenance: { ko: '경정비' },

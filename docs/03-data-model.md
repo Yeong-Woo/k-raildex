@@ -344,11 +344,6 @@ CREATE TABLE station (
 );
 CREATE INDEX ON station USING gist (geom);
 
--- 차량기지(0034, 2026-11-27): 역 그룹 kind depot 의 기지 정보. 붙은 기지선 = 이 역 그룹의 노선역(저장 안 함). V-H19
-CREATE TABLE station_depot (station_id text PRIMARY KEY REFERENCES station(id), functions text[] NOT NULL DEFAULT '{}',  -- depotFunction
-  operator_id text REFERENCES operator(id), FUZZY(opened), note text);
-CREATE TABLE station_depot_line (station_id text REFERENCES station(id), line_id text REFERENCES line(id), note text, ord int,
-  PRIMARY KEY (station_id, line_id));   -- 차량을 맡는 노선(담당 노선)
 CREATE INDEX ON station USING gin (name_ko gin_trgm_ops);
 ```
 

@@ -9,8 +9,8 @@ export const fromSlug = (s: string): EntityType | null => {
 
 /** 내비게이션 묶음(05 문서 2절) */
 export const NAV_GROUPS: { label: string; types: EntityType[] }[] = [
-  { label: '망', types: ['station', 'line', 'service', 'train_class'] },
+  { label: '망', types: ['station', 'line_station', 'line', 'service', 'train_class', 'facility'] },
   { label: '계획', types: ['plan_program', 'plan', 'transfer_center'] },
   { label: '연표·번호', types: ['event', 'train_number_range', 'rolling_stock_range'] },
-  { label: '기타', types: ['operator', 'source', 'route_map', 'glossary_term', 'line_station'] },
+  { label: '기타', types: ['operator', 'source', 'route_map', 'glossary_term'] },
 ];

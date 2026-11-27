@@ -8,11 +8,9 @@ import { codes } from '../codes';
 import { idSchema } from '../ids';
 import {
   checkNotSelf,
-  checkUnique,
   curatedFields,
   defineContract,
   issue,
-  keyBy,
   known,
   nameFields,
   nullish,
@@ -23,20 +21,6 @@ import {
   regionCodeSchema,
   type RowCheck,
 } from './common';
-
-/** 차량기지 정보 station_depot(0034) */
-export const stationDepotSchema = z
-  .object({
-    functions: z.array(z.enum(codes.depotFunction.values)).default([]),
-    operator_id: nullish(idSchema('operator')),
-    opened: optFuzzy(),
-    note: optText(),
-  })
-  .strict();
-export type StationDepot = z.infer<typeof stationDepotSchema>;
-
-/** 차량기지 담당 노선 station_depot_line(0034) */
-export const stationDepotLineSchema = z.object({ line_id: idSchema('line'), note: optText() }).strict();
 
 const shape = {
   id: idSchema('station'),
@@ -59,10 +43,6 @@ const shape = {
   own_status: nullish(z.enum(codes.status.values)),
   own_opened: optFuzzy(),
   own_closed: optFuzzy(),
-  /** 차량기지 정보 — kind depot 일 때만(V-H19, 0034) */
-  depot: nullish(stationDepotSchema),
-  /** 차량기지가 차량을 맡는 노선 — kind depot 일 때만 */
-  depot_lines: z.array(stationDepotLineSchema).default([]),
   ...curatedFields,
 };
 
@@ -73,9 +53,6 @@ const checkStation: RowCheck = (row, ctx) => {
     issue(ctx, ['coord_basis'], "coord_basis 는 coord_source 'derived' 일 때만 쓸 수 있음");
   checkNotSelf(row, ctx, 'merge_into_id');
   checkNotSelf(row, ctx, 'coord_same_as_id');
-  checkUnique(row, ctx, 'depot_lines', keyBy('line_id'));
-  if (known(row, 'kind', 'depot') && row.depot != null && row.kind !== 'depot')
-    issue(ctx, ['depot'], '차량기지 정보는 역 종류가 차량기지일 때만 쓸 수 있음');
 };
 
 const contract = defineContract(shape, recReadFields, checkStation);

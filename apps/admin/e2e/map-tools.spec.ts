@@ -135,7 +135,7 @@ test('계획 선형 편집: 지도에서 경유역을 차례로 클릭해 schema
   expect(before.data.geometries).toEqual([]);
 
   await page.goto('/map?tool=geometry&plan=plan-fx-withdrawn');
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('계획 선형 편집');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('미래 노선 편집');
   await expect(page.getByTestId('plan-shape')).toBeVisible();
   await page.getByRole('button', { name: '개략(경유역)' }).click();
   const draft = page.getByTestId('geometry-draft');
@@ -233,7 +233,7 @@ test('OSM 매핑 점검: way 를 클릭해 relation 을 노선 osm_map 에 더�
 
 test('지도 정보 팝업: 편집 중이 아닐 때 역 점을 클릭하면 역 정보와 편집 링크가 뜬다', async ({ page }) => {
   await page.goto('/map?tool=geometry&plan=plan-fx-ext');
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('계획 선형 편집');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('미래 노선 편집');
   await waitMapReady(page, 'stations');
   await page.evaluate(() =>
     (window as unknown as { __kraildexMap: { jumpTo(o: { center: Coord; zoom: number }): void } }).__kraildexMap.jumpTo(
@@ -271,7 +271,7 @@ test('노선 편집: 지도에서 역을 클릭해 노선역에 넣고 저장하
   expect(before.map((x) => x.station_id)).not.toContain('stn-fx-c');
 
   await page.goto('/map?tool=line&line=line-fx-two');
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('노선 편집');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('현재 노선 편집');
   await expect(page.getByTestId('lm-line-summary')).toContainText('시험 2호선');
   await expect(page.getByTestId('lm-line-summary').getByRole('link', { name: /노선 상세 편집/ })).toHaveAttribute(
     'href',

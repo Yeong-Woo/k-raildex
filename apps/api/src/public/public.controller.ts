@@ -22,6 +22,7 @@ import {
   publicMapService,
   publicMapStations,
   publicMapDepots,
+  publicFacility,
   publicMapTimeline,
   publicNumberSearch,
   publicPlan,
@@ -236,6 +237,12 @@ export class PublicController {
       })
       .parse(q);
     return this.cache.serve(req, rep, () => publicTransferCenters(this.db, query));
+  }
+
+  /** 시설(차량기지 등, 0035) */
+  @Get('facilities/:id')
+  async facility(@Req() req: Req_, @Res() rep: Rep, @Param('id') id: string) {
+    return this.cache.serve(req, rep, () => publicFacility(this.db, id), { id });
   }
 
   @Get('transfer-centers/:id')

@@ -19,6 +19,7 @@ import {
   publicSitemapSchema,
   publicSourceListSchema,
   publicStationDetailSchema,
+  publicFacilityDetailSchema,
   publicStationListSchema,
   publicTimelineSchema,
   publicTimetableSchema,
@@ -223,68 +224,46 @@ describe('노선·역·운행 계통', () => {
     expect((await ok('/v1/public/lines/line-fx-one', publicLineDetailSchema)).branches).toEqual([]);
   });
 
-  it('차량기지: 역 그룹 상세 depot(기능·운영기관·담당 노선·붙은 기지선), 지도 depots.geojson', async () => {
+  it('시설(차량기지): 상세(기능·운영기관·담당 노선·붙은 선로), 지도 depots.geojson', async () => {
     await apply([
       {
         op: 'create',
-        entity_type: 'line',
+        entity_type: 'facility',
         data: {
-          id: 'line-fx-depot-track',
-          name_ko: '시험기지선',
-          category: 'metro',
-          rail_class: 'urban',
-          line_role: 'depot_line',
-          status: 'operating',
-          checked_at: '2026-11-27',
-          sources: [{ source_id: 'src-fixture-notice' }],
-        },
-      },
-      {
-        op: 'create',
-        entity_type: 'station',
-        data: {
-          id: 'stn-fx-depot',
+          id: 'fac-fx-depot',
           name_ko: '시험차량기지',
           kind: 'depot',
+          functions: ['stabling', 'heavy_maintenance'],
+          operator_id: 'op-fx-metro',
           geom: { lat: 37.6, lng: 127.1 },
           coord_source: 'official',
-          depot: { functions: ['stabling', 'heavy_maintenance'], operator_id: 'op-fx-metro' },
-          depot_lines: [{ line_id: 'line-fx-one' }],
+          lines: [
+            { line_id: 'line-fx-one', role: 'serves' },
+            { line_id: 'line-fx-two', role: 'connects' },
+          ],
           checked_at: '2026-11-27',
           sources: [{ source_id: 'src-fixture-notice' }],
-        },
-      },
-      {
-        op: 'create',
-        entity_type: 'line_station',
-        data: {
-          id: 'ls-fx-depot-track--fx-depot',
-          line_id: 'line-fx-depot-track',
-          station_id: 'stn-fx-depot',
-          seq: 1,
-          status: 'operating',
         },
       },
     ]);
-    const d = await ok('/v1/public/stations/stn-fx-depot', publicStationDetailSchema);
-    expect(d.depot).toMatchObject({
+    const d = await ok('/v1/public/facilities/fac-fx-depot', publicFacilityDetailSchema);
+    expect(d).toMatchObject({
+      kind: 'depot',
       functions: ['stabling', 'heavy_maintenance'],
       operator: { id: 'op-fx-metro' },
       served_lines: [{ id: 'line-fx-one', name_ko: '시험 1호선', color: '#0052A4' }],
-      connecting_lines: [{ id: 'line-fx-depot-track', name_ko: '시험기지선', line_role: 'depot_line' }],
+      connecting_lines: [{ id: 'line-fx-two', line_role: null }],
+      coord: { lat: 37.6, lng: 127.1 },
     });
-    expect((await ok('/v1/public/stations/stn-fx-a', publicStationDetailSchema)).depot).toBeNull();
+    expect(d.sources[0]).toMatchObject({ source_id: 'src-fixture-notice' });
     const fc = (await get('/v1/public/map/depots.geojson')).json() as {
       features: { properties: Record<string, unknown> }[];
     };
     expect(fc.features.map((f) => f.properties)).toEqual([
-      expect.objectContaining({ station_id: 'stn-fx-depot', kind: 'depot', color: '#0052A4', served: ['시험 1호선'] }),
+      expect.objectContaining({ facility_id: 'fac-fx-depot', kind: 'depot', color: '#0052A4', served: ['시험 1호선'] }),
     ]);
-    await apply([
-      { op: 'delete', entity_type: 'line_station', id: 'ls-fx-depot-track--fx-depot' },
-      { op: 'delete', entity_type: 'station', id: 'stn-fx-depot' },
-      { op: 'delete', entity_type: 'line', id: 'line-fx-depot-track' },
-    ]);
+    expect((await get('/v1/public/facilities/fac-none')).statusCode).toBe(404);
+    await apply([{ op: 'delete', entity_type: 'facility', id: 'fac-fx-depot' }]);
   });
 
   it('역 목록(탭 숫자)·상세(노선별 절·이웃 역·시간표 요약·요일 설명 분리)', async () => {

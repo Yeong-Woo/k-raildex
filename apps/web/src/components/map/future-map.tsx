@@ -148,11 +148,15 @@ export function FutureMap({
   const [showDepots, setShowDepots] = useState(false);
   const [depots, setDepots] = useState<FC | null>(null);
   useEffect(() => {
-    if (!showDepots || depots) return;
+    if ((!showDepots && !hash.facility) || depots) return;
     getJson<FC>('/api/map/depots/')
       .then(setDepots)
       .catch(() => setDepots({ type: 'FeatureCollection', features: [] } as unknown as FC));
-  }, [showDepots, depots]);
+  }, [showDepots, depots, hash.facility]);
+  // #facility= 로 들어오면 차량기지 층을 켠다
+  useEffect(() => {
+    if (hash.facility) setShowDepots(true);
+  }, [hash.facility]);
   const [diff, setDiff] = useState<MapDiff | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -327,7 +331,8 @@ export function FutureMap({
     setPicks(list);
     if (list.length === 1) {
       const p = list[0]!;
-      if (p.kind === 'station' || p.kind === 'depot') setHash({ station: String(p.props.station_id) });
+      if (p.kind === 'station') setHash({ station: String(p.props.station_id) });
+      else if (p.kind === 'depot') setHash({ facility: String(p.props.facility_id) });
       else if (p.props.plan_id) setHash({ plan: String(p.props.plan_id) });
       else if (p.props.line_id) setHash({ line: String(p.props.line_id) });
     } else if (list.length === 0) {
@@ -351,8 +356,10 @@ export function FutureMap({
   const selLine = hash.line ? lines.find((f) => f.properties.line_id === hash.line)?.properties : undefined;
   const depotOn = showDepots && at.mode === 'current';
   const selStation = hash.station
-    ? (stations.find((f) => f.properties.station_id === hash.station)?.properties ??
-      (depotOn ? depots?.features.find((f) => f.properties.station_id === hash.station)?.properties : undefined))
+    ? stations.find((f) => f.properties.station_id === hash.station)?.properties
+    : undefined;
+  const selFacility = hash.facility
+    ? depots?.features.find((f) => f.properties.facility_id === hash.facility)?.properties
     : undefined;
   const selPlanLine = hash.plan ? lines.find((f) => f.properties.plan_id === hash.plan)?.properties : undefined;
 
@@ -602,6 +609,7 @@ export function FutureMap({
           planLine={selPlanLine}
           line={selLine}
           station={selStation}
+          facility={selFacility}
           service={selService}
           serviceFc={serviceFc}
           services={services}
@@ -743,6 +751,7 @@ function InfoCard({
   planLine,
   line,
   station,
+  facility,
   service,
   serviceFc,
   services,
@@ -756,6 +765,7 @@ function InfoCard({
   planLine: Record<string, unknown> | undefined;
   line: Record<string, unknown> | undefined;
   station: Record<string, unknown> | undefined;
+  facility: Record<string, unknown> | undefined;
   service: MapService | undefined;
   serviceFc: FC | null | 'loading';
   services: MapService[];
@@ -781,11 +791,13 @@ function InfoCard({
                 className="linkish strong"
                 onClick={() =>
                   onChoose(
-                    p.kind !== 'line'
-                      ? { station: String(p.props.station_id) }
-                      : p.props.plan_id
-                        ? { plan: String(p.props.plan_id) }
-                        : { line: String(p.props.line_id) },
+                    p.kind === 'depot'
+                      ? { facility: String(p.props.facility_id) }
+                      : p.kind === 'station'
+                        ? { station: String(p.props.station_id) }
+                        : p.props.plan_id
+                          ? { plan: String(p.props.plan_id) }
+                          : { line: String(p.props.line_id) },
                   )
                 }
               >
@@ -799,7 +811,7 @@ function InfoCard({
         </ul>
       </section>
     );
-  if (!hash.plan && !hash.line && !hash.station && !hash.service) return null;
+  if (!hash.plan && !hash.line && !hash.station && !hash.service && !hash.facility) return null;
   let body: React.ReactNode = null;
   if (hash.service) {
     const planned =
@@ -932,24 +944,25 @@ function InfoCard({
         </a>
       </>
     );
-  } else if (hash.station && station?.kind === 'depot') {
-    const fn = Array.isArray(station.functions) ? (station.functions as string[]) : [];
-    const served = Array.isArray(station.served) ? (station.served as string[]) : [];
+  } else if (hash.facility) {
+    const station = facility;
+    const fn = Array.isArray(station?.functions) ? (station.functions as string[]) : [];
+    const served = Array.isArray(station?.served) ? (station.served as string[]) : [];
     body = (
       <>
         <p className="eyebrow">차량기지</p>
-        <h2 className="info-title">{String(station.name_ko)}</h2>
+        <h2 className="info-title">{station ? String(station.name_ko) : hash.facility}</h2>
         <p className="fp-hint" data-testid="depot-info">
           {fn.length
-            ? fn.map((f) => (isCode('depotFunction', f) ? codeLabel('depotFunction', f) : f)).join(' · ')
+            ? fn.map((f) => (isCode('facilityFunction', f) ? codeLabel('facilityFunction', f) : f)).join(' · ')
             : '기능 미확인'}
-          {station.operator ? ` · ${String(station.operator)}` : ''}
-          {bool(station.approximate) ? ' · 근사 좌표' : ''}
+          {station?.operator ? ` · ${String(station.operator)}` : ''}
+          {bool(station?.approximate) ? ' · 근사 좌표' : ''}
         </p>
         {served.length ? <p className="fp-hint">담당 노선: {served.join(', ')}</p> : null}
         <a
           className="btn"
-          href={`/stations/${encodeURIComponent(hash.station)}/`}
+          href={`/facilities/${encodeURIComponent(hash.facility)}/`}
           style={{ width: '100%', justifyContent: 'center' }}
         >
           차량기지 상세 보기

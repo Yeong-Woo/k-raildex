@@ -470,7 +470,12 @@ export default function MapCanvas({
       for (const f of feats) {
         const p = f.properties as Record<string, unknown>;
         const kind = f.layer.id === 'station' ? 'station' : f.layer.id === 'depot' ? 'depot' : 'line';
-        const key = kind === 'line' ? `l:${String(p.feature_id)}` : `s:${String(p.station_id)}`;
+        const key =
+          kind === 'line'
+            ? `l:${String(p.feature_id)}`
+            : kind === 'depot'
+              ? `f:${String(p.facility_id)}`
+              : `s:${String(p.station_id)}`;
         if (seen.has(key)) continue;
         seen.add(key);
         picks.push({ kind, props: p });

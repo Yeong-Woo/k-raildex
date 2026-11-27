@@ -109,36 +109,6 @@ export const lineOperator = pgTable(
   (t) => [primaryKey({ columns: [t.lineId, t.operatorId, t.role] })],
 );
 
-/** 차량기지 정보(역 그룹 kind depot, 0034) */
-export const stationDepot = pgTable('station_depot', {
-  stationId: text('station_id')
-    .primaryKey()
-    .references(() => station.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
-  functions: text('functions')
-    .array()
-    .notNull()
-    .default(sql`'{}'`),
-  operatorId: text('operator_id').references(() => operator.id, { onUpdate: 'cascade' }),
-  ...fuzzy('opened'),
-  note: text('note'),
-});
-
-/** 차량기지가 차량을 맡는 노선(0034) */
-export const stationDepotLine = pgTable(
-  'station_depot_line',
-  {
-    stationId: text('station_id')
-      .notNull()
-      .references(() => station.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
-    lineId: text('line_id')
-      .notNull()
-      .references(() => line.id, { onUpdate: 'cascade' }),
-    note: text('note'),
-    ord: integer('ord').notNull().default(0),
-  },
-  (t) => [primaryKey({ columns: [t.stationId, t.lineId] })],
-);
-
 export const lineOsmMap = pgTable('line_osm_map', {
   lineId: text('line_id')
     .primaryKey()

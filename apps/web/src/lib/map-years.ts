@@ -95,6 +95,8 @@ export interface MapHash {
   plan?: string;
   /** 운행 계통 강조(FR-WEB-029) */
   service?: string;
+  /** 시설(차량기지, 0035) */
+  facility?: string;
 }
 
 /** `#line=x`, `#station=y&plan=z` 처럼 여러 개도 */
@@ -105,13 +107,13 @@ export function parseHash(hash: string): MapHash {
     const [k, v] = part.split('=');
     if (!v) continue;
     const val = decodeURIComponent(v);
-    if (k === 'line' || k === 'station' || k === 'plan' || k === 'service') out[k] = val;
+    if (k === 'line' || k === 'station' || k === 'plan' || k === 'service' || k === 'facility') out[k] = val;
   }
   return out;
 }
 
 export function hashString(h: MapHash): string {
-  return (['line', 'station', 'plan', 'service'] as const)
+  return (['line', 'station', 'plan', 'service', 'facility'] as const)
     .filter((k) => h[k])
     .map((k) => `${k}=${encodeURIComponent(h[k]!)}`)
     .join('&');
