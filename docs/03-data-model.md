@@ -739,7 +739,7 @@ CREATE TABLE glossary_term (
 
 ### 4-19. 시설 `facility` (0035, 2026-11-27 사용자 지시)
 
-역 그룹과 별개인 철도 시설(id `fac-`). 지금은 `kind = depot`(차량기지)만.
+역 그룹과 별개인 철도 시설(id `fac-`). `kind` = depot 차량기지 · test_track 시험 선로(0037) · signal_box 신호장·신호소 · yard 조차장(0038). 신호장·조차장은 2026-11-27 역 그룹에서 옮겼다 — 노선 위치는 `facility_line`(role connects, note 에 철도거리표 km·앞뒤 정거장).
 
 ```sql
 CREATE TABLE facility (
@@ -756,7 +756,7 @@ CREATE TABLE facility_line (facility_id text REFERENCES facility(id), line_id te
   note text, ord int, PRIMARY KEY (facility_id, line_id, role));
 ```
 
-- 0034 의 역 그룹 하위 표(`station_depot`·`station_depot_line`)는 0035 에서 없앴다. `station.kind = depot` 인 역 그룹은 시설로 옮긴다.
+- 0034 의 역 그룹 하위 표(`station_depot`·`station_depot_line`)는 0035 에서 없앴다. `station.kind = depot` 인 역 그룹은 시설로 옮긴다. 신호장(signal_box)·조차장(yard)도 시설로 옮기고(0038), 분기점·연결선(junction) 역 그룹은 지운다 — 연결선은 원 노선의 지선(노선 개체)으로 둔다(2026-11-27 사용자 지시).
 - 공개: `/facilities/<id>/`, 지도 현재 보기 "차량기지" 레이어(`/v1/public/map/depots.geojson`).
 - OSM 시설 선로(0036): `facility_osm_map`(facility_id, way_names, way_ids, radius_m 기본 800) — OSM id·이름만. 뷰 `osm.v_facility_way` = 이름·개별 way + 시설 좌표 반경 안 기지 안 선로(`service=yard`, 수집기 `ways_yards_kr`) + 붙은 기지선(role connects·line_role depot_line)의 노선 선형. 기지 안 선로는 노선 이름 배정(`osm.v_line_way`)에 쓰지 않는다.
 

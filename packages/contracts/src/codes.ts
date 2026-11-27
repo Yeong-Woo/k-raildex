@@ -70,6 +70,11 @@ export const codes = {
   facilityKind: table({
     depot: { ko: '차량기지' },
     test_track: { ko: '시험 선로', desc: '차량·부품 시험용 선로(영업 노선 아님, Q141)' },
+    signal_box: {
+      ko: '신호장·신호소',
+      desc: '여객 취급 없이 열차 교행·대피만 하는 정거장(2026-11-27 역 그룹에서 이전)',
+    },
+    yard: { ko: '조차장', desc: '화차 조성·입환 시설(2026-11-27 역 그룹에서 이전)' },
   }),
   /** 시설 ↔ 노선 역할(0035) */
   facilityLineRole: table({
