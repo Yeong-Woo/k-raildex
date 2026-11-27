@@ -23,7 +23,7 @@ export interface QualityRule {
   note?: string;
   /** (entity_type, entity_id, detail, sort_key) 를 내는 SQL. null 이면 항상 0건 */
   sql: string | null;
-  /** SQL 이 action_ref 열도 낸다(행 단위 처리 단추용 — V-S04 거리 확인의 앞 노선별 역 id) */
+  /** SQL 이 action_ref 열도 낸다(행 단위 처리 단추용 — V-S04 거리 확인의 앞 노선역 id) */
   actionRef?: boolean;
 }
 
@@ -201,7 +201,7 @@ export const QUALITY_RULES: readonly QualityRule[] = [
   },
   {
     id: 'V-S14',
-    title: '시간표 세트의 노선별 역 미해석',
+    title: '시간표 세트의 노선역 미해석',
     sql: `SELECT 'station' AS entity_type, ts.station_id AS entity_id,
                  ts.id || ' (' || ts.route_code || ', ' || ts.day_type || ', ' || ts.direction || ')' AS detail, ts.id AS sort_key
             FROM timetable_set ts JOIN station s ON s.id = ts.station_id AND s.deleted_at IS NULL
@@ -232,13 +232,13 @@ export const QUALITY_RULES: readonly QualityRule[] = [
              AND NOT EXISTS (SELECT 1 FROM plan_stage_event e WHERE e.plan_id = p.id AND e.stage = 'abandoned')`,
   },
   {
-    // Q105 A: 이관 때 노선별 역으로 풀지 못해 정차 패턴에서 뺀 정차역(service.extra.dropped_stops).
+    // Q105 A: 이관 때 노선역으로 풀지 못해 정차 패턴에서 뺀 정차역(service.extra.dropped_stops).
     // 운행 계통 노선 목록을 보강하고 그 패턴에 그 역의 정차역을 다시 넣으면 목록에서 빠진다.
     id: 'X-service-dropped-stops',
-    title: '정차 패턴에서 뺀 정차역(이관 때 노선별 역 미해석)',
+    title: '정차 패턴에서 뺀 정차역(이관 때 노선역 미해석)',
     sql: `SELECT 'service' AS entity_type, sv.id AS entity_id,
                  (d->>'pattern') || ' #' || (d->>'seq') || ' ' || (d->>'station_id') || ' — ' ||
-                 CASE d->>'reason' WHEN 'not_on_service_lines' THEN '운행 계통 노선에 노선별 역 없음'
+                 CASE d->>'reason' WHEN 'not_on_service_lines' THEN '운행 계통 노선에 노선역 없음'
                                    WHEN 'ambiguous' THEN '노선 모호(후보 ' || coalesce((SELECT string_agg(c, ', ') FROM jsonb_array_elements_text(d->'candidates') c), '') || ')'
                                    WHEN 'pattern_dropped' THEN '패턴 전체 제외(해석 정차역 2개 미만)'
                                    ELSE coalesce(d->>'reason', '') END AS detail,
@@ -363,6 +363,24 @@ export const QUALITY_RULES: readonly QualityRule[] = [
              AND coalesce(p.editor_note, '') NOT LIKE '%노선 연결 안 함%'`,
   },
   {
+    // 2026-11-27 운영기관 정리(사용자 지시): 노선역의 현재 운영기관을 정할 수 없다 — 노선 운영기관이 둘 이상(구간 분할·공동 운영)인데
+    // 노선역에 운영기관이 없거나, 노선에 운영기관이 없다(v_line_station_operator basis ambiguous·none). 폐지·계획 노선역은 뺀다
+    id: 'X-line-station-operator',
+    title: '노선역 운영기관 미정(노선 운영기관이 둘 이상이거나 없음)',
+    sql: `SELECT 'line_station' AS entity_type, x.id AS entity_id,
+                 l.name_ko || ' ' || coalesce(x.name_ko, s.name_ko) || ' · ' ||
+                 CASE vo.basis WHEN 'ambiguous' THEN '노선 운영기관 ' ||
+                        (SELECT string_agg(lo.operator_id, ', ' ORDER BY lo.ord) FROM line_operator lo
+                          WHERE lo.line_id = x.line_id AND lo.role = 'operator')
+                      ELSE '노선 운영기관 없음' END AS detail,
+                 l.name_ko || lpad(x.seq::text, 4, '0') AS sort_key
+            FROM v_line_station_operator vo
+            JOIN line_station x ON x.id = vo.line_station_id
+            JOIN line l ON l.id = x.line_id AND l.deleted_at IS NULL
+            JOIN station s ON s.id = x.station_id AND s.deleted_at IS NULL
+           WHERE vo.basis IN ('ambiguous', 'none') AND x.status IN ('operating', 'suspended', 'under_construction')`,
+  },
+  {
     id: 'X-source-license-unknown',
     title: '라이선스 미상(unknown) 출처',
     sql: `SELECT 'source' AS entity_type, s.id AS entity_id, s.title AS detail, s.id AS sort_key
@@ -478,7 +496,7 @@ export async function reviewList(db: Queryable, type: ReviewListType): Promise<{
         `SELECT '${r.id}'::text AS rule, entity_type, entity_id, detail FROM (${r.sql}) q${r.id.replace(/\W/g, '_')}`,
     )
     .join('\nUNION ALL ');
-  // 노선별 역(line_station) 규칙(V-S04·V-S05 등)은 그 역·그 노선에 붙인다
+  // 노선역(line_station) 규칙(V-S04·V-S05 등)은 그 역·그 노선에 붙인다
   const owner = type === 'station' ? 'station_id' : type === 'line' ? 'line_id' : null;
   const ownerExpr = owner
     ? `CASE WHEN u.entity_type = 'line_station' THEN (SELECT x.${owner} FROM line_station x WHERE x.id = u.entity_id) ELSE u.entity_id END`

@@ -88,7 +88,7 @@ export function transformAll(legacy: LegacyData, opts: { timetables?: boolean } 
   );
   const sourceById = new Map(own.sources.items.map((s) => [s.id, s]));
 
-  // 5~7. 역·노선·노선별 역 (운영기관은 노선에서 모으므로 먼저 계산)
+  // 5~7. 역·노선·노선역 (운영기관은 노선에서 모으므로 먼저 계산)
   const net = transformNetwork(
     {
       stations: build.stations,
@@ -177,7 +177,7 @@ export function transformAll(legacy: LegacyData, opts: { timetables?: boolean } 
     '역',
     stations.map((s) => create('station', s)),
   );
-  push('network', '노선·노선별 역', [
+  push('network', '노선·노선역', [
     ...net.lines.map((l) => create('line', l)),
     ...net.lineStations.map((x) => create('line_station', x)),
   ]);

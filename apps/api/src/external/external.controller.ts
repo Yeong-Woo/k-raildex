@@ -173,7 +173,7 @@ export class ExternalController {
     return compareApiCall(this.dbs.db, idParam(id), { parseXml });
   }
 
-  /** 역 선택기 → 외부 코드(역과 그 노선별 역의 external_ref) */
+  /** 역 선택기 → 외부 코드(역과 그 노선역의 external_ref) */
   @Get('ref-codes')
   @RequireScope('admin:read')
   async refCodes(@Query() query: Q) {

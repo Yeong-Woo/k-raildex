@@ -241,7 +241,7 @@ export async function osmWays(db: Queryable, q: OsmWaysQuery): Promise<FeatureCo
   };
 }
 
-/** 노선 선형 점검: 배정된 OSM way(선) + 노선별 역(점, 자체 좌표) + 배정 설정 */
+/** 노선 선형 점검: 배정된 OSM way(선) + 노선역(점, 자체 좌표) + 배정 설정 */
 export async function lineGeometry(db: Queryable, lineId: string): Promise<FeatureCollection> {
   const line = await db.query<{
     id: string;

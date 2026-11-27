@@ -353,7 +353,7 @@ describe('품질·지도(픽스처)', () => {
     ]);
   });
 
-  it('고르기 목록(지도 편집·노선 편집): 개체별 걸린 규칙, 노선별 역 규칙은 그 역·노선에', async () => {
+  it('고르기 목록(지도 편집·노선 편집): 개체별 걸린 규칙, 노선역 규칙은 그 역·노선에', async () => {
     const lines = await reviewList(db, 'line');
     const s10 = await qualityItems(db, 'V-S10', { limit: 50, offset: 0 });
     expect(
@@ -443,7 +443,9 @@ describe('품질·지도(픽스처)', () => {
       },
     ]);
     expect(await hits()).toEqual([]);
-    expect((await reviewList(db, 'station')).items.find((i) => i.id === 'stn-q-far')!.issues).toEqual([]);
+    expect(
+      (await reviewList(db, 'station')).items.find((i) => i.id === 'stn-q-far')!.issues.map((x) => x.rule),
+    ).not.toContain('V-S04');
     // km 역행은 확인해도 남는다(action_ref 없음)
     await apply([
       { op: 'update', entity_type: 'line_station', id: 'ls-fx-two--fx-e', data: { km: 10 } },

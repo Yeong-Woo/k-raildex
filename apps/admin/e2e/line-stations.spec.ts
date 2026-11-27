@@ -37,7 +37,7 @@ test('노선 역 순서를 바꿔 저장하면 유지된다', async ({ page }) =
   await expect(page.getByTestId('ls-row').nth(0).getByLabel('km')).toHaveValue('5');
 });
 
-test('역 상세 [노선별] 탭에 노선별 역 카드와 계산된 상태가 나온다', async ({ page }) => {
+test('역 상세 [노선별] 탭에 노선역 카드와 계산된 상태가 나온다', async ({ page }) => {
   await page.goto('/data/station/stn-fx-a?tab=line-stations');
   await expect(page.getByTestId('line-station-card')).toHaveCount(2);
   await expect(page.getByTestId('station-derived')).toContainText('운영 중');

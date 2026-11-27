@@ -226,7 +226,7 @@ describe('쓰기', () => {
   });
 });
 
-describe('노선별 역 목록', () => {
+describe('노선역 목록', () => {
   const url = '/v1/admin/lines/line-fx-one/stations';
   type Ls = { id: string; seq: number; version: number; station_id: string; station_name_ko: string };
 

@@ -1,4 +1,4 @@
-/** 역 상세 [노선별] 탭(FR-ADM-051): 이 역에 속한 노선별 역 카드 + 계산된 역 상태(읽기 전용) */
+/** 역 그룹 상세 [노선별] 탭(FR-ADM-051): 이 역 그룹에 속한 노선역 카드(운영기관·코레일 정거장 등급·관리역 포함) + 계산된 상태(읽기 전용) */
 import { useQueries, useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { codeLabel, formatFuzzy, isCode, type FuzzyDate } from '@k-raildex/contracts';
@@ -6,6 +6,7 @@ import { Badge, Card, CardHeader, Empty } from '@k-raildex/ui';
 import { ExternalLink } from 'lucide-react';
 import { api, errorText, qs, type EntityResponse } from '../lib/api';
 import { useLabel } from '../form/widgets/RefInput';
+import { korailClassText } from './ManagedStations';
 
 type Obj = Record<string, unknown>;
 
@@ -30,7 +31,7 @@ export function StationLineStations({ stationId, derived }: { stationId: string;
   return (
     <div className="flex flex-col gap-3">
       <Card>
-        <CardHeader title="역 상태(노선별 역에서 계산 — 읽기 전용)" />
+        <CardHeader title="역 그룹 상태(노선역에서 계산 — 읽기 전용)" />
         <dl className="grid grid-cols-2 gap-x-6 gap-y-1 p-4 text-sm sm:grid-cols-4" data-testid="station-derived">
           <dt className="text-fg-muted">상태</dt>
           <dd>{statusText(derived.status)}</dd>
@@ -49,7 +50,7 @@ export function StationLineStations({ stationId, derived }: { stationId: string;
       ) : !list.data?.items.length ? (
         <Card>
           <Empty>
-            노선별 역이 없는 역입니다. 상태·개통일은 [정보] 탭의 단독 상태(own_status·own_opened·own_closed) 칸에
+            노선역이 없는 역 그룹입니다. 상태·개통일은 [정보] 탭의 단독 상태(own_status·own_opened·own_closed) 칸에
             입력하세요.
           </Empty>
         </Card>
@@ -63,7 +64,7 @@ export function StationLineStations({ stationId, derived }: { stationId: string;
                   {d.error ? errorText(d.error) : '불러오는 중…'}
                 </Card>
               );
-            return <LineStationCard key={id} data={d.data.data} />;
+            return <LineStationCard key={id} data={d.data.data} derived={d.data.derived} />;
           })}
         </div>
       )}
@@ -71,9 +72,13 @@ export function StationLineStations({ stationId, derived }: { stationId: string;
   );
 }
 
-function LineStationCard({ data }: { data: Obj }) {
+function LineStationCard({ data, derived }: { data: Obj; derived: Obj }) {
   const lineId = String(data.line_id);
   const line = useLabel('line', lineId);
+  const opId = (derived.operator_id as string | null | undefined) ?? null;
+  const op = useLabel('operator', opId);
+  const mgrId = (data.managed_by_id as string | null | undefined) ?? null;
+  const mgr = useLabel('line_station', mgrId);
   const ext = (data.external_refs as { system: string; code: string }[] | undefined) ?? [];
   const geom = data.geom as { lat: number; lng: number } | null;
   return (
@@ -96,13 +101,28 @@ function LineStationCard({ data }: { data: Obj }) {
           params={{ type: 'line-station', id: String(data.id) }}
           search={{}}
           className="ml-auto text-fg-muted"
-          title="노선별 역 편집"
+          title="노선역 편집"
         >
           <ExternalLink className="size-3.5" />
         </Link>
       </div>
       <dl className="grid grid-cols-[6rem_minmax(0,1fr)] gap-y-0.5">
-        <dt className="text-fg-muted">노선별 이름</dt>
+        <dt className="text-fg-muted">운영기관</dt>
+        <dd data-testid="ls-operator">
+          {opId ? (op.data?.label ?? opId) : <span className="text-warn">미정</span>}
+          {derived.operator_basis === 'line' ? <span className="text-fg-muted"> (노선 운영기관)</span> : null}
+        </dd>
+        {opId === 'op-korail' ? (
+          <>
+            <dt className="text-fg-muted">정거장 등급</dt>
+            <dd>
+              {korailClassText(data.korail_class as string | null)}
+              {data.korail_mgmt_grade ? ` ${String(data.korail_mgmt_grade)}급` : ''}
+              {mgrId ? <span className="text-fg-muted"> · {mgr.data?.label ?? mgrId} 소속</span> : null}
+            </dd>
+          </>
+        ) : null}
+        <dt className="text-fg-muted">노선역 이름</dt>
         <dd>{data.name_ko ? String(data.name_ko) : <span className="text-fg-muted">역 이름과 같음</span>}</dd>
         <dt className="text-fg-muted">순서</dt>
         <dd>

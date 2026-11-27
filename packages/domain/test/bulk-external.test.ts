@@ -104,7 +104,7 @@ describe('여러 건 입력: 표 읽기·값 변환', () => {
 });
 
 describe('여러 건 입력: 파싱·제출', () => {
-  it('노선별 역: 역 이름 해석(별칭 포함)·코드 라벨·id 자동·모호한 이름은 후보와 함께 오류', async () => {
+  it('노선역: 역 이름 해석(별칭 포함)·코드 라벨·id 자동·모호한 이름은 후보와 함께 오류', async () => {
     // 같은 이름 역 둘 → 모호
     await applyChangeset(db, {
       title: '동명 역',
@@ -334,7 +334,7 @@ describe('외부 API: 호출', () => {
       },
       author,
     );
-    // 비교용 외부 코드: 노선별 역 ls-fx-one--fx-a ↔ MTR-A, ls-fx-one--fx-b ↔ MTR-B
+    // 비교용 외부 코드: 노선역 ls-fx-one--fx-a ↔ MTR-A, ls-fx-one--fx-b ↔ MTR-B
     for (const [id, code] of [
       ['ls-fx-one--fx-a', 'MTR-A'],
       ['ls-fx-one--fx-b', 'MTR-B'],

@@ -257,7 +257,7 @@ describe('트리거', () => {
     await db.query('ROLLBACK');
   });
 
-  it('수정하면 version 이 오르고, 소프트 삭제는 레지스트리·노선별 역으로 전파·복구된다', async () => {
+  it('수정하면 version 이 오르고, 소프트 삭제는 레지스트리·노선역으로 전파·복구된다', async () => {
     await db.query(`UPDATE line SET description = '설명' WHERE id = 'line-two'`);
     const v = await db.query(`SELECT version FROM line WHERE id = 'line-two'`);
     expect(v.rows[0].version).toBe(2);
@@ -282,7 +282,7 @@ describe('트리거', () => {
 });
 
 describe('역 파생 값', () => {
-  it('역 상태·개통일은 노선별 역에서 계산(가장 이른 개통), 노선 없는 역은 단독 값', async () => {
+  it('역 상태·개통일은 노선역에서 계산(가장 이른 개통), 노선 없는 역은 단독 값', async () => {
     const { rows } = await db.query(
       `SELECT station_id, status, opened_value, closed_value, line_count FROM v_station_status ORDER BY station_id`,
     );

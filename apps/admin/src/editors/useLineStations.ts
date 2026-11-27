@@ -1,5 +1,5 @@
 /**
- * 노선별 역 목록 편집 상태(불러오기·초안·저장) — 노선 상세 [역 순서] 탭(LineStationsEditor)과
+ * 노선역 목록 편집 상태(불러오기·초안·저장) — 노선 상세 [역 순서] 탭(LineStationsEditor)과
  * 지도 > 노선 편집(map/LineMapEditor)이 함께 쓴다. 저장 = PUT /v1/admin/lines/:id/stations(전체 교체, 도메인 적용기).
  * 행마다 version 을 함께 보내 다른 곳에서 먼저 고친 행은 409 로 막힌다.
  */
@@ -17,7 +17,7 @@ interface LsResponse {
 let keySeq = 0;
 const newKey = () => `k${++keySeq}`;
 
-/** 새 노선별 역 행(상태는 이웃 행을 따른다) */
+/** 새 노선역 행(상태는 이웃 행을 따른다) */
 export function newLineStationRow(stationId: string, status = 'operating'): LsRow {
   return {
     _key: newKey(),
@@ -81,7 +81,7 @@ export function useLineStations(lineId: string | null) {
         }
         if (e.body.references?.length)
           other.push(
-            `삭제하려는 노선별 역을 참조하는 행: ${e.body.references.map((r) => `${r.table}(${r.owner_id ?? '-'})`).join(', ')}`,
+            `삭제하려는 노선역을 참조하는 행: ${e.body.references.map((r) => `${r.table}(${r.owner_id ?? '-'})`).join(', ')}`,
           );
         if (e.status === 409 && e.body.current_version !== undefined)
           other.push('다른 곳에서 먼저 수정했습니다. [되돌리기]로 새로 불러온 뒤 다시 편집하세요.');

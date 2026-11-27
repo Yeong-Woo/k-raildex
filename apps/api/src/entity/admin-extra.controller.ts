@@ -1,5 +1,5 @@
 /**
- * 하위 자원·보조 경로(docs/04-api.md 4·4-1·4-3절): 휴지통, 참조, ID 변경, 역 병합, 노선별 역 목록, 참조 선택기, 코드값.
+ * 하위 자원·보조 경로(docs/04-api.md 4·4-1·4-3절): 휴지통, 참조, ID 변경, 역 병합, 노선역 목록, 참조 선택기, 코드값.
  */
 import { Body, Controller, Get, HttpCode, Inject, Param, Post, Put, Query } from '@nestjs/common';
 import { codes, idSchema } from '@k-raildex/contracts';
@@ -92,7 +92,7 @@ export class AdminExtraController {
     return { ...this.svc.toWriteResponse(r, opts.dry_run), old_id: id };
   }
 
-  /** 병합 미리 보기(저장 없음): 옮겨질 노선별 역·참조·거리 */
+  /** 병합 미리 보기(저장 없음): 옮겨질 노선역·참조·거리 */
   @Get('stations/:id/merge-preview')
   @RequireScope('admin:read')
   async mergePreview(@Param('id') id: string, @Query('into_id') into: string | undefined) {
@@ -145,7 +145,7 @@ export class AdminExtraController {
       const items = await this.svc.lineStations(id);
       return { line_id: id, changeset_id: null, data_version: null, dry_run: opts.dry_run, ops: [], items };
     }
-    const r = await this.svc.apply(p, ops, opts, `노선별 역 목록 교체 ${id}`);
+    const r = await this.svc.apply(p, ops, opts, `노선역 목록 교체 ${id}`);
     return {
       line_id: id,
       changeset_id: r.changeset_id,

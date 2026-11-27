@@ -150,6 +150,13 @@ export class EntityService {
           areas: area?.areas ?? null,
         };
       }
+      case 'line_station': {
+        // 현재 운영기관(v_line_station_operator: 노선역 값 > 노선 운영기관 하나, 통합 기관은 승계)
+        const op = await one<{ operator_id: string | null; basis: string }>(
+          `SELECT operator_id, basis FROM v_line_station_operator WHERE line_station_id = $1`,
+        );
+        return { operator_id: op?.operator_id ?? null, operator_basis: op?.basis ?? null };
+      }
       case 'line': {
         const area = await one<{ areas: string[] }>(`SELECT areas FROM v_line_area WHERE line_id = $1`);
         return { areas: area?.areas ?? null };
@@ -213,7 +220,7 @@ export class EntityService {
   }
 
   // -------------------------------------------------------------------------
-  // 노선별 역 목록(docs/04-api.md 4-1절)
+  // 노선역 목록(docs/04-api.md 4-1절)
   // -------------------------------------------------------------------------
 
   async lineStations(lineId: string): Promise<AnyObject[]> {
@@ -247,7 +254,7 @@ export class EntityService {
   }
 
   /**
-   * 노선별 역 전체 교체 → op 계산. 배열 순서가 순서다.
+   * 노선역 전체 교체 → op 계산. 배열 순서가 순서다.
    * - id 가 있는 항목: 이 노선의 활성 행 수정(바뀐 필드만, version 이 있으면 expected_version)
    * - id 가 없는 항목: 새 행(ls-<노선>--<역>[-n], 삭제된 id 도 피한다)
    * - 목록에 없는 활성 행: 소프트 삭제(참조가 있으면 409)
@@ -272,12 +279,12 @@ export class EntityService {
       else if (deleted.has(id))
         violations.push({ rule: 'schema', path: `items.${i}.id`, message: `${id} 는 휴지통에 있음(먼저 복구)` });
       else if (!active.has(id))
-        violations.push({ rule: 'schema', path: `items.${i}.id`, message: `${id} 는 이 노선의 노선별 역이 아님` });
+        violations.push({ rule: 'schema', path: `items.${i}.id`, message: `${id} 는 이 노선의 노선역이 아님` });
       else keep.add(id);
       if (it.line_id !== undefined && it.line_id !== lineId)
         violations.push({ rule: 'schema', path: `items.${i}.line_id`, message: 'line_id 는 경로의 노선' });
     });
-    if (violations.length) throw new DomainError('validation', '노선별 역 목록 오류', { violations });
+    if (violations.length) throw new DomainError('validation', '노선역 목록 오류', { violations });
 
     const removed = [...active.values()].filter((r) => !keep.has(r.id));
     const occupied = new Set([
@@ -294,7 +301,7 @@ export class EntityService {
       op: 'delete',
       entity_type: 'line_station',
       id: r.id,
-      reason: '노선별 역 목록 교체',
+      reason: '노선역 목록 교체',
     }));
     const updates: Op[] = [];
     const creates: Op[] = [];

@@ -181,7 +181,7 @@ function PlanBody({ id, props }: { id: string; props: Record<string, unknown> })
   );
 }
 
-const KIND_LABEL: Record<PopupTarget['kind'], string> = { station: '역', line: '노선', plan: '계획' };
+const KIND_LABEL: Record<PopupTarget['kind'], string> = { station: '역 그룹', line: '노선', plan: '계획' };
 /** 지도와 같은 색: 노선색 → 없으면 지도 기본색 */
 const swatchOf = (t: PopupTarget) =>
   typeof t.props.color === 'string' && t.props.color ? t.props.color : STAGE_FALLBACK_COLOR;

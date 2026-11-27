@@ -15,7 +15,7 @@ import {
   recReadFields,
 } from './common';
 
-/** 정차 패턴. stops = 정차하는 노선별 역 id 순서(≥ 2, V-H05) */
+/** 정차 패턴. stops = 정차하는 노선역 id 순서(≥ 2, V-H05) */
 export const stopPatternSchema = z
   .object({
     code: z.string().min(1),

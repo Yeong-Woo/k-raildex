@@ -99,7 +99,7 @@ export interface StationStatusResult {
 
 const STATUS_PRIORITY: Status[] = ['operating', 'suspended', 'under_construction', 'planned', 'closed', 'abandoned'];
 
-/** 역 상태·개통·폐지 = 노선별 역에서(가장 이른 개통, 모두 폐지면 가장 늦은 폐지). 노선별 역이 없으면 단독 값 */
+/** 역 상태·개통·폐지 = 노선역에서(가장 이른 개통, 모두 폐지면 가장 늦은 폐지). 노선역이 없으면 단독 값 */
 export function stationStatus(lineStations: LineStationLike[], own: StationStatusResult): StationStatusResult {
   if (lineStations.length === 0) return own;
   const status = STATUS_PRIORITY.find((s) => lineStations.some((x) => x.status === s)) ?? 'abandoned';

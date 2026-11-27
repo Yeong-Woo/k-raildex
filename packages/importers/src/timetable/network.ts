@@ -1,5 +1,5 @@
 /**
- * 시간표 수집기가 쓰는 망 정보(역 이름·별칭·상태, 노선별 역, 운행 계통의 노선·정차 패턴·권역, 외부 코드).
+ * 시간표 수집기가 쓰는 망 정보(역 이름·별칭·상태, 노선역, 운행 계통의 노선·정차 패턴·권역, 외부 코드).
  * DB 에서 읽거나(loadNetworkContext) 이관 도구처럼 다른 원천에서 같은 모양으로 만든다.
  */
 import type { Queryable } from '@k-raildex/domain';
@@ -110,7 +110,7 @@ export async function loadNetworkContext(db: Queryable): Promise<NetworkContext>
   return { stations, lineStations: ls.rows, services, tagoToStation, rafisRefs };
 }
 
-/** 세트의 노선별 역: 운행 계통 노선 ∩ 역의 노선별 역이 하나일 때만(Q72 A) */
+/** 세트의 노선역: 운행 계통 노선 ∩ 역의 노선역이 하나일 때만(Q72 A) */
 export function lineStationResolver(
   lineStations: Iterable<Pick<NetLineStation, 'id' | 'line_id' | 'station_id'>>,
   serviceLines: (serviceId: string) => string[] | undefined,

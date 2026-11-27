@@ -1,6 +1,6 @@
 /**
  * 역변환·대조(WP 3.10, docs/07-migration.md 4절). 새 DB → 기존 JSON 형태(역·노선·노선-역·계획·연표·시간표 요약)를 다시 만들어
- * data/build/*.json 과 필드 단위로 비교한다. 역 상태·개통일은 노선별 역에서 다시 계산한 값(v_station_status)으로 비교한다.
+ * data/build/*.json 과 필드 단위로 비교한다. 역 상태·개통일은 노선역에서 다시 계산한 값(v_station_status)으로 비교한다.
  * 이 역변환은 대조 전용이다(기존 사이트 공급에 쓰지 않는다, FR-MIG-003).
  */
 import { REGIONS } from '@k-raildex/db';
@@ -564,7 +564,7 @@ export async function runVerify(db: Queryable, legacy: LegacyData, tr: Transform
   const ids = (await rows<{ id: string }>(db, `SELECT id FROM entity WHERE deleted_at IS NULL`)).map((r) => r.id);
   const hardViolations = await runHardRules(db, ids);
 
-  // ---- 역·노선별 역
+  // ---- 역·노선역
   const rev = await reverseStations(db);
   const stationDiff = diffEntity(
     'station',
@@ -574,8 +574,7 @@ export async function runVerify(db: Queryable, legacy: LegacyData, tr: Transform
     STATION_FIELDS,
     (f, l) => {
       if (f === 'review_status') return 'D-2';
-      if (f === 'service_kinds' && droppedStops.has(String(l.id)))
-        return '정차역 노선별 역 미해석으로 제외(이관 리포트)';
+      if (f === 'service_kinds' && droppedStops.has(String(l.id))) return '정차역 노선역 미해석으로 제외(이관 리포트)';
       if ((f === 'opened_at' || f === 'closed_at') && multiLine.has(String(l.id))) return 'D-6';
       return null;
     },

@@ -12,7 +12,7 @@ const INTENDED: [string, string, string][] = [
   ['D-3', '파생 이벤트 저장 안 함', '뷰(v_event_derived)가 같은 id 로 생성'],
   ['D-4', '`operator_name` → 운영기관 참조', '원문은 `extra.operator_name_raw` — 역변환은 원문으로 복원'],
   ['D-5', '상위 계획·환승센터 id 변경', 'Q69 A, id_redirect. 역변환은 옛 id 로 복원'],
-  ['D-6', '다중 노선 역의 개통일 배분', 'Q95 A: 확실한 노선별 역에만, 나머지 미확인'],
+  ['D-6', '다중 노선 역의 개통일 배분', 'Q95 A: 확실한 노선역에만, 나머지 미확인'],
   ['D-7', '`target_open` → 기대 일정', 'Q88·Q94 A: 근거(공식·보도) 출처가 없는 것은 미이관'],
 ];
 

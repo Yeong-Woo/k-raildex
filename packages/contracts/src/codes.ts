@@ -23,7 +23,7 @@ export const codes = {
     source: { ko: '출처' },
     operator: { ko: '운영기관' },
     station: { ko: '역' },
-    line_station: { ko: '노선별 역' },
+    line_station: { ko: '노선역' },
     line: { ko: '노선' },
     train_class: { ko: '열차 등급' },
     service: { ko: '운행 계통' },

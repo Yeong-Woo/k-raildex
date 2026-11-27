@@ -40,7 +40,7 @@ export const pubDocumentSchema = z
   .strict();
 export type PublicDocument = z.infer<typeof pubDocumentSchema>;
 
-/** 출처 연결 + 출처 정보(FR-WEB-005 "출처" 절). entity_id = 출처가 붙은 개체(노선별 역이면 ls-) */
+/** 출처 연결 + 출처 정보(FR-WEB-005 "출처" 절). entity_id = 출처가 붙은 개체(노선역이면 ls-) */
 export const pubSourceRefSchema = z
   .object({
     entity_id: z.string(),

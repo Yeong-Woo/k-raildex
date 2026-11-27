@@ -29,7 +29,7 @@ export const HARD_RULES: HardRule[] = [
   },
   {
     id: 'V-H05',
-    message: '정차역(노선별 역)의 노선이 운행 계통 노선에 없음',
+    message: '정차역(노선역)의 노선이 운행 계통 노선에 없음',
     sql: `SELECT sp.service_id AS entity_id, x.id AS detail
             FROM stop_pattern sp JOIN stop_pattern_stop ps ON ps.pattern_id = sp.id
             JOIN line_station x ON x.id = ps.line_station_id
@@ -38,7 +38,7 @@ export const HARD_RULES: HardRule[] = [
   },
   {
     id: 'V-H05b',
-    message: '정차역이 삭제된 노선별 역',
+    message: '정차역이 삭제된 노선역',
     sql: `SELECT sp.service_id AS entity_id, x.id AS detail
             FROM stop_pattern sp JOIN stop_pattern_stop ps ON ps.pattern_id = sp.id
             JOIN line_station x ON x.id = ps.line_station_id
@@ -95,7 +95,7 @@ export const HARD_RULES: HardRule[] = [
   },
   {
     id: 'V-H13',
-    message: '노선별 역이 있는 역은 단독 상태·개통일(own_*)을 비워야 함',
+    message: '노선역이 있는 역은 단독 상태·개통일(own_*)을 비워야 함',
     sql: `SELECT s.id AS entity_id, NULL AS detail FROM station s
            WHERE (s.id = ANY($1) OR EXISTS (SELECT 1 FROM line_station x WHERE x.station_id = s.id AND x.id = ANY($1)))
              AND s.deleted_at IS NULL
@@ -105,17 +105,26 @@ export const HARD_RULES: HardRule[] = [
   {
     id: 'V-H14',
     message:
-      '병합 예정(merge_into_id) 역의 노선별 역은 모두 미개통(공사 중·계획)이어야 함 — 개통하면 같은 변경 묶음에서 병합',
+      '병합 예정(merge_into_id) 역의 노선역은 모두 미개통(공사 중·계획)이어야 함 — 개통하면 같은 변경 묶음에서 병합',
     sql: `SELECT s.id AS entity_id, x.id AS detail FROM station s JOIN line_station x ON x.station_id = s.id AND x.deleted_at IS NULL
            WHERE (s.id = ANY($1) OR x.id = ANY($1)) AND s.deleted_at IS NULL AND s.merge_into_id IS NOT NULL
              AND x.status NOT IN ('under_construction', 'planned')`,
   },
   {
     id: 'V-H18',
-    message: '관리역(managed_by_id)은 정거장 등급이 관리역인 역이어야 하고, 관리역 자신은 다른 관리역에 속하지 않음',
-    sql: `SELECT s.id AS entity_id, s.managed_by_id AS detail FROM station s JOIN station m ON m.id = s.managed_by_id
-           WHERE (s.id = ANY($1) OR m.id = ANY($1)) AND s.deleted_at IS NULL
-             AND (m.korail_class IS DISTINCT FROM 'management' OR s.korail_class = 'management')`,
+    message:
+      '코레일 정거장 등급·관리역은 운영기관이 한국철도공사인 노선역만. 관리역(managed_by_id)은 정거장 등급이 관리역인 코레일 노선역이어야 하고, 관리역 자신은 다른 관리역에 속하지 않음',
+    sql: `SELECT x.id AS entity_id, '운영기관 ' || coalesce(vo.operator_id, '미상') AS detail
+            FROM line_station x JOIN v_line_station_operator vo ON vo.line_station_id = x.id
+           WHERE x.id = ANY($1) AND x.deleted_at IS NULL
+             AND (x.korail_class IS NOT NULL OR x.managed_by_id IS NOT NULL) AND vo.operator_id IS DISTINCT FROM 'op-korail'
+          UNION ALL
+          SELECT x.id, x.managed_by_id FROM line_station x
+            JOIN line_station m ON m.id = x.managed_by_id
+            JOIN v_line_station_operator mo ON mo.line_station_id = m.id
+           WHERE (x.id = ANY($1) OR m.id = ANY($1)) AND x.deleted_at IS NULL
+             AND (m.korail_class IS DISTINCT FROM 'management' OR x.korail_class = 'management'
+                  OR mo.operator_id IS DISTINCT FROM 'op-korail')`,
   },
   {
     id: 'V-H17',

@@ -1,5 +1,5 @@
 /**
- * 노선 편집(지도, FR-ADM-050·070): 노선 목록(ReviewPicker: 검수 필요 빨강·정상 초록 태그와 필터)에서 노선을 고르면 그 노선을 강조하고 노선별 역(line_station)을 순서 번호로 보여 준다.
+ * 노선 편집(지도, FR-ADM-050·070): 노선 목록(ReviewPicker: 검수 필요 빨강·정상 초록 태그와 필터)에서 노선을 고르면 그 노선을 강조하고 노선역(line_station)을 순서 번호로 보여 준다.
  * 왼쪽 목록에서 순서(위로/아래로)·삭제·km 를 고치고, "지도에서 역 추가"를 켜면 역 점 클릭으로 역을 넣는다
  * (이웃 역 사이 경로가 가장 적게 늘어나는 자리, 좌표가 없으면 끝). 저장은 노선 상세 [역 순서] 탭과 같은
  * PUT /v1/admin/lines/:id/stations(도메인 적용기, 행 version 확인) — editors/useLineStations.
@@ -63,7 +63,7 @@ const SEL_LAYERS: LayerSpec[] = [
     paint: { 'line-color': ['coalesce', ['get', 'color'], DEFAULT_COLOR], 'line-width': 6, 'line-dasharray': [2, 1.2] },
   },
 ];
-/** 노선별 역 순서대로 이은 선(지선별) — 순서 확인용 */
+/** 노선역 순서대로 이은 선(지선별) — 순서 확인용 */
 const PATH_LAYERS: LayerSpec[] = [
   {
     id: 'lm-path',
@@ -370,7 +370,7 @@ export function LineMapEditor({
                 </ul>
               ) : null}
               {rows.length === 0 ? (
-                <Empty>노선별 역이 없습니다. [지도에서 역 추가]로 넣으세요.</Empty>
+                <Empty>노선역이 없습니다. [지도에서 역 추가]로 넣으세요.</Empty>
               ) : (
                 <ol className="flex flex-col">
                   {rows.map((r, i) => (
@@ -492,7 +492,7 @@ export function LineMapEditor({
               순서대로 이은 선(편집 중 초안)
             </li>
             <li className="flex items-center gap-1">
-              <span className="inline-block size-2 rounded-full bg-[#475569]" /> 역(번호 = 노선별 역 순서)
+              <span className="inline-block size-2 rounded-full bg-[#475569]" /> 역(번호 = 노선역 순서)
             </li>
           </ul>
           <p className="mt-1">선형 © OpenStreetMap contributors, ODbL — 참고용</p>

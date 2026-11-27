@@ -198,7 +198,7 @@ export function LineStationsEditor({ lineId }: { lineId: string }) {
           </table>
         </div>
       </DndContext>
-      {rows.length === 0 ? <Empty>노선별 역이 없습니다. 아래에서 역을 추가하세요.</Empty> : null}
+      {rows.length === 0 ? <Empty>노선역이 없습니다. 아래에서 역을 추가하세요.</Empty> : null}
       <div className="flex items-center gap-2 border-t border-border px-4 py-3">
         <Plus className="size-4 text-fg-muted" />
         <span className="shrink-0 text-sm text-fg-muted">역 추가(끝에)</span>

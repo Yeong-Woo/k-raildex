@@ -290,7 +290,7 @@ function Detail({ type, id, tab }: { type: EntityType; id: string; tab: string }
           <TabsTrigger value="info">정보</TabsTrigger>
           {!isNew && type === 'line' ? <TabsTrigger value="stations">역 순서</TabsTrigger> : null}
           {!isNew && type === 'station' ? <TabsTrigger value="line-stations">노선별</TabsTrigger> : null}
-          {!isNew && type === 'station' ? <TabsTrigger value="managed">관리역</TabsTrigger> : null}
+          {!isNew && type === 'line_station' ? <TabsTrigger value="managed">관리역</TabsTrigger> : null}
           {!isNew ? <TabsTrigger value="attachments">첨부</TabsTrigger> : null}
           {!isNew ? <TabsTrigger value="derived">파생 값</TabsTrigger> : null}
           {!isNew ? <TabsTrigger value="history">이력</TabsTrigger> : null}
@@ -317,10 +317,11 @@ function Detail({ type, id, tab }: { type: EntityType; id: string; tab: string }
                 <StationLineStations stationId={id} derived={q.data.derived} />
               </TabsContent>
             ) : null}
-            {type === 'station' ? (
+            {type === 'line_station' ? (
               <TabsContent value="managed" className="pt-4">
                 <ManagedStations
-                  station={q.data.data as { id: string; name_ko: string; korail_class?: string | null }}
+                  ls={q.data.data as { id: string }}
+                  operatorId={(q.data.derived.operator_id as string | null | undefined) ?? null}
                 />
               </TabsContent>
             ) : null}

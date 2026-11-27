@@ -55,7 +55,7 @@ export const colorTokens = {
   'good-soft': ['oklch(0.95 0.04 150)', 'oklch(0.3 0.05 150)'],
   info: ['oklch(0.47 0.15 258)', `oklch(0.76 0.12 ${N})`],
   'info-soft': ['oklch(0.94 0.03 258)', 'oklch(0.31 0.06 258)'],
-  // 시설 상태(노선·역·노선별 역): fg/bg = 배지 글자·바탕, mark = 점·선(면 위 3:1 이상)
+  // 시설 상태(노선·역·노선역): fg/bg = 배지 글자·바탕, mark = 점·선(면 위 3:1 이상)
   'status-operating-fg': ['oklch(0.4 0.1 150)', 'oklch(0.86 0.1 150)'],
   'status-operating-bg': ['oklch(0.94 0.05 150)', 'oklch(0.31 0.06 150)'],
   'status-operating-mark': ['oklch(0.58 0.14 150)', 'oklch(0.72 0.15 150)'],

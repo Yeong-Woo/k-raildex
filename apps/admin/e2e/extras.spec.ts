@@ -94,7 +94,7 @@ test('지도 편집·노선 편집: 목록에서 고르기 — 노선명 병기,
   await picker.getByRole('button', { name: /^정상/ }).click();
   await expect(list.locator('[data-testid="review-tag"][data-state="issue"]')).toHaveCount(0);
   await picker.getByRole('button', { name: /^전체/ }).click();
-  await picker.getByRole('textbox', { name: '역 검색' }).fill('stn-fx-c');
+  await picker.getByRole('textbox', { name: '역 그룹 검색' }).fill('stn-fx-c');
   await list.getByTestId('review-row').first().click();
   await expect(page).toHaveURL(/station=stn-fx-c/);
   await expect(page.getByTestId('map-selected-station')).toContainText('다');
@@ -285,20 +285,52 @@ test('계획 편집: 노선 없는 계획에 [새 노선 만들기]로 노선을
   await expect(page.getByTestId('quality-items').locator('tr', { hasText: 'plan-e2e-noline' })).toHaveCount(0);
 });
 
-test('역 상세 [관리역]: 정거장 등급을 관리역으로 저장하고 소속 역을 넣고 뺀다', async ({ page }) => {
+test('노선역 상세 [관리역]: 코레일 노선역을 관리역으로 저장하고 소속 노선역을 넣고 뺀다', async ({ page }) => {
   const api = process.env.E2E_API_URL;
-  for (const id of ['stn-e2e-mgr', 'stn-e2e-sub']) {
-    const r = await page.request.post(`${api}/v1/admin/station`, {
-      data: {
-        id,
-        name_ko: id === 'stn-e2e-mgr' ? '관리역시험' : '소속역시험',
-        checked_at: '2026-11-27',
-        sources: [{ source_id: 'src-fixture-notice' }],
-      },
-    });
+  const post = async (type: string, data: unknown) => {
+    const r = await page.request.post(`${api}/v1/admin/${type}`, { data });
     expect(r.ok(), await r.text()).toBe(true);
-  }
-  await page.goto('/data/station/stn-e2e-mgr');
+  };
+  const SRC = [{ source_id: 'src-fixture-notice' }];
+  if (!(await page.request.get(`${api}/v1/admin/operator/op-korail`)).ok())
+    await post('operator', {
+      id: 'op-korail',
+      name_ko: '한국철도공사',
+      kind: 'national_corp',
+      status: 'active',
+      checked_at: '2026-11-27',
+      sources: SRC,
+    });
+  await post('line', {
+    id: 'line-e2e-korail',
+    name_ko: '코레일시험선',
+    category: 'conventional',
+    rail_class: 'conventional',
+    status: 'operating',
+    operators: [{ operator_id: 'op-korail' }],
+    checked_at: '2026-11-27',
+    sources: SRC,
+  });
+  await post('line-station', {
+    id: 'ls-e2e-korail--fx-a',
+    line_id: 'line-e2e-korail',
+    station_id: 'stn-fx-a',
+    seq: 1,
+    status: 'operating',
+  });
+  await post('line-station', {
+    id: 'ls-e2e-korail--fx-b',
+    line_id: 'line-e2e-korail',
+    station_id: 'stn-fx-b',
+    seq: 2,
+    status: 'operating',
+  });
+
+  // 코레일이 아닌 노선역(시험 1호선 = op-fx-metro)에는 등급을 못 쓴다고 안내
+  await page.goto('/data/line-station/ls-fx-one--fx-a?tab=managed');
+  await expect(page.getByTestId('managed-stations')).toContainText('한국철도공사가 아닌 노선역');
+
+  await page.goto('/data/line-station/ls-e2e-korail--fx-a');
   await page.getByLabel('정거장 등급(코레일)').selectOption('management');
   await page.getByLabel('관리역 등급(급)').fill('2');
   await page.getByRole('button', { name: /^저장/ }).first().click();
@@ -307,21 +339,23 @@ test('역 상세 [관리역]: 정거장 등급을 관리역으로 저장하고 �
 
   await page.getByRole('tab', { name: '관리역' }).click();
   const box = page.getByTestId('managed-stations');
-  await expect(box).toContainText('관리역 2급 · 소속 역 0곳');
-  await pickRef(page, box, 'stn-e2e-sub', /소속역시험/);
+  await expect(box).toContainText('관리역 2급 · 소속 노선역 0곳');
+  await pickRef(page, box, 'ls-e2e-korail--fx-b', /ls-e2e-korail--fx-b|코레일시험선/);
   await box.getByTestId('managed-add').click();
-  await expect(toast(page, '소속 역으로 넣었습니다')).toBeVisible();
-  await expect(box.getByTestId('managed-list')).toContainText('소속역시험');
-  await expect(box).toContainText('소속 역 1곳');
-  const sub = await (await page.request.get(`${api}/v1/admin/station/stn-e2e-sub`)).json();
-  expect(sub.data.managed_by_id).toBe('stn-e2e-mgr');
+  await expect(toast(page, '소속 노선역으로 넣었습니다')).toBeVisible();
+  await expect(box).toContainText('소속 노선역 1곳');
+  const sub = await (await page.request.get(`${api}/v1/admin/line-station/ls-e2e-korail--fx-b`)).json();
+  expect(sub.data.managed_by_id).toBe('ls-e2e-korail--fx-a');
 
-  // 소속 역에서는 관리역이 보인다
-  await page.goto('/data/station/stn-e2e-sub?tab=managed');
-  await expect(page.getByTestId('managed-stations')).toContainText('관리역: 관리역시험');
+  // 역 그룹 [노선별] 탭에 운영기관·등급·소속이 보인다
+  await page.goto('/data/station/stn-fx-b?tab=line-stations');
+  const card = page.getByTestId('line-station-card').filter({ hasText: '코레일시험선' });
+  await expect(card).toContainText('한국철도공사');
+  await expect(card).toContainText('소속');
 
-  await page.goto('/data/station/stn-e2e-mgr?tab=managed');
-  await page.getByRole('button', { name: '소속역시험 소속에서 빼기' }).click();
+  await page.goto('/data/line-station/ls-e2e-korail--fx-a?tab=managed');
+  await page.getByRole('button', { name: 'ls-e2e-korail--fx-b 소속에서 빼기' }).click();
   await expect(toast(page, '소속에서 뺐습니다')).toBeVisible();
-  await expect(page.getByTestId('managed-stations')).toContainText('소속 역 0곳');
+  await expect(page.getByTestId('managed-stations')).toContainText('소속 노선역 0곳');
+  for (const id of ['ls-e2e-korail--fx-b', 'ls-e2e-korail--fx-a']) await removeEntity(page, 'line-station', id);
 });

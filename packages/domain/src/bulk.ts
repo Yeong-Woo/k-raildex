@@ -49,7 +49,7 @@ export function isBulkTarget(v: unknown): v is BulkTarget {
 
 export const BULK_TARGET_LABELS: Readonly<Record<BulkTarget, string>> = {
   station: '역',
-  line_station: '노선별 역(노선 역 순서)',
+  line_station: '노선역(노선 역 순서)',
   train_number_range: '열차번호대',
   rolling_stock_range: '차량번호대',
   event: '연표 이벤트',
@@ -338,7 +338,7 @@ export function bulkFields(target: BulkTarget): BulkField[] {
       out.push({ name: `${name}.lng`, label: `${fm.label} 경도`, kind: 'lng', required: false });
       continue;
     }
-    // 노선별 역 id 는 비우면 노선·역에서 만든다
+    // 노선역 id 는 비우면 노선·역에서 만든다
     const required = name === 'id' && target === 'line_station' ? false : isRequired(shape[name]);
     out.push({ name, label: fm.label, required, ...k } as BulkField);
   }

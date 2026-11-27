@@ -170,7 +170,7 @@ const lineStations: LLineStation[] = [
   { id: 'line-two--001', line_id: 'line-two', station_id: 'stn-ga', order: 1, provenance: P() },
 ];
 
-describe('역·노선·노선별 역', () => {
+describe('역·노선·노선역', () => {
   const report = new MigrationReport();
   const out = transformNetwork(
     {
@@ -194,7 +194,7 @@ describe('역·노선·노선별 역', () => {
     expect(combineStatus('planned', 'under_construction')).toBe('planned');
   });
 
-  it('다중 노선 역: 노선 개통일과 같은 노선별 역에만 개통일(Q95 A)', () => {
+  it('다중 노선 역: 노선 개통일과 같은 노선역에만 개통일(Q95 A)', () => {
     expect(ls('ls-one--ga').status).toBe('operating');
     expect(ls('ls-one--ga').opened).toEqual({ value: '1990-01-01', precision: 'day' });
     expect(ls('ls-two--ga').status).toBe('under_construction');
@@ -210,13 +210,13 @@ describe('역·노선·노선별 역', () => {
     expect(out.stations.find((s) => s.id === 'stn-ga')!.own_status).toBeNull();
   });
 
-  it('노선 문맥 코드는 노선별 역으로, 못 풀면 역에 두고 리포트', () => {
+  it('노선 문맥 코드는 노선역으로, 못 풀면 역에 두고 리포트', () => {
     expect(ls('ls-one--ga').external_refs.map((r) => r.code)).toEqual(['0101@S1101']);
     expect(ls('ls-two--ga').external_refs.map((r) => r.code)).toEqual(['0201@S2']);
     expect(ls('ls-one--na').external_refs.map((r) => `${r.system}=${r.code}`)).toEqual(['tago_subway=MTRX1']);
     const ga = out.stations.find((s) => s.id === 'stn-ga')!;
     expect(ga.external_refs.map((r) => r.system).sort()).toEqual(['molit_metro_lines', 'rafis']);
-    expect(report.issues.get('노선 문맥 코드 노선별 역 미해석(역에 보관)')).toHaveLength(1);
+    expect(report.issues.get('노선 문맥 코드 노선역 미해석(역에 보관)')).toHaveLength(1);
   });
 
   it('노선: 시·도·운영기관·외부 코드(쉼표 목록 분리)·운영기관 미매칭 리포트', () => {
@@ -244,7 +244,7 @@ describe('역·노선·노선별 역', () => {
   });
 });
 
-describe('정차역 → 노선별 역', () => {
+describe('정차역 → 노선역', () => {
   const mk = (line: string, stn: string) =>
     ({ id: `ls-${line}--${stn}`, line_id: line, station_id: stn }) as LineStationCreate;
   const byStation = new Map<string, LineStationCreate[]>([
@@ -257,7 +257,7 @@ describe('정차역 → 노선별 역', () => {
     const report = new MigrationReport();
     const out = resolveStops('svc-s', 'p', ['l1', 'l2'], ['a', 'b', 'c', 'x'], byStation, report);
     expect(out).toEqual(['ls-l1--a', 'ls-l1--b', 'ls-l2--c']);
-    expect(report.issues.get('정차 패턴 정차역 노선별 역 미해석(정차역 제외)')).toEqual(['svc-s/p: x']);
+    expect(report.issues.get('정차 패턴 정차역 노선역 미해석(정차역 제외)')).toEqual(['svc-s/p: x']);
   });
   it('뺀 정차역을 dropped 에 남긴다(Q105 A)', () => {
     const dropped: DroppedStop[] = [];

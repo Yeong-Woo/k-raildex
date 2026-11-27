@@ -196,7 +196,7 @@ export function buildTagoSets(
       }
       const lsId = ctx.lineStationOf(stationId, serviceId);
       if (lsId) stats.line_station_resolved++;
-      else issues.add('시간표 노선별 역 미해석', `${id} (${serviceId ?? '운행 계통 없음'})`);
+      else issues.add('시간표 노선역 미해석', `${id} (${serviceId ?? '운행 계통 없음'})`);
       byId.set(id, {
         _tago: tago,
         id,

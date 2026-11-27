@@ -34,7 +34,7 @@ type Filter = 'all' | 'issue' | 'ok' | 'nogeom' | 'schematic';
 export type ReviewType = 'station' | 'line' | 'plan';
 
 const TEXT: Record<ReviewType, { placeholder: string; label: string }> = {
-  station: { placeholder: '역 이름·노선 이름·id', label: '역 검색' },
+  station: { placeholder: '역 그룹 이름·노선 이름·id', label: '역 그룹 검색' },
   line: { placeholder: '노선 이름·id', label: '노선 검색' },
   plan: { placeholder: '계획 이름·노선 이름·id', label: '계획 검색' },
 };

@@ -163,7 +163,7 @@ export function MergeStationDialog({
               {p.adds_former_name ? <Badge>원본 이름 "{p.from.name_ko}" → 대상의 옛 이름</Badge> : null}
             </div>
             <div>
-              <div className="mb-1 text-xs font-semibold">노선별 역 {p.line_stations.length}개</div>
+              <div className="mb-1 text-xs font-semibold">노선역 {p.line_stations.length}개</div>
               <ul className="space-y-0.5 text-xs" data-testid="merge-line-stations">
                 {p.line_stations.map((l) => (
                   <li key={l.id}>
@@ -187,7 +187,7 @@ export function MergeStationDialog({
             ) : null}
             <div>
               <label className="mb-1 block text-xs text-fg-muted">
-                같은 역임을 확인한 근거 출처(권장 — 노선별 역에 붙음)
+                같은 역임을 확인한 근거 출처(권장 — 노선역에 붙음)
               </label>
               <RefInput target="source" value={sourceId} onChange={setSourceId} />
             </div>

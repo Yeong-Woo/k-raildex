@@ -45,7 +45,7 @@ export function transformTagoTimetables(
     lineStationOf: lineStationResolver([...ctx.lsByStation.values()].flat(), (id) => ctx.serviceLines.get(id)),
   });
   for (const [kind, list] of built.issues.items) for (const d of list) report.add(kind, d);
-  report.count('시간표.노선별 역 해석(TAGO)', built.stats.line_station_resolved);
+  report.count('시간표.노선역 해석(TAGO)', built.stats.line_station_resolved);
 
   const legacy = new Map(summaries.filter((s) => s.route_code.startsWith('MTR')).map((s) => [s.id, s]));
   for (const s of built.sets) {

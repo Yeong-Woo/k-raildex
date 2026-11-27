@@ -70,7 +70,7 @@ export class MapController {
     });
   }
 
-  /** 노선에 배정된 OSM way + 노선별 역 점 */
+  /** 노선에 배정된 OSM way + 노선역 점 */
   @Get('line-geometry/:line_id')
   @RequireScope('admin:read')
   async lineGeometry(@Param('line_id') lineId: string) {

@@ -95,7 +95,7 @@ describe('GET /v1/admin/map/osm-ways', () => {
 });
 
 describe('GET /v1/admin/map/line-geometry/:line_id', () => {
-  it('배정 way + 노선별 역 점 + osm_map', async () => {
+  it('배정 way + 노선역 점 + osm_map', async () => {
     const r = await get('/v1/admin/map/line-geometry/line-fx-one');
     expect(r.statusCode).toBe(200);
     const b = r.json();
