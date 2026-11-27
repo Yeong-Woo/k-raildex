@@ -736,6 +736,28 @@ CREATE TABLE glossary_term (
 
 `docs/TERMINOLOGY.md` 는 이관 때 한 번 읽어 적재하고, 이후에는 DB 에서 생성한 **읽기 전용 사본**이다.
 
+### 4-19. 시설 `facility` (0035, 2026-11-27 사용자 지시)
+
+역 그룹과 별개인 철도 시설(id `fac-`). 지금은 `kind = depot`(차량기지)만.
+
+```sql
+CREATE TABLE facility (
+  id text PRIMARY KEY REFERENCES entity(id), NAMES,
+  kind text NOT NULL DEFAULT 'depot',                 -- facilityKind
+  functions text[] NOT NULL DEFAULT '{}',             -- facilityFunction: 주박·검수·경정비·중정비·시설 보수
+  operator_id text REFERENCES operator(id),
+  status text NOT NULL DEFAULT 'operating', FUZZY(opened), FUZZY(closed),
+  region_code, address, geom geography(Point,4326), coord_source, coord_basis, coord_query, coord_note,  -- 역 그룹과 같은 좌표 규칙
+  description text, REC
+);
+CREATE TABLE facility_line (facility_id text REFERENCES facility(id), line_id text REFERENCES line(id),
+  role text NOT NULL DEFAULT 'serves',   -- serves 담당 노선(차량을 맡는 노선) / connects 붙은 선로(기지선 등)
+  note text, ord int, PRIMARY KEY (facility_id, line_id, role));
+```
+
+- 0034 의 역 그룹 하위 표(`station_depot`·`station_depot_line`)는 0035 에서 없앴다. `station.kind = depot` 인 역 그룹은 시설로 옮긴다.
+- 공개: `/facilities/<id>/`, 지도 현재 보기 "차량기지" 레이어(`/v1/public/map/depots.geojson`).
+
 ### 4-19. OSM 스키마 `osm` (Q31 A)
 
 ```sql
@@ -861,7 +883,7 @@ CREATE TABLE app_setting (key text PRIMARY KEY, value jsonb NOT NULL, updated_at
 | `entity_type`                           | source, operator, station, line_station, line, train_class, service, plan_program, plan, event, train_number_range, rolling_stock_range, transfer_center, route_map, glossary_term                                                                                                                                 |
 | `status`(역 단독·노선역·노선·운행 계통) | operating 운영 중 / suspended 휴업 / under_construction 공사 중 / planned 계획 / abandoned 계획 폐기 / closed 폐선·폐역·운행 종료                                                                                                                                                                                  |
 | `station.kind`                          | station 여객역 / signal_box 신호장·신호소 / junction 분기점·연결선 / yard 조차장 / depot 차량기지 / freight 화물역                                                                                                                                                                                                 |
-| `station_depot.functions`               | stabling 주박 / inspection 검수 / light_maintenance 경정비 / heavy_maintenance 중정비 / track_maintenance 시설·선로 보수 (0034)                                                                                                                                                                                    |
+| `facility.functions`                    | stabling 주박 / inspection 검수 / light_maintenance 경정비 / heavy_maintenance 중정비 / track_maintenance 시설·선로 보수 (0034)                                                                                                                                                                                    |
 | `station.korail_class`                  | management 관리역 / ordinary 보통역 / operating_halt 운전간이역 / staffed_halt 배치간이역 / consigned_ticket 갑종 위탁발매소 / unstaffed_halt 무배치간이역(을종 위탁 포함) / temporary_platform 임시승강장 / yard 조차장 / signal_station 신호장 / signal_post 신호소 (한국철도공사 직제규정 시행세칙, 0031)       |
 | `coord_source` / `coord_basis`          | official, manual, derived / parcel, district, township, existing_station                                                                                                                                                                                                                                           |
 | `line.category`                         | high_speed, conventional, metro, light_rail, tram, monorail, maglev                                                                                                                                                                                                                                                |
@@ -982,7 +1004,6 @@ FK 전부, CHECK(코드값·좌표 범위·퍼지 날짜·범위·자기 참조 
 | V-H15 | 공개 첨부(`is_public`)의 문서는 `publishable`                                                                          |
 | V-H16 | `plan_milestone` basis official·press 는 출처 필수                                                                     |
 | V-H18 | `managed_by_id` 가 가리키는 역은 `korail_class = management`, 관리역 자신은 `managed_by_id` 없음(0031)                 |
-| V-H19 | 차량기지 정보(`station_depot`)·담당 노선(`station_depot_line`)은 `kind = depot` 인 역 그룹만(0034)                     |
 
 ### 8-3. Soft (경고, 품질 대시보드)
 
