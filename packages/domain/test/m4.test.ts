@@ -375,6 +375,23 @@ describe('품질·지도(픽스처)', () => {
     expect(e.lines).toContain('시험 2호선');
     expect(st.items.some((i) => i.issues.length === 0)).toBe(true);
     expect(st.items.find((i) => i.id === 'stn-q-dup')).toMatchObject({ name_ko: '나', has_geom: true });
+    // 계획 선형 편집: 계획마다 단계·표시 선형 품질·이어진 노선, 계획 규칙(V-S12 등)
+    const plans = await reviewList(db, 'plan');
+    expect(plans.items.find((i) => i.id === 'plan-fx-replace')).toMatchObject({
+      status: 'detail_design',
+      kind: 'traced',
+      has_geom: true,
+      lines: ['시험 2호선'],
+    });
+    const ext = plans.items.find((i) => i.id === 'plan-fx-ext')!;
+    expect(ext).toMatchObject({ kind: 'schematic', lines: ['시험 1호선'] });
+    const s12 = (await qualityItems(db, 'V-S12', { limit: 50, offset: 0 })).items.map((i) => i.entity_id).sort();
+    expect(
+      plans.items
+        .filter((i) => i.issues.some((x) => x.rule === 'V-S12'))
+        .map((i) => i.id)
+        .sort(),
+    ).toEqual(s12);
   });
 
   it('V-S04 거리 확인: 맞다고 확인하면 빠지고, 앞 역이 바뀌면 다시 나온다', async () => {

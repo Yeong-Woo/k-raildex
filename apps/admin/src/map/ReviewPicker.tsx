@@ -1,13 +1,16 @@
 /**
  * 지도 편집·노선 편집의 고르기 목록(FR-ADM-070): 역·노선 전체를 보여 주고, 품질 규칙에 걸린 개체는 빨간 태그(검수 필요),
  * 걸린 규칙이 없으면 초록 태그(정상). 검색·태그 필터. 역 이름 옆에 지나는 노선 이름을 함께 쓴다.
+ * 계획 선형 편집(type plan)도 같은 목록: 현재 단계·표시 선형 품질·이어진 노선, 선형 없음/개략만 필터.
+ * 규칙 고르기(select)로 특정 품질 규칙에 걸린 것만 볼 수 있다.
  * 데이터: GET /v1/admin/quality/entities/:type (규칙 SQL 을 합친 것이라 품질 화면과 같은 결과)
  */
 import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { codeLabel, isCode } from '@k-raildex/contracts';
-import { cn, Input } from '@k-raildex/ui';
+import { GEOMETRY_QUALITY_LABELS } from '@k-raildex/map';
+import { cn, Input, Select } from '@k-raildex/ui';
 import { Search } from 'lucide-react';
 import { api } from '../lib/api';
 
@@ -27,9 +30,16 @@ export interface ReviewListItem {
   color: string | null;
   issues: ReviewIssue[];
 }
-type Filter = 'all' | 'issue' | 'ok' | 'nogeom';
+type Filter = 'all' | 'issue' | 'ok' | 'nogeom' | 'schematic';
+export type ReviewType = 'station' | 'line' | 'plan';
 
-export function useReviewList(type: 'station' | 'line') {
+const TEXT: Record<ReviewType, { placeholder: string; label: string }> = {
+  station: { placeholder: '역 이름·노선 이름·id', label: '역 검색' },
+  line: { placeholder: '노선 이름·id', label: '노선 검색' },
+  plan: { placeholder: '계획 이름·노선 이름·id', label: '계획 검색' },
+};
+
+export function useReviewList(type: ReviewType) {
   return useQuery({
     queryKey: ['quality', 'entities', type],
     queryFn: () => api<{ items: ReviewListItem[] }>(`/v1/admin/quality/entities/${type}`),
@@ -82,7 +92,7 @@ export function ReviewPicker({
   onSelect,
   className,
 }: {
-  type: 'station' | 'line';
+  type: ReviewType;
   selectedId: string | null;
   onSelect: (item: ReviewListItem) => void;
   className?: string;
@@ -90,18 +100,36 @@ export function ReviewPicker({
   const list = useReviewList(type);
   const [q, setQ] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
+  const [rule, setRule] = useState('');
   const items = list.data?.items ?? [];
   const ul = useRef<HTMLUListElement | null>(null);
 
   const counts = useMemo(() => {
     let issue = 0;
     let nogeom = 0;
+    let schematic = 0;
     for (const it of items) {
       if (it.issues.length) issue++;
       if (it.has_geom === false) nogeom++;
+      if (type === 'plan' && it.kind === 'schematic') schematic++;
     }
-    return { all: items.length, issue, ok: items.length - issue, nogeom };
+    return { all: items.length, issue, ok: items.length - issue, nogeom, schematic };
+  }, [items, type]);
+
+  // 목록에 걸린 규칙(건수 많은 순)
+  const rules = useMemo(() => {
+    const m = new Map<string, { title: string; n: number }>();
+    for (const it of items)
+      for (const r of new Map(it.issues.map((x) => [x.rule, x])).values()) {
+        const cur = m.get(r.rule) ?? { title: r.title, n: 0 };
+        cur.n++;
+        m.set(r.rule, cur);
+      }
+    return [...m.entries()].sort((a, b) => b[1].n - a[1].n || a[0].localeCompare(b[0]));
   }, [items]);
+  useEffect(() => {
+    if (rule && !rules.some(([id]) => id === rule)) setRule('');
+  }, [rule, rules]);
 
   const shown = useMemo(() => {
     const t = norm(q);
@@ -109,10 +137,12 @@ export function ReviewPicker({
       if (filter === 'issue' && !it.issues.length) return false;
       if (filter === 'ok' && it.issues.length) return false;
       if (filter === 'nogeom' && it.has_geom !== false) return false;
+      if (filter === 'schematic' && it.kind !== 'schematic') return false;
+      if (rule && !it.issues.some((x) => x.rule === rule)) return false;
       if (!t) return true;
       return norm(it.name_ko).includes(t) || it.id.includes(t) || it.lines.some((l) => norm(l).includes(t));
     });
-  }, [items, q, filter]);
+  }, [items, q, filter, rule]);
 
   // 고른 행이 목록 안에 보이게(목록만 스크롤 — 페이지는 움직이지 않는다)
   useEffect(() => {
@@ -129,6 +159,12 @@ export function ReviewPicker({
     { key: 'issue', label: '검수 필요', tone: 'text-danger' },
     { key: 'ok', label: '정상', tone: 'text-good' },
     ...(type === 'station' ? [{ key: 'nogeom' as const, label: '좌표 없음', tone: 'text-warn' }] : []),
+    ...(type === 'plan'
+      ? [
+          { key: 'nogeom' as const, label: '선형 없음', tone: 'text-warn' },
+          { key: 'schematic' as const, label: '개략만', tone: 'text-warn' },
+        ]
+      : []),
   ];
 
   return (
@@ -137,8 +173,8 @@ export function ReviewPicker({
         <Search className="pointer-events-none absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-fg-muted" />
         <Input
           className="h-8 pl-7 text-sm"
-          placeholder={type === 'station' ? '역 이름·노선 이름·id' : '노선 이름·id'}
-          aria-label={type === 'station' ? '역 검색' : '노선 검색'}
+          placeholder={TEXT[type].placeholder}
+          aria-label={TEXT[type].label}
           value={q}
           onChange={(e) => setQ(e.target.value)}
         />
@@ -160,6 +196,22 @@ export function ReviewPicker({
           </button>
         ))}
       </div>
+      {rules.length ? (
+        <Select
+          className="h-8 text-xs"
+          aria-label="품질 규칙 필터"
+          data-testid="review-rule-filter"
+          value={rule}
+          onChange={(e) => setRule(e.target.value)}
+        >
+          <option value="">규칙: 전체</option>
+          {rules.map(([id, r]) => (
+            <option key={id} value={id}>
+              {id} {r.title} ({r.n})
+            </option>
+          ))}
+        </Select>
+      ) : null}
       {list.isLoading ? (
         <p className="text-xs text-fg-muted">불러오는 중…</p>
       ) : list.error ? (
@@ -183,7 +235,7 @@ export function ReviewPicker({
                 )}
                 onClick={() => onSelect(it)}
               >
-                {type === 'line' ? (
+                {type !== 'station' ? (
                   <span
                     className="inline-block h-1.5 w-3 shrink-0 rounded"
                     style={{ background: it.color ?? 'var(--color-border)' }}
@@ -192,7 +244,7 @@ export function ReviewPicker({
                 <span className="min-w-0 flex-1">
                   <span className="flex min-w-0 items-baseline gap-1">
                     <span className="truncate font-medium">{it.name_ko}</span>
-                    {type === 'station' && it.lines.length ? (
+                    {type !== 'line' && it.lines.length ? (
                       <span className="min-w-0 truncate text-[11px] text-fg-muted" title={it.lines.join(' · ')}>
                         {it.lines.join(' · ')}
                       </span>
@@ -200,24 +252,32 @@ export function ReviewPicker({
                   </span>
                   <span className="block truncate text-[10px] text-fg-muted">
                     {it.id}
-                    {type === 'station'
+                    {type === 'plan'
                       ? [
-                          it.kind && it.kind !== 'station' && isCode('stationKind', it.kind)
-                            ? codeLabel('stationKind', it.kind)
-                            : null,
-                          it.status && isCode('status', it.status) ? codeLabel('status', it.status) : null,
-                          it.has_geom === false ? '좌표 없음' : null,
+                          it.status && isCode('planStage', it.status) ? codeLabel('planStage', it.status) : null,
+                          it.kind ? `선형 ${GEOMETRY_QUALITY_LABELS[it.kind] ?? it.kind}` : '선형 없음',
                         ]
                           .filter(Boolean)
                           .map((s) => ` · ${s}`)
                           .join('')
-                      : [
-                          it.status && isCode('status', it.status) ? codeLabel('status', it.status) : null,
-                          `역 ${it.station_count ?? 0}개`,
-                        ]
-                          .filter(Boolean)
-                          .map((s) => ` · ${s}`)
-                          .join('')}
+                      : type === 'station'
+                        ? [
+                            it.kind && it.kind !== 'station' && isCode('stationKind', it.kind)
+                              ? codeLabel('stationKind', it.kind)
+                              : null,
+                            it.status && isCode('status', it.status) ? codeLabel('status', it.status) : null,
+                            it.has_geom === false ? '좌표 없음' : null,
+                          ]
+                            .filter(Boolean)
+                            .map((s) => ` · ${s}`)
+                            .join('')
+                        : [
+                            it.status && isCode('status', it.status) ? codeLabel('status', it.status) : null,
+                            `역 ${it.station_count ?? 0}개`,
+                          ]
+                            .filter(Boolean)
+                            .map((s) => ` · ${s}`)
+                            .join('')}
                   </span>
                 </span>
                 <ReviewTag issues={it.issues} />

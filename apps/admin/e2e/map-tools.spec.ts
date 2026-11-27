@@ -330,3 +330,42 @@ test('노선 편집: 지도에서 역을 클릭해 노선별 역에 넣고 저�
   await clickLngLat(page, 'line-map', [127.0, 37.4]);
   await expect(page.locator('.maplibregl-popup')).toContainText('stn-fx-e');
 });
+
+test('계획 선형 편집: 계획 목록을 품질 규칙으로 걸러 고른다', async ({ page }) => {
+  const api = process.env.E2E_API_URL;
+  const ent = (await (await page.request.get(`${api}/v1/admin/quality/entities/plan`)).json()) as {
+    items: { id: string; issues: { rule: string }[] }[];
+  };
+  // 계획에 가장 많이 걸린 규칙
+  const counts = new Map<string, number>();
+  for (const it of ent.items)
+    for (const r of new Set(it.issues.map((x) => x.rule))) counts.set(r, (counts.get(r) ?? 0) + 1);
+  const [rule] = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]!;
+  const expected = ent.items
+    .filter((it) => it.issues.some((x) => x.rule === rule))
+    .map((it) => it.id)
+    .sort();
+
+  await page.goto('/map?tool=geometry');
+  const list = page.getByTestId('review-list-plan');
+  await expect(list.getByTestId('review-row').first()).toBeVisible();
+  await expect(list.locator('li')).toHaveCount(ent.items.length);
+  await page.getByTestId('review-rule-filter').selectOption(rule);
+  await expect
+    .poll(async () => (await list.locator('li').evaluateAll((ls) => ls.map((l) => l.getAttribute('data-id')))).sort())
+    .toEqual(expected);
+  for (const tag of await list.getByTestId('review-tag').all())
+    await expect(tag).toHaveAttribute('data-state', 'issue');
+
+  // 선형 필터: 선형 없음 칩은 선형 없는 계획만
+  await page.getByTestId('review-rule-filter').selectOption('');
+  await page.getByRole('button', { name: /^선형 없음/ }).click();
+  for (const row of await list.getByTestId('review-row').all()) await expect(row).toContainText('선형 없음');
+  await page.getByRole('button', { name: /^전체/ }).click();
+
+  await page.getByTestId('review-rule-filter').selectOption(rule);
+  await list.locator(`li[data-id="${expected[0]}"]`).getByTestId('review-row').click();
+  await expect(page).toHaveURL(new RegExp(`plan=${expected[0]}`));
+  await expect(page.getByTestId('plan-selected')).toContainText(rule);
+  await expect(page.getByTestId('plan-shape')).toBeVisible();
+});

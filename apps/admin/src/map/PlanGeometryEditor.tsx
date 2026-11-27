@@ -16,6 +16,7 @@ import { ArrowDown, ArrowUp, Pencil, Plus, Trash2, Undo2, X } from 'lucide-react
 import { api, apiOptional, errorText, type EntityResponse } from '../lib/api';
 import { RefInput } from '../form/widgets/RefInput';
 import { curveThrough, lengthKm, parseLineGeoJson, type Coord } from './geo';
+import { ReviewIssues, ReviewPicker, ReviewTag, useReviewList } from './ReviewPicker';
 import { boundsOf, EMPTY_FC, useGeoJsonLayer, useMapLibre, type FeatureCollection } from './useMap';
 import { useFeaturePopup } from './FeaturePopup';
 
@@ -146,6 +147,8 @@ export function PlanGeometryEditor({
 }) {
   const qc = useQueryClient();
   const { container, map } = useMapLibre();
+  const review = useReviewList('plan');
+  const selectedPlan = planId ? review.data?.items.find((it) => it.id === planId) : undefined;
   const [draft, setDraft] = useState<Draft | null>(null);
   const [past, setPast] = useState<Draft[]>([]);
   const [drawing, setDrawing] = useState(false);
@@ -361,6 +364,7 @@ export function PlanGeometryEditor({
       setDrawing(false);
       await qc.invalidateQueries({ queryKey: ['entity', 'plan', planId] });
       await qc.invalidateQueries({ queryKey: ['map'] });
+      await qc.invalidateQueries({ queryKey: ['quality'] });
     },
     onError: (e) => toast.error(errorText(e)),
   });
@@ -419,11 +423,36 @@ export function PlanGeometryEditor({
   return (
     <div className="absolute inset-0 flex">
       <aside className="flex w-96 shrink-0 flex-col gap-3 overflow-y-auto border-r border-border bg-bg-elevated p-3 text-sm">
-        <div>
+        <div className={cn('flex min-h-0 flex-col', planId ? 'h-72 shrink-0' : 'min-h-96 flex-1')}>
           <Label>계획</Label>
-          <RefInput target="plan" value={planId} onChange={onPlanChange} />
+          <ReviewPicker
+            type="plan"
+            selectedId={planId}
+            className="min-h-0 flex-1"
+            onSelect={(it) => onPlanChange(it.id)}
+          />
         </div>
-        {!planId ? <p className="text-xs text-fg-muted">선형을 편집할 계획을 고르세요.</p> : null}
+        {planId ? (
+          <Card className="p-3" data-testid="plan-selected">
+            <div className="flex items-center gap-2">
+              <strong className="min-w-0 truncate">{selectedPlan?.name_ko ?? planId}</strong>
+              {selectedPlan ? <ReviewTag issues={selectedPlan.issues} /> : null}
+              <button
+                className="ml-auto text-fg-muted hover:text-fg"
+                aria-label="선택 해제"
+                onClick={() => onPlanChange(null)}
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+            {selectedPlan?.lines.length ? (
+              <p className="mt-0.5 text-[11px] text-fg-muted">{selectedPlan.lines.join(' · ')}</p>
+            ) : null}
+            {selectedPlan ? <ReviewIssues issues={selectedPlan.issues} /> : null}
+          </Card>
+        ) : (
+          <p className="text-xs text-fg-muted">선형을 편집할 계획을 고르세요.</p>
+        )}
         {geo.data ? (
           <>
             <Card className="p-3" data-testid="plan-shape">
