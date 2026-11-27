@@ -277,6 +277,9 @@ export const entityUiMeta: Readonly<Record<EntityType, EntityUiMeta>> = {
       color: f('노선색', W.color, 'detail', { help: '공식 노선색만(출처 field=color)' }),
       description: f('설명', W.md, 'detail'),
       parent_line_id: f('합칠 노선', ref('line'), 'relations', { help: '기존 공사 구간 노선(Q22)' }),
+      branch_of_id: f('본선(수동)', ref('line'), 'relations', {
+        help: '고시 노선번호로 본선을 정할 수 없는 지선만(본선 번호 삭제 등, Q153). 노선번호 본선이 있으면 그것이 우선',
+      }),
       regions: f('지나는 시·도', W.regions, 'location'),
       operators: f('운영기관', editor('line_operators'), 'relations'),
       osm_map: f('OSM 선형 대응', editor('line_osm_map'), 'location'),

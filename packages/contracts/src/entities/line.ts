@@ -73,6 +73,8 @@ const shape = {
   description: optText(),
   /** 기존 공사 구간 노선 → 합칠 노선(Q22 A) */
   parent_line_id: nullish(idSchema('line')),
+  /** 지선의 본선 수동 지정 — 고시 노선번호로 본선을 정할 수 없을 때만(0037, Q153) */
+  branch_of_id: nullish(idSchema('line')),
   ...curatedFields,
   regions: z.array(regionCodeSchema).default([]),
   operators: z.array(lineOperatorSchema).default([]),
@@ -81,6 +83,7 @@ const shape = {
 
 const contract = defineContract(shape, recReadFields, (row, ctx) => {
   checkNotSelf(row, ctx, 'parent_line_id');
+  checkNotSelf(row, ctx, 'branch_of_id');
   checkUnique(row, ctx, 'regions');
   checkUnique(row, ctx, 'operators', keyBy('operator_id', 'role'));
 });

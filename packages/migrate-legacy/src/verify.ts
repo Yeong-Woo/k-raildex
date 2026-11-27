@@ -698,6 +698,13 @@ export async function runVerify(db: Queryable, legacy: LegacyData, tr: Transform
       ? undefined
       : `${String(Math.floor(Number(m) / 60)).padStart(2, '0')}:${String(Number(m) % 60).padStart(2, '0')}`;
   const ttCombos = new Set(ttRev.map((r) => `${String(r.station_id)}|${String(r.service_id)}|${String(r.day_type)}`));
+  // 분기역 세트를 노선역별로 나눔(Q148, lineStationSplitter) — 원래 id + "--<노선>"
+  const splitBases = new Set(
+    ttRev
+      .map((r) => String(r.id))
+      .filter((id) => id.includes('--'))
+      .map((id) => id.split('--')[0]!),
+  );
   const legacyOpsStations = new Set(
     build.timetableSummaries
       .filter((s) => !s.route_code.startsWith('MTR'))
@@ -727,12 +734,18 @@ export async function runVerify(db: Queryable, legacy: LegacyData, tr: Transform
       'by_hour',
     ],
     (f, l, m) => {
+      if (splitBases.has(String(l.id)) && ['first', 'last', 'count', 'by_hour', 'direction_label'].includes(f))
+        return '분기역 시간표를 노선역별로 나눔(Q148) — 노선역 미정 행만 남음';
       if (!String(l.route_code).startsWith('MTR') && ['first', 'last', 'count', 'by_hour'].includes(f) && !m.count)
         return '운행정보 보강 세트 시각 행 미재구성(kric-train-ops 미실행)';
       return null;
     },
     // 운행정보 보강 세트는 수집기 kric-train-ops 가 새 DB(역명·별칭·정차 패턴)로 다시 만든다(Q104 A) — 기존과 다른 세트의 설명
     (kind, r) => {
+      const id = String(r.id);
+      if (kind === 'missing' && splitBases.has(id)) return '분기역 시간표를 노선역별 세트로 나눔(Q148)';
+      if (kind === 'extra' && id.includes('--') && splitBases.has(id.split('--')[0]!))
+        return '분기역 시간표를 노선역별 세트로 나눔(Q148)';
       if (String(r.route_code).startsWith('MTR')) return null;
       const k = `${String(r.station_id)}|${String(r.service_id)}|${String(r.day_type)}`;
       if (kind === 'missing' && r.direction === 'unknown' && ttCombos.has(k))

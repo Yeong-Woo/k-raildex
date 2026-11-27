@@ -27,7 +27,7 @@ import { withRun } from '../core/run';
 import { emptySnapshotStats, upsertSnapshot } from '../core/snapshot';
 import { downloadKricXlsx, normalizeKricXlsx, resolveKricXlsx } from './kric-xlsx';
 import { baseKey } from './names';
-import { lineStationResolver, loadNetworkContext, UNOPENED, type NetworkContext } from './network';
+import { lineStationResolver, lineStationSplitter, loadNetworkContext, UNOPENED, type NetworkContext } from './network';
 import { opsMinute } from './time';
 import { TAGO_SOURCE, type ImportResult } from './tago';
 import { replaceTimetableSets } from './writer';
@@ -227,6 +227,7 @@ export function buildKricSets(
   const issues = new IssueLog();
   const stName = (id: string) => net.stations.get(id)?.name_ko ?? id;
   const lsOf = lineStationResolver(net.lineStations, (id) => net.services.get(id)?.line_ids);
+  const splitSet = lineStationSplitter(net.lineStations, (id) => net.services.get(id), net.stations.values());
   const stationsOfLine = new Map<string, string[]>();
   const codeOfLineStation = new Map<string, string>();
   for (const ls of [...net.lineStations].sort((a, b) => a.line_id.localeCompare(b.line_id) || a.seq - b.seq)) {
@@ -462,7 +463,7 @@ export function buildKricSets(
       );
   }
   return {
-    sets: out.sort((a, b) => a.id.localeCompare(b.id)),
+    sets: out.flatMap((s) => splitSet(s)).sort((a, b) => a.id.localeCompare(b.id)),
     jobs: jobStats,
     issues,
     line_nos: sortedFiles.map((f) => f.line_no),

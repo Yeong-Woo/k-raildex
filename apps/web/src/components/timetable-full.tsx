@@ -27,8 +27,11 @@ export function TimetableFull({
   dayLabels,
   directionLabels,
   lineNames,
+  lineFilter,
 }: {
   url: string;
+  /** 노선 탭(Q148): 이 노선 세트만(null = 노선 미정 세트만, undefined = 모두) */
+  lineFilter?: string | null;
   dayLabels: Record<string, string>;
   directionLabels: Record<string, string>;
   lineNames: Record<string, string>;
@@ -43,8 +46,9 @@ export function TimetableFull({
       const res = await fetch(url, { headers: { accept: 'application/json' } });
       if (!res.ok) throw new Error(String(res.status));
       const data = (await res.json()) as { sets: TtSet[] };
-      setSets(data.sets);
-      if (data.sets.length && !data.sets.some((s) => s.day_type === 'weekday')) setDay(data.sets[0]!.day_type);
+      const mine = lineFilter === undefined ? data.sets : data.sets.filter((s) => s.line_id === lineFilter);
+      setSets(mine);
+      if (mine.length && !mine.some((s) => s.day_type === 'weekday')) setDay(mine[0]!.day_type);
       setState('done');
     } catch {
       setState('error');

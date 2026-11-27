@@ -25,7 +25,7 @@ import { IssueLog } from '../core/issues';
 import type { RunTrigger } from '../core/run';
 import { withRun } from '../core/run';
 import { emptySnapshotStats, upsertSnapshot } from '../core/snapshot';
-import { lineStationResolver, loadNetworkContext } from './network';
+import { lineStationResolver, lineStationSplitter, loadNetworkContext } from './network';
 import { tagoMinute, todayKst } from './time';
 import { replaceTimetableSets, type ScopeKey } from './writer';
 
@@ -66,6 +66,8 @@ export interface TagoBuildContext {
   hasStation: (id: string) => boolean;
   hasService: (id: string) => boolean;
   lineStationOf: (stationId: string, serviceId: string | null) => string | null;
+  /** 분기역 세트를 노선역별로 나누기(Q148, lineStationSplitter) — 없으면 나누지 않는다 */
+  splitSet?: (set: TimetableSet) => TimetableSet[];
 }
 
 export interface TagoBuildResult {
@@ -223,6 +225,7 @@ export function buildTagoSets(
       void _tago;
       return s;
     })
+    .flatMap((s) => (ctx.splitSet ? ctx.splitSet(s) : [s]))
     .sort((a, b) => a.id.localeCompare(b.id));
   return { sets, issues, files: out, stats };
 }
@@ -404,6 +407,7 @@ export async function runTagoTimetable(db: Queryable, opts: TagoRunOptions = {})
       hasStation: (id) => net.stations.has(id),
       hasService: (id) => net.services.has(id),
       lineStationOf: lsOf,
+      splitSet: lineStationSplitter(net.lineStations, (id) => net.services.get(id), net.stations.values()),
     };
     const raws: TagoRawFile[] = [];
     let calls = 0;

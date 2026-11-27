@@ -76,6 +76,7 @@ export const line = pgTable('line', {
   color: text('color'),
   description: text('description'),
   parentLineId: text('parent_line_id').references((): AnyPgColumn => line.id, { onUpdate: 'cascade' }),
+  branchOfId: text('branch_of_id').references((): AnyPgColumn => line.id, { onUpdate: 'cascade' }),
   ...rec(),
   ...meta(),
 });

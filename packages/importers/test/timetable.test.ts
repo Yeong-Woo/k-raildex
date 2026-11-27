@@ -9,6 +9,7 @@ import {
   directionLabel,
   hhmmToMinute,
   lineStationResolver,
+  lineStationSplitter,
   loopDirection,
   makeNameResolver,
   minuteToHhmm,
@@ -374,5 +375,97 @@ describe('lineStationResolver(2026-11-27)', () => {
     );
     expect(lsOf('stn-bj', 'svc')).toBe('ls-gyeongbu--bj');
     expect(lsOf('stn-j', 'svc')).toBeNull();
+  });
+});
+
+describe('분기역 시간표 노선역 나누기(Q148)', () => {
+  // 가(분기역) — 경부: 나·가·다·라 / 경인: 가·마·바. 계통 노선 = 경부·경인
+  const ls = [
+    ['gb', ['na', 'ga', 'da', 'ra']],
+    ['gi', ['ga', 'ma', 'ba']],
+    ['x', ['ra', 'sa']],
+  ].flatMap(([line, sts]) =>
+    (sts as string[]).map((st, i) => ({
+      id: `ls-${line}--${st}`,
+      line_id: `line-${line}`,
+      station_id: `stn-${st}`,
+      seq: i + 1,
+      line_role: null,
+      line_status: 'operating',
+    })),
+  );
+  const split = lineStationSplitter(ls, (s) =>
+    s === 'svc-1' ? { line_ids: ['line-gb', 'line-gi', 'line-x'], stop_patterns: [] } : undefined,
+  );
+  const set = (dests: (string | null)[]) => ({
+    id: 'tt-ga-k1-weekday-down',
+    station_id: 'stn-ga',
+    line_station_id: null,
+    service_id: 'svc-1',
+    entries: dests.map((d) => ({ dest_station_id: d })),
+  });
+  it('행선지까지 가는 노선으로 나누고, 못 정한 행은 원래 세트에', () => {
+    const out = split(set(['stn-ba', 'stn-sa', 'stn-ra', null]));
+    expect(out.map((s) => [s.id, s.line_station_id, s.entries.length])).toEqual([
+      ['tt-ga-k1-weekday-down', null, 1],
+      ['tt-ga-k1-weekday-down--gb', 'ls-gb--ga', 2],
+      ['tt-ga-k1-weekday-down--gi', 'ls-gi--ga', 1],
+    ]);
+  });
+  it('모두 한 노선이면 세트에 노선역만 적는다', () => {
+    expect(split(set(['stn-na', 'stn-sa']))).toEqual([{ ...set(['stn-na', 'stn-sa']), line_station_id: 'ls-gb--ga' }]);
+  });
+  it('이미 노선역이 있으면 그대로', () => {
+    const s = { ...set(['stn-ba']), line_station_id: 'ls-gb--ga' };
+    expect(split(s)).toEqual([s]);
+  });
+});
+
+describe('분기역 나누기 — 운행 계통 정차 패턴 우선(Q148)', () => {
+  // 청 — 1호선(L1): 청·제·서 / 경원(GW): 용·왕·청·회·소. 1호선 계통은 소·회·청·제·서·남·용 으로 다닌다(왕십리 쪽 경원선은 안 씀)
+  const mk = (line: string, sts: string[]) =>
+    sts.map((st, i) => ({
+      id: `ls-${line}--${st}`,
+      line_id: `line-${line}`,
+      station_id: `stn-${st}`,
+      seq: i + 1,
+      line_role: null,
+      line_status: 'operating',
+    }));
+  const ls = [
+    ...mk('l1', ['cheong', 'je', 'seo']),
+    ...mk('gw', ['yong', 'wang', 'cheong', 'hoe', 'so']),
+    ...mk('gb', ['seo', 'nam', 'yong', 'guro']),
+  ];
+  const pattern = ['so', 'hoe', 'cheong', 'je', 'seo', 'nam', 'yong', 'guro'].map((s) => `stn-${s}`);
+  const split = lineStationSplitter(ls, () => ({
+    line_ids: ['line-l1', 'line-gw', 'line-gb'],
+    stop_patterns: [pattern],
+    stop_pattern_ls: [pattern.map(() => 'x')],
+  }));
+  it('노선망으로는 경원선(왕십리)이 더 짧아도 계통이 다니는 1호선으로', () => {
+    const out = split({
+      id: 'tt-cheong-s11-weekday-down',
+      station_id: 'stn-cheong',
+      line_station_id: null,
+      service_id: 'svc-1',
+      entries: [{ dest_name: '구로' }, { dest_station_id: 'stn-so' }],
+    });
+    expect(out.map((s) => [s.line_station_id, s.entries.length])).toEqual([
+      [null, 1],
+      ['ls-gw--cheong', 1],
+    ]);
+    const named = lineStationSplitter(
+      ls,
+      () => ({ line_ids: ['line-l1', 'line-gw', 'line-gb'], stop_patterns: [pattern] }),
+      [{ id: 'stn-guro', name_ko: '구로', aliases: [], status: 'operating' }],
+    )({
+      id: 'tt-cheong-s11-weekday-down',
+      station_id: 'stn-cheong',
+      line_station_id: null,
+      service_id: 'svc-1',
+      entries: [{ dest_name: '구로' }],
+    });
+    expect(named.map((s) => s.line_station_id)).toEqual(['ls-l1--cheong']);
   });
 });

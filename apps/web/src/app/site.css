@@ -990,6 +990,26 @@ details.more > .body {
   background: var(--kr-fg);
   color: var(--kr-surface);
 }
+/* 노선역 탭(역 시간표, Q148) — 링크(자바스크립트 없이) */
+.seg.tabs {
+  flex-wrap: wrap;
+  margin: 0 0 var(--kr-space-3);
+}
+.seg a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--kr-surface);
+  color: var(--kr-fg-muted);
+  padding: 6px 10px;
+  min-height: 28px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.seg a[aria-current='true'] {
+  background: var(--kr-fg);
+  color: var(--kr-surface);
+}
 /* ---- 홈 ---- */
 .hero {
   padding: var(--kr-space-12) 0 var(--kr-space-8);

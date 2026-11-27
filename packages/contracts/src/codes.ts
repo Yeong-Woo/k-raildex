@@ -69,6 +69,7 @@ export const codes = {
   /** 시설 종류(0035) */
   facilityKind: table({
     depot: { ko: '차량기지' },
+    test_track: { ko: '시험 선로', desc: '차량·부품 시험용 선로(영업 노선 아님, Q141)' },
   }),
   /** 시설 ↔ 노선 역할(0035) */
   facilityLineRole: table({

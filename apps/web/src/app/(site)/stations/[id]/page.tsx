@@ -65,7 +65,13 @@ export default async function StationPage({ params, searchParams }: { params: Pa
   const fromServices = s.services.length > 0;
   const trains = s.services.filter((x) => serviceGroupOf(x.kind) === 'train');
   const metros = s.services.filter((x) => serviceGroupOf(x.kind) === 'metro');
-  const dayTypes = [...new Set(s.timetables.map((t) => t.day_type))].sort(compareDayType);
+  // 노선역 탭(round-07 Q148): 시간표가 둘 이상 노선(노선역)에 붙으면 노선별로 나눠 보인다. 노선역 미정 세트는 "노선 미정" 탭
+  const ttKey = (lid: string | null) => lid ?? 'none';
+  const ttLines = [...new Set(s.timetables.map((t) => ttKey(t.line_id)))];
+  const ttSelRaw = firstParam(sp.tt);
+  const ttSel = ttSelRaw && ttLines.includes(ttSelRaw) ? ttSelRaw : (ttLines[0] ?? 'none');
+  const shownTts = ttLines.length > 1 ? s.timetables.filter((t) => ttKey(t.line_id) === ttSel) : s.timetables;
+  const dayTypes = [...new Set(shownTts.map((t) => t.day_type))].sort(compareDayType);
   const lineColor = (lid: string | null) => (lid ? (lineIndex.get(lid)?.color ?? null) : null);
   const asOf = [...new Set(s.timetables.map((t) => t.data_as_of).filter(Boolean))];
 
@@ -260,6 +266,22 @@ export default async function StationPage({ params, searchParams }: { params: Pa
               <p className="note">수집된 시간표가 없습니다.</p>
             ) : (
               <div className="surface">
+                {ttLines.length > 1 ? (
+                  <nav className="seg tabs" aria-label="노선별 시간표" data-testid="tt-line-tabs">
+                    {ttLines.map((k) => {
+                      const l = k === 'none' ? undefined : lineIndex.get(k);
+                      return (
+                        <a
+                          key={k}
+                          href={`?${new URLSearchParams({ ...(daySel ? { day: daySel } : {}), tt: k }).toString()}#timetable`}
+                          aria-current={k === ttSel ? 'true' : undefined}
+                        >
+                          {l ? <LineChip line={l} link={false} /> : '노선 미정'}
+                        </a>
+                      );
+                    })}
+                  </nav>
+                ) : null}
                 {dayTypes.map((d, i) => (
                   <details
                     key={d}
@@ -273,10 +295,10 @@ export default async function StationPage({ params, searchParams }: { params: Pa
                     >
                       {codeLabel('dayType', d)}{' '}
                       <span className="badge outline">
-                        {s.timetables.filter((t: Tt) => t.day_type === d).length}개 방면
+                        {shownTts.filter((t: Tt) => t.day_type === d).length}개 방면
                       </span>
                     </summary>
-                    {s.timetables
+                    {shownTts
                       .filter((t: Tt) => t.day_type === d)
                       .map((t: Tt) => {
                         const l = t.line_id ? lineIndex.get(t.line_id) : undefined;
@@ -297,7 +319,9 @@ export default async function StationPage({ params, searchParams }: { params: Pa
                   </details>
                 ))}
                 <TimetableFull
+                  key={ttSel}
                   url={paths.timetableJson(s.id)}
+                  lineFilter={ttLines.length > 1 ? (ttSel === 'none' ? null : ttSel) : undefined}
                   dayLabels={labels(codes.dayType)}
                   directionLabels={labels(codes.direction)}
                   lineNames={Object.fromEntries(s.lines.map((l) => [l.line_id, l.line_name_ko]))}

@@ -318,13 +318,10 @@ describe('품질·지도(픽스처)', () => {
     expect(Object.keys(QUALITY_GUIDES).sort()).toEqual(s.rules.map((r) => r.id).sort());
     expect(s.guide_common.length).toBeGreaterThan(0);
     expect(count('V-S10')).toBe(2);
-    expect(count('V-S11')).toBe(1);
+    // Q143 A: V-S11·V-S12 는 기본계획 이상만 — 예비타당성 단계(plan-fx-withdrawn)는 빠진다
+    expect(count('V-S11')).toBe(0);
     expect(count('V-S12')).toBe(1);
     expect(count('V-S13')).toBe(0);
-    const s11 = await qualityItems(db, 'V-S11', { limit: 10, offset: 0 });
-    expect(s11.items).toEqual([
-      { entity_type: 'plan', entity_id: 'plan-fx-withdrawn', label: '시험 철회 사업', detail: expect.any(String) },
-    ]);
     const s12 = await qualityItems(db, 'V-S12', { limit: 10, offset: 0 });
     expect(s12.items[0]).toMatchObject({ entity_id: 'plan-fx-ext', detail: '개략 선형뿐' });
     await domainError(qualityItems(db, 'V-S99', { limit: 1, offset: 0 }), 'not_found');

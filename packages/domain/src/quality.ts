@@ -15,6 +15,8 @@ import { QUALITY_GUIDE_COMMON, QUALITY_GUIDES, type QualityGuide } from './quali
  * 검수하면서 메모를 고치면 품질 목록 X-milestone-auto 에서도 빠진다.
  */
 export const MILESTONE_AUTO_MARK = '자동 선택(검수 필요)';
+/** 기본계획 이상·미개통 단계(2026-11-27 사용자 결정 — 노선 개체·개통 예정·선형 검수는 이 단계부터, Q143) */
+const BASIC_PLAN_OR_LATER_UNOPENED = `'basic_plan', 'basic_design', 'eia', 'detail_design', 'construction', 'trial_run'`;
 
 export interface QualityRule {
   id: string;
@@ -152,7 +154,10 @@ export const QUALITY_RULES: readonly QualityRule[] = [
             FROM plan p
            WHERE p.deleted_at IS NULL AND p.review_status = 'verified'
              AND EXISTS (SELECT 1 FROM plan_stage_event e WHERE e.plan_id = p.id)
-             AND NOT EXISTS (SELECT 1 FROM plan_stage_event e WHERE e.plan_id = p.id AND e.stage <> 'plan_listed')`,
+             AND NOT EXISTS (SELECT 1 FROM plan_stage_event e WHERE e.plan_id = p.id AND e.stage <> 'plan_listed')
+             -- Q144 A: 최신(현행·초안) 상위 계획에 반영된 신규 사업은 상위계획 반영 단계뿐인 것이 정상
+             AND NOT EXISTS (SELECT 1 FROM plan_ref r JOIN plan_program pp ON pp.id = r.program_id AND pp.deleted_at IS NULL
+                              WHERE r.plan_id = p.id AND pp.status IN ('current', 'draft'))`,
   },
   {
     id: 'V-S09',
@@ -182,7 +187,8 @@ export const QUALITY_RULES: readonly QualityRule[] = [
     sql: `SELECT 'plan' AS entity_type, p.id AS entity_id, s.stage AS detail, p.name_ko || p.id AS sort_key
             FROM plan p JOIN v_plan_stage s ON s.plan_id = p.id
            WHERE p.deleted_at IS NULL AND p.scope = 'line'
-             AND s.stage IS DISTINCT FROM 'opened' AND s.stage IS DISTINCT FROM 'abandoned' AND s.stage IS DISTINCT FROM 'dormant'
+             -- Q143 A: 기본계획 이상만(공식·보도 개통 예정은 대개 기본계획 이후에 나온다, Q94)
+             AND s.stage IN (${BASIC_PLAN_OR_LATER_UNOPENED})
              AND NOT EXISTS (SELECT 1 FROM v_plan_target_open t WHERE t.plan_id = p.id AND t.date_from IS NOT NULL)`,
   },
   {
@@ -191,8 +197,11 @@ export const QUALITY_RULES: readonly QualityRule[] = [
     sql: `SELECT 'plan' AS entity_type, m.plan_id AS entity_id,
                  CASE WHEN sh.plan_id IS NULL THEN '선형 없음' ELSE '개략 선형뿐' END AS detail, m.name_ko || m.plan_id AS sort_key
             FROM map_at_plans(NULL, 'concept', false) m
+            JOIN v_plan_stage st ON st.plan_id = m.plan_id
             LEFT JOIN v_plan_shape sh ON sh.plan_id = m.plan_id
-           WHERE sh.plan_id IS NULL OR sh.quality = 'schematic'`,
+           WHERE (sh.plan_id IS NULL OR sh.quality = 'schematic')
+             -- Q143 A: 기본계획 이상만
+             AND st.stage IN (${BASIC_PLAN_OR_LATER_UNOPENED})`,
   },
   {
     id: 'V-S13',
@@ -362,7 +371,7 @@ export const QUALITY_RULES: readonly QualityRule[] = [
             LEFT JOIN v_plan_shape sh ON sh.plan_id = p.id
            WHERE p.deleted_at IS NULL AND p.scope = 'line'
              -- 2026-11-27 사용자 결정: 노선 개체는 기본계획 이상 계획만 만든다(그 전 단계는 계획 선형으로만)
-             AND st.stage IN ('basic_plan', 'basic_design', 'eia', 'detail_design', 'construction', 'trial_run', 'opened')
+             AND st.stage IN (${BASIC_PLAN_OR_LATER_UNOPENED}, 'opened')
              AND NOT EXISTS (SELECT 1 FROM plan_line pl JOIN line l ON l.id = pl.line_id AND l.deleted_at IS NULL WHERE pl.plan_id = p.id)
              AND coalesce(p.editor_note, '') NOT LIKE '%노선 연결 안 함%'`,
   },

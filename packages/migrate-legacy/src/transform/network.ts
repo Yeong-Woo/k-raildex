@@ -434,6 +434,7 @@ export function transformNetwork(input: NetworkInput, report: MigrationReport): 
       color: l.color ?? null,
       description: l.description ?? null,
       parent_line_id: null,
+      branch_of_id: null,
       ...base,
       sources: [...base.sources, ...(fieldSources.get(l.id) ?? [])],
       names: aliasNames(l.aliases, l.name.ko),

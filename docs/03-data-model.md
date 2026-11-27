@@ -408,6 +408,7 @@ CREATE TABLE line (
   color              text CHECK (color ~ '^#[0-9A-Fa-f]{6}$'),
   description        text,
   parent_line_id     text REFERENCES line(id),  -- 기존 공사 구간 노선 → 합칠 노선 (Q22 A, 점진 통합)
+  branch_of_id       text REFERENCES line(id),  -- 지선의 본선 수동 지정(노선번호 본선이 없을 때만 — 북영주·금장삼각선 → 중앙선, Q153 B, 0037)
   REC
 );
 CREATE TABLE line_region   (line_id text REFERENCES line(id), region_code text REFERENCES ref_region(code), PRIMARY KEY (line_id, region_code));
@@ -702,7 +703,7 @@ CREATE TABLE timetable_set (
   route_code      text NOT NULL,
   day_type text NOT NULL, direction text NOT NULL, direction_label text, day_note text,
   data_as_of text, source_id text NOT NULL REFERENCES source(id), import_run_id bigint,
-  UNIQUE (station_id, route_code, day_type, direction)
+  UNIQUE NULLS NOT DISTINCT (station_id, route_code, day_type, direction, line_station_id)  -- 분기역 시간표는 노선역별 세트(Q148, 0037)
 );
 CREATE TABLE timetable_entry (
   set_id text REFERENCES timetable_set(id) ON DELETE CASCADE,
@@ -925,25 +926,25 @@ CREATE TABLE app_setting (key text PRIMARY KEY, value jsonb NOT NULL, updated_at
 
 모든 뷰는 소프트 삭제된 행(`deleted_at IS NOT NULL`)과 삭제된 부모의 하위 행을 제외한다.
 
-| 뷰                                                                  | 정의                                                                                                                                                   | 기존 대응                  |
-| ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------- |
-| `v_station_status`                                                  | 역 상태·개통·폐지 = 노선역에서 계산(4-5절), 없으면 `own_*`                                                                                             | `Station.status/opened_at` |
-| `v_station_line`                                                    | 역 그룹 ↔ 노선(노선역의 seq·km·역번호·상태·이름·운영기관 = v_line_station_operator)                                                                    | `Station.line_ids`         |
-| `v_line_station_operator`                                           | 노선역의 현재 운영기관(노선역 값 > 노선 운영기관이 하나면 그것, 통합 기관은 승계 기관) · basis line_station/line/ambiguous/none (0032)                 | 관리 앱·V-H18              |
-| `v_line_branch`                                                     | 지선 → 본선(국토교통부 고시 노선번호: 지선 다섯 자리의 앞 세 자리 = 본선 번호, 0033). 저장하지 않음 — `line.parent_line_id`(Q22 공사 구간 통합)와 별개 | 노선 목록·상세 지선        |
-| `v_station_line_class`                                              | 소속 노선 rail_class 합집합(없으면 conventional)                                                                                                       | `line_classes`             |
-| `v_station_service`                                                 | 정차 계통: 정차 패턴의 노선역 → 역, 패턴 없으면 소속 노선 모든 역(`assumed`)                                                                           | `service_kinds`            |
-| `v_station_area` · `v_line_area` · `v_service_area` · `v_plan_area` | 권역(기존 build.ts 규칙 이식)                                                                                                                          | `areas`                    |
-| `v_station_review`                                                  | 소속 노선 중 하나라도 verified 면 verified                                                                                                             | 상속 review                |
-| `v_plan_stage`                                                      | stage_override ?? 단계 이력 규칙(아래)                                                                                                                 | `Plan.stage`               |
-| `v_plan_target_open`                                                | 유효한 `plan_milestone(stage=opened)`(as_of 최신)                                                                                                      | `Plan.target_open`         |
-| `v_unopened_target`                                                 | 미개통 역·노선의 개통 목표 = 연결 계획 개통 예정 중 가장 이른 것 ?? 개체 opened                                                                        | `unopenedTargetDate()`     |
-| `v_plan_shape`                                                      | 계획별 표시 선형과 품질 등급(osm_construction > traced/official > schematic)                                                                           | plans.geojson              |
-| `v_map_at(year)`                                                    | **시점별 지도**(미래 지도, 6-1절)                                                                                                                      | (신설)                     |
-| `v_event_all`                                                       | event ∪ 파생 이벤트                                                                                                                                    | events.json                |
-| `v_timetable_summary`                                               | 세트별 첫차·막차·편수·by_hour[24]                                                                                                                      | timetable-summaries.json   |
-| `mv_search` (물리화)                                                | 이름·별칭·정식 명칭·역번호·초성·용어                                                                                                                   | search-index.json          |
-| `mv_map_station`, `mv_map_line` (물리화)                            | 현재 지도 재료(시설 제외, 근사 좌표 스냅)                                                                                                              | map/*.geojson              |
+| 뷰                                                                  | 정의                                                                                                                                                                                                                          | 기존 대응                  |
+| ------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
+| `v_station_status`                                                  | 역 상태·개통·폐지 = 노선역에서 계산(4-5절), 없으면 `own_*`                                                                                                                                                                    | `Station.status/opened_at` |
+| `v_station_line`                                                    | 역 그룹 ↔ 노선(노선역의 seq·km·역번호·상태·이름·운영기관 = v_line_station_operator)                                                                                                                                           | `Station.line_ids`         |
+| `v_line_station_operator`                                           | 노선역의 현재 운영기관(노선역 값 > 노선 운영기관이 하나면 그것, 통합 기관은 승계 기관) · basis line_station/line/ambiguous/none (0032)                                                                                        | 관리 앱·V-H18              |
+| `v_line_branch`                                                     | 지선 → 본선(국토교통부 고시 노선번호: 지선 다섯 자리의 앞 세 자리 = 본선 번호, 0033. 그 본선 번호가 없으면 `line.branch_of_id`, basis line_no·manual, 0037). 저장하지 않음 — `line.parent_line_id`(Q22 공사 구간 통합)와 별개 | 노선 목록·상세 지선        |
+| `v_station_line_class`                                              | 소속 노선 rail_class 합집합(없으면 conventional)                                                                                                                                                                              | `line_classes`             |
+| `v_station_service`                                                 | 정차 계통: 정차 패턴의 노선역 → 역, 패턴 없으면 소속 노선 모든 역(`assumed`)                                                                                                                                                  | `service_kinds`            |
+| `v_station_area` · `v_line_area` · `v_service_area` · `v_plan_area` | 권역(기존 build.ts 규칙 이식)                                                                                                                                                                                                 | `areas`                    |
+| `v_station_review`                                                  | 소속 노선 중 하나라도 verified 면 verified                                                                                                                                                                                    | 상속 review                |
+| `v_plan_stage`                                                      | stage_override ?? 단계 이력 규칙(아래)                                                                                                                                                                                        | `Plan.stage`               |
+| `v_plan_target_open`                                                | 유효한 `plan_milestone(stage=opened)`(as_of 최신)                                                                                                                                                                             | `Plan.target_open`         |
+| `v_unopened_target`                                                 | 미개통 역·노선의 개통 목표 = 연결 계획 개통 예정 중 가장 이른 것 ?? 개체 opened                                                                                                                                               | `unopenedTargetDate()`     |
+| `v_plan_shape`                                                      | 계획별 표시 선형과 품질 등급(osm_construction > traced/official > schematic)                                                                                                                                                  | plans.geojson              |
+| `v_map_at(year)`                                                    | **시점별 지도**(미래 지도, 6-1절)                                                                                                                                                                                             | (신설)                     |
+| `v_event_all`                                                       | event ∪ 파생 이벤트                                                                                                                                                                                                           | events.json                |
+| `v_timetable_summary`                                               | 세트별 첫차·막차·편수·by_hour[24]                                                                                                                                                                                             | timetable-summaries.json   |
+| `mv_search` (물리화)                                                | 이름·별칭·정식 명칭·역번호·초성·용어                                                                                                                                                                                          | search-index.json          |
+| `mv_map_station`, `mv_map_line` (물리화)                            | 현재 지도 재료(시설 제외, 근사 좌표 스냅)                                                                                                                                                                                     | map/*.geojson              |
 
 **현재 단계 규칙**: 단계 이력을 날짜순으로 훑어 `reached` 는 진행도 최댓값 갱신, `withdrawn` 은 그 단계 직전으로 되돌림, `dormant` 는 휴면 표시(이후 reached 가 오면 해제), `abandoned`·`opened` 는 종결. 같은 날짜의 항목은 진행 단계(reached) 먼저, 폐기·휴면(reached abandoned·dormant, kind dormant)을 나중에 둔다 — 같은 날 고시가 반영과 폐기를 함께 담는 경우 폐기(0018, 기존 build-plans 의 단계 순서와 같음).
 
