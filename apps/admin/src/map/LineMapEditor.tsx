@@ -34,6 +34,8 @@ import { ReviewIssues, ReviewPicker, ReviewTag, useReviewList } from './ReviewPi
 /** 노선색이 없을 때(선·순서 표식·점선) — 지도와 같은 검정에 가까운 색 */
 const DEFAULT_COLOR = NO_COLOR_LINE;
 
+/** 배경 노선: 고른 노선이 없으면 다른 대상 지도(currentLineLayers)와 같은 진하기, 고르면 조금만 낮춘다 */
+const BG_STYLE = { none: { width: 3, opacity: 0.85 }, selected: { width: 2.5, opacity: 0.55 } } as const;
 const BG_LAYERS: LayerSpec[] = [
   {
     id: 'lm-line',
@@ -41,7 +43,11 @@ const BG_LAYERS: LayerSpec[] = [
     source: 'lm-lines',
     filter: ['!', isConstructionExpression()],
     layout: { 'line-cap': 'round', 'line-join': 'round' },
-    paint: { 'line-color': ['coalesce', ['get', 'color'], NO_COLOR_LINE], 'line-width': 2, 'line-opacity': 0.3 },
+    paint: {
+      'line-color': ['coalesce', ['get', 'color'], NO_COLOR_LINE],
+      'line-width': BG_STYLE.none.width,
+      'line-opacity': BG_STYLE.none.opacity,
+    },
   },
   {
     id: 'lm-line-construction',
@@ -50,9 +56,9 @@ const BG_LAYERS: LayerSpec[] = [
     filter: isConstructionExpression(),
     paint: {
       'line-color': CONSTRUCTION_LINE.color,
-      'line-width': 2,
+      'line-width': BG_STYLE.none.width,
       'line-dasharray': [...CONSTRUCTION_LINE.dasharray],
-      'line-opacity': 0.4,
+      'line-opacity': BG_STYLE.none.opacity,
     },
   },
 ];
@@ -209,6 +215,17 @@ export function LineMapEditor({
     queryFn: () => apiOptional<FeatureCollection>('/v1/admin/map/depots'),
   });
   useGeoJsonLayer(map, 'lm-depots', depots.data, DEPOT_LAYERS);
+
+  // 노선을 고르면 배경 노선만 조금 흐리게(고른 노선이 돋보이게), 해제하면 원래대로
+  useEffect(() => {
+    if (!map) return;
+    const st = lineId ? BG_STYLE.selected : BG_STYLE.none;
+    for (const id of ['lm-line', 'lm-line-construction']) {
+      if (!map.getLayer(id)) continue;
+      map.setPaintProperty(id, 'line-width', st.width);
+      map.setPaintProperty(id, 'line-opacity', st.opacity);
+    }
+  }, [map, lineId, lines.data]);
 
   // 추가 모드가 아닐 때만 고른 노선 정보 팝업
   useFeaturePopup(map, POPUP_LAYERS, !adding);
