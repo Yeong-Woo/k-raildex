@@ -9,6 +9,7 @@ import {
   ensureServiceUser,
   fixtureOps,
   lineStopTable,
+  publicLine,
   stopNeighbors,
 } from '../src';
 
@@ -153,5 +154,31 @@ describe('정거장 순서 표(v_line_stop·v_line_stop_link)', () => {
     const sig = fc.features.find((f) => f.id === 'stn-fx-sig');
     expect(sig?.properties).toMatchObject({ kind: 'operational', stop_class: 'signal_station', status: 'operating' });
     expect(fc.features.find((f) => f.id === 'stn-fx-a')?.properties).toMatchObject({ kind: 'station' });
+  });
+
+  it('환승(0047): 여객 취급 정거장끼리만 — 신호장 정거장은 같은 역 그룹이어도 환승 아님', async () => {
+    await applyChangeset(db, {
+      title: '두 노선 신호장',
+      origin: 'admin_edit',
+      author_id: author,
+      ops: [
+        {
+          op: 'create',
+          entity_type: 'line_station',
+          data: {
+            id: 'ls-fx-two--fx-sig',
+            line_id: 'line-fx-two',
+            station_id: 'stn-fx-sig',
+            seq: 9,
+            korail_class: 'signal_station',
+            status: 'operating',
+          },
+        },
+      ],
+    });
+    const one = await publicLine(db, 'line-fx-one');
+    const at = (id: string) => one!.stations.find((s) => s.station_id === id)!.transfer_line_ids;
+    expect(at('stn-fx-a')).toEqual(['line-fx-two']);
+    expect(at('stn-fx-sig')).toEqual([]);
   });
 });

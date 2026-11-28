@@ -92,8 +92,9 @@ export async function publicLine(db: Queryable, id: string): Promise<PublicLineD
       `SELECT v.station_id, v.seq, v.branch, v.km::float8 AS km, v.station_code, v.order_confirmed, v.name_ko, v.name_en, v.status,
               ${fz('v.opened')} AS opened, ${fz('v.closed')} AS closed,
               CASE WHEN o.id IS NULL THEN NULL ELSE json_build_object('id', o.id, 'name_ko', o.name_ko) END AS operator,
-              coalesce((SELECT array_agg(DISTINCT v2.line_id ORDER BY v2.line_id) FROM v_station_line v2
-                         WHERE v2.station_id = v.station_id AND v2.line_id <> v.line_id), '{}') AS transfer_line_ids
+              -- 환승 = 여객 취급 정거장끼리만(v_line_station_transfer, 0047) — 신호장·신호소·조차장·화물역·화물선 제외
+              coalesce((SELECT array_agg(t.transfer_line_id ORDER BY t.transfer_line_id) FROM v_line_station_transfer t
+                         WHERE t.station_id = v.station_id AND t.line_id = v.line_id), '{}') AS transfer_line_ids
          FROM v_station_line v LEFT JOIN operator o ON o.id = v.operator_id AND o.deleted_at IS NULL
         WHERE v.line_id = $1 ORDER BY v.seq`,
       [id],

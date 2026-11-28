@@ -54,7 +54,10 @@ function RouteList({
 }) {
   return (
     <ol className="route" style={{ ['--line' as string]: color ?? 'var(--kr-border-strong)' }}>
-      {stops.map((s) => {
+      {stops.map((s, i) => {
+        // 역간 거리 = 앞 정거장과의 영업 거리 차이(둘 다 있을 때만)
+        const prevKm = i > 0 ? stops[i - 1]!.km : null;
+        const gap = s.km != null && prevKm != null ? Math.abs(s.km - prevKm) : null;
         const xfers = s.transfer_line_ids.map((id) => lineIndex.get(id)).filter((x) => !!x);
         const unopened = s.status === 'planned' || s.status === 'under_construction';
         return (
@@ -67,6 +70,15 @@ function RouteList({
             <span className="nm">
               <a href={paths.station(s.station_id)}>{s.name_ko}</a>
               {s.name_en ? <small>{s.name_en}</small> : null}
+            </span>
+            <span className="km num" title="시점부터 영업 거리 · 앞 정거장과의 거리">
+              {s.km != null ? (
+                <>
+                  {fmtKm(s.km)}
+                  <small>km</small>
+                </>
+              ) : null}
+              {gap != null ? <small className="gap">+{fmtKm(gap)}</small> : null}
             </span>
             <span className="xs">
               {s.status !== 'operating' ? <StatusBadge status={s.status} /> : null}
@@ -257,7 +269,8 @@ export default async function LinePage({ params }: { params: Params }) {
                 ) : null}
                 <div className="legend-row" style={{ margin: '0 calc(-1 * var(--kr-space-4))' }}>
                   <span>○ 역</span>
-                  <span>◯ 굵은 원 = 환승역</span>
+                  <span>◯ 굵은 원 = 환승역(여객 취급 정거장끼리)</span>
+                  <span>오른쪽 = 시점부터 영업 거리(km) · +앞 정거장과의 거리</span>
                   <span>왼쪽 숫자 = 노선별 역번호</span>
                   <span>미개통 역은 상태 배지</span>
                 </div>

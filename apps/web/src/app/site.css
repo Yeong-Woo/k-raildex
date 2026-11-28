@@ -741,8 +741,8 @@ details.more > .body {
 .route li {
   position: relative;
   display: grid;
-  grid-template-columns: 3rem 1fr;
-  grid-template-areas: 'code nm' 'code xs';
+  grid-template-columns: 3rem 1fr auto;
+  grid-template-areas: 'code nm km' 'code xs km';
   column-gap: var(--kr-space-2);
   padding: 6px 0 6px 28px;
   break-inside: avoid;
@@ -799,6 +799,23 @@ details.more > .body {
   font-weight: var(--kr-weight-regular);
   font-size: var(--kr-text-xs);
   color: var(--kr-fg-subtle);
+}
+.route .km {
+  grid-area: km;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-size: var(--kr-text-xs);
+  color: var(--kr-fg-muted);
+  padding-top: 3px;
+  white-space: nowrap;
+}
+.route .km small {
+  margin-left: 2px;
+  color: var(--kr-fg-subtle);
+}
+.route .km small.gap {
+  margin-left: 0;
 }
 .route .xs {
   grid-area: xs;

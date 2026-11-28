@@ -65,7 +65,7 @@ export const publicLineStopSchema = z
     opened: pubFuzzy,
     closed: pubFuzzy,
     operator: pubRefSchema.nullable(),
-    /** 이 역의 다른 노선(환승) */
+    /** 이 정거장에서 갈아탈 수 있는 다른 노선(여객 취급 정거장끼리만 — v_line_station_transfer, 0047) */
     transfer_line_ids: z.array(z.string()),
   })
   .strict();
