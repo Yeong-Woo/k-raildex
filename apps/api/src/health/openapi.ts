@@ -199,6 +199,8 @@ export function buildOpenApi(): Json {
     ['post', '/v1/admin/stations/{id}/merge', '역 병합'],
     ['get', '/v1/admin/lines/{id}/stations', '노선역 목록'],
     ['put', '/v1/admin/lines/{id}/stations', '노선역 전체 교체'],
+    ['get', '/v1/admin/lines/{id}/stops', '정거장 순서(노선역 + 노선 위 신호장·신호소·조차장, 앞뒤·거리)'],
+    ['get', '/v1/admin/stops/{type}/{id}/neighbors', '정거장 앞뒤(type station·facility, 모든 노선)'],
     ['get', '/v1/admin/changesets', '변경 묶음 목록(status, origin)'],
     ['post', '/v1/admin/changesets', 'draft 제출'],
     ['get', '/v1/admin/changesets/{id}', '변경 묶음 상세'],

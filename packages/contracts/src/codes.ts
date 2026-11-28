@@ -67,16 +67,27 @@ export const codes = {
   facilityKind: table({
     depot: { ko: '차량기지' },
     test_track: { ko: '시험 선로', desc: '차량·부품 시험용 선로(영업 노선 아님, Q141)' },
-    signal_box: {
-      ko: '신호장·신호소',
-      desc: '여객 취급 없이 열차 교행·대피만 하는 정거장(2026-11-27 역 그룹에서 이전)',
-    },
+    // 신호장·신호소(2026-11-27 역 그룹에서 이전)는 2026-11-28 둘로 나눔(signal_box → signal_station·signal_post, 0042·0043)
+    signal_station: { ko: '신호장', desc: '여객·화물 취급 없이 열차 교행·대피를 하는 정거장' },
+    signal_post: { ko: '신호소', desc: '열차 교행·대피 없이 신호만 다루는 정거장(분기 등)' },
     yard: { ko: '조차장', desc: '화차 조성·입환 시설(2026-11-27 역 그룹에서 이전)' },
   }),
   /** 시설 ↔ 노선 역할(0035) */
   facilityLineRole: table({
     serves: { ko: '담당 노선', desc: '이 시설이 차량을 맡는 노선' },
     connects: { ko: '붙은 선로', desc: '시설이 이어진 노선(기지선 등)' },
+    located: {
+      ko: '노선 위 정거장',
+      desc: '신호장·신호소·조차장이 이 노선 위에 있는 자리(앞 노선역·km) — 정거장 순서(0042)',
+    },
+  }),
+  /** 정거장 종류(일반 종류, 운영기관과 무관 — 0042, 2026-11-28). 노선역은 역 그룹 종류, 노선 위 시설은 시설 종류에서 */
+  stopKind: table({
+    station: { ko: '역' },
+    freight_station: { ko: '화물역' },
+    signal_station: { ko: '신호장' },
+    signal_post: { ko: '신호소' },
+    yard: { ko: '조차장' },
   }),
   /** 시설(차량기지) 기능(0035) */
   facilityFunction: table({

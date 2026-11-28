@@ -68,7 +68,7 @@ export const TABLE_LABELS: Record<string, string> = {
   event_area: '연표 이벤트 권역',
   event_target: '연표 이벤트 대상',
   external_ref: '외부 코드',
-  facility_line: '시설 노선(담당·붙은 선로)',
+  facility_line: '시설 노선(담당·붙은 선로·노선 위 정거장)',
   facility_osm_map: '시설 OSM 선로 대응',
   id_redirect: 'id 바뀜(옛 id → 새 id)',
   line_operator: '노선 운영기관',
@@ -450,7 +450,12 @@ export async function schemaTrace(db: Queryable, type: TraceRootType, id: string
         sub: f.kind,
         table: 'facility',
       });
-      b.edge(fk, lk, f.role === 'serves' ? '담당 노선' : '붙은 선로', 'facility_line');
+      b.edge(
+        fk,
+        lk,
+        f.role === 'serves' ? '담당 노선' : f.role === 'located' ? '노선 위 정거장' : '붙은 선로',
+        'facility_line',
+      );
     }
     // 지도: OSM 선형(v_line_way)·계획 선형(v_line_plan_shape)
     const way = await one<{ n: number; km: number | null; cons: number }>(
@@ -768,9 +773,9 @@ const CASES: { key: string; label: string; desc: string; type: TraceRootType; sq
   {
     key: 'signal-box',
     label: '시설: 신호장',
-    desc: '역 그룹에서 시설로 옮긴 신호장(노선 위치는 facility_line.note)',
+    desc: '노선 위 정거장 신호장(facility_line role located — 앞 노선역·km, 정거장 순서 v_line_stop)',
     type: 'facility',
-    sql: `SELECT f.id, f.name_ko FROM facility f WHERE f.deleted_at IS NULL AND f.kind = 'signal_box' AND EXISTS (SELECT 1 FROM facility_line x WHERE x.facility_id = f.id) ORDER BY f.id LIMIT 1`,
+    sql: `SELECT f.id, f.name_ko FROM facility f WHERE f.deleted_at IS NULL AND f.kind = 'signal_station' AND EXISTS (SELECT 1 FROM facility_line x WHERE x.facility_id = f.id AND x.role = 'located') ORDER BY f.id LIMIT 1`,
   },
   {
     key: 'construction-station',

@@ -97,6 +97,13 @@ export function LineStationsEditor({ lineId }: { lineId: string }) {
   if (q.error) return <Empty>{errorText(q.error)}</Empty>;
 
   const visible = rows.filter((r) => !hideBranches || r.branch == null);
+  const junctions = rows
+    .filter((r): r is LsRow & { id: string } => !!r.id)
+    .map((r) => ({
+      id: r.id,
+      branch: r.branch,
+      label: `${rows.indexOf(r) + 1}. ${r.station_name_ko ?? r.station_id}${r.branch ? ` (${r.branch})` : ''}`,
+    }));
   const branches = new Set(rows.map((r) => r.branch).filter(Boolean));
 
   return (
@@ -205,6 +212,7 @@ export function LineStationsEditor({ lineId }: { lineId: string }) {
                       regress={regress.has(i)}
                       error={rowErrors[i]}
                       operators={operators.data?.items ?? []}
+                      junctions={junctions}
                       onToggle={(shift) => toggle(r._key, shift)}
                       onChange={(p) => update(r._key, p)}
                       onMove={(d) => move(i, i + d)}
@@ -254,6 +262,7 @@ function SortableRow({
   regress,
   error,
   operators,
+  junctions,
   onToggle,
   onChange,
   onMove,
@@ -266,6 +275,8 @@ function SortableRow({
   regress: boolean;
   error: string | undefined;
   operators: { id: string; name_ko: string | null }[];
+  /** 갈라지는 노선역 후보(저장된 노선역) */
+  junctions: { id: string; label: string; branch: string | null }[];
   onToggle: (shift: boolean) => void;
   onChange: (p: Partial<LsRow>) => void;
   onMove: (d: number) => void;
@@ -342,8 +353,29 @@ function SortableRow({
             className="h-8 px-1.5 text-xs"
             aria-label="지선"
             value={row.branch ?? ''}
-            onChange={(e) => onChange({ branch: s(e.target.value) })}
+            onChange={(e) =>
+              onChange({ branch: s(e.target.value), ...(e.target.value ? {} : { branch_from_id: null }) })
+            }
           />
+          {row.branch ? (
+            <select
+              className="mt-0.5 h-6 w-full rounded border border-border bg-bg px-0.5 text-[10px]"
+              aria-label="갈라지는 노선역"
+              title="이 지선이 갈라져 나오는 노선역(지선 행 하나에만 — 정거장 앞뒤 계산)"
+              data-testid="ls-branch-from"
+              value={row.branch_from_id ?? ''}
+              onChange={(e) => onChange({ branch_from_id: s(e.target.value) })}
+            >
+              <option value="">갈라지는 곳 —</option>
+              {junctions
+                .filter((j) => j.branch !== row.branch && j.id !== row.id)
+                .map((j) => (
+                  <option key={j.id} value={j.id}>
+                    {j.label}
+                  </option>
+                ))}
+            </select>
+          ) : null}
         </td>
         <td className="px-1">
           <Input

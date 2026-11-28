@@ -127,6 +127,28 @@ export const HARD_RULES: HardRule[] = [
                   OR mo.operator_id IS DISTINCT FROM 'op-korail')`,
   },
   {
+    id: 'V-H19',
+    message:
+      '정거장 위치(0042): 노선 위 정거장(located)은 신호장·신호소·조차장만, 앞 노선역은 같은 노선의 살아 있는 노선역. 갈라지는 노선역(branch_from_id)은 같은 노선의 다른 지선(또는 본선) 노선역',
+    sql: `SELECT fl.facility_id AS entity_id, fl.line_id || ' 시설 종류 ' || f.kind AS detail
+            FROM facility_line fl JOIN facility f ON f.id = fl.facility_id
+           WHERE fl.facility_id = ANY($1) AND f.deleted_at IS NULL AND fl.role = 'located'
+             AND f.kind NOT IN ('signal_station', 'signal_post', 'yard')
+          UNION ALL
+          SELECT fl.facility_id, fl.line_id || ' 앞 노선역 ' || fl.after_line_station_id
+            FROM facility_line fl JOIN facility f ON f.id = fl.facility_id
+            LEFT JOIN line_station a ON a.id = fl.after_line_station_id
+           WHERE (fl.facility_id = ANY($1) OR fl.after_line_station_id = ANY($1)) AND f.deleted_at IS NULL
+             AND fl.after_line_station_id IS NOT NULL
+             AND (a.id IS NULL OR a.deleted_at IS NOT NULL OR a.line_id <> fl.line_id)
+          UNION ALL
+          SELECT x.id, x.branch_from_id FROM line_station x LEFT JOIN line_station j ON j.id = x.branch_from_id
+           WHERE (x.id = ANY($1) OR x.line_id = ANY($1) OR x.branch_from_id = ANY($1)) AND x.deleted_at IS NULL
+             AND x.branch_from_id IS NOT NULL
+             AND (j.id IS NULL OR j.deleted_at IS NOT NULL OR j.line_id <> x.line_id
+                  OR j.branch IS NOT DISTINCT FROM x.branch)`,
+  },
+  {
     id: 'V-H17',
     message: '활성 행이 삭제(휴지통)된 개체를 가리킴',
     sql: `SELECT r.plan_id AS entity_id, r.line_id AS detail FROM plan_line r JOIN entity e ON e.id = r.line_id

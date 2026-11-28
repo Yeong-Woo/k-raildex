@@ -10,6 +10,8 @@ import {
   schemaCases,
   schemaGraph,
   schemaTrace,
+  lineStops,
+  stopNeighbors,
   TRACE_ROOT_TYPES,
 } from '@k-raildex/domain';
 import { z } from 'zod';
@@ -158,6 +160,22 @@ export class AdminExtraController {
   async lineStations(@Param('id') id: string) {
     const items = await this.svc.lineStations(id);
     return { line_id: id, items, total: items.length };
+  }
+
+  /** 정거장 순서(0042): 노선역 + 노선 위 신호장·신호소·조차장, 앞뒤 정거장·거리(km 차이, 없으면 null) */
+  @Get('lines/:id/stops')
+  @RequireScope('admin:read')
+  async lineStops(@Param('id') id: string) {
+    const items = await lineStops(this.svc.db, id);
+    return { line_id: id, items, total: items.length };
+  }
+
+  /** 한 정거장(역 그룹 station · 시설 facility)의 모든 노선 앞뒤 정거장 */
+  @Get('stops/:type/:id/neighbors')
+  @RequireScope('admin:read')
+  async stopNeighbors(@Param('type') type: string, @Param('id') id: string) {
+    const items = await stopNeighbors(this.svc.db, type, id);
+    return { node_type: type, node_id: id, items, total: items.length };
   }
 
   @Put('lines/:id/stations')

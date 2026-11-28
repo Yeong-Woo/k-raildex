@@ -25,6 +25,8 @@ const shape = {
   station_id: idSchema('station'),
   seq: z.number().int().min(1),
   branch: optText(),
+  /** 지선(branch)이 갈라져 나오는 노선역(같은 노선, 지선 행 중 하나에만 — 정거장 앞뒤 계산 v_line_stop_link, 0042) */
+  branch_from_id: nullish(idSchema('line_station')),
   km: nullish(z.number()),
   station_code: optText(),
   order_confirmed: z.boolean().default(true),
@@ -53,6 +55,9 @@ const shape = {
 
 const contract = defineContract(shape, metaReadFields, (row, ctx) => {
   checkNotSelf(row, ctx, 'managed_by_id');
+  checkNotSelf(row, ctx, 'branch_from_id');
+  if (known(row, 'branch_from_id', 'branch') && row.branch_from_id != null && row.branch == null)
+    issue(ctx, ['branch_from_id'], '갈라지는 노선역은 지선(branch) 행에만');
   if (
     known(row, 'korail_mgmt_grade', 'korail_class') &&
     row.korail_mgmt_grade != null &&

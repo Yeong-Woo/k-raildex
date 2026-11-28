@@ -147,6 +147,8 @@ export const lineStation = pgTable('line_station', {
     .references(() => station.id, { onUpdate: 'cascade' }),
   seq: integer('seq').notNull(),
   branch: text('branch'),
+  /** 지선이 갈라져 나오는 노선역(0042) */
+  branchFromId: text('branch_from_id').references((): AnyPgColumn => lineStation.id, { onUpdate: 'cascade' }),
   km: numeric('km', { precision: 7, scale: 2, mode: 'number' }),
   stationCode: text('station_code'),
   orderConfirmed: boolean('order_confirmed').notNull().default(true),

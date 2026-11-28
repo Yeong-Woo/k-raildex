@@ -1,6 +1,6 @@
 /**
  * 시설 facility (docs/03-data-model.md 4-19절, id fac-, 0035 — 2026-11-27 사용자 지시).
- * 역 그룹과 별개인 철도 시설. 지금은 kind depot(차량기지)만. 붙은 기지선·담당 노선은 facility_line(role connects·serves).
+ * 역 그룹과 별개인 철도 시설(차량기지·시험 선로·신호장·신호소·조차장). 노선과의 관계는 facility_line(role serves·connects·located).
  */
 import { z } from 'zod';
 import { codes } from '../codes';
@@ -21,11 +21,16 @@ import {
   regionCodeSchema,
 } from './common';
 
-/** 시설 ↔ 노선 facility_line: serves 담당 노선(차량을 맡는 노선) / connects 붙은 선로(기지선 등) */
+/** 시설 ↔ 노선 facility_line: serves 담당 노선(차량을 맡는 노선) / connects 붙은 선로(기지선 등) /
+ *  located 노선 위 정거장(신호장·신호소·조차장 — 바로 앞 노선역·km, 0042) */
 export const facilityLineSchema = z
   .object({
     line_id: idSchema('line'),
     role: z.enum(codes.facilityLineRole.values).default('serves'),
+    /** located 만: 이 노선에서 바로 앞 노선역(없으면 노선 첫머리). 같은 노선의 노선역이어야 함(V-H19) */
+    after_line_station_id: nullish(idSchema('line_station')),
+    /** located 만: 이 노선 이정(km) */
+    km: nullish(z.number()),
     note: optText(),
   })
   .strict();
@@ -70,6 +75,11 @@ const contract = defineContract(shape, recReadFields, (row, ctx) => {
   if (known(row, 'coord_basis', 'coord_source') && row.coord_basis != null && row.coord_source !== 'derived')
     issue(ctx, ['coord_basis'], "coord_basis 는 coord_source 'derived' 일 때만 쓸 수 있음");
   checkUnique(row, ctx, 'lines', keyBy('line_id', 'role'));
+  const lines = Array.isArray(row.lines) ? (row.lines as FacilityLine[]) : [];
+  lines.forEach((l, i) => {
+    if (l.role !== 'located' && (l.after_line_station_id != null || l.km != null))
+      issue(ctx, ['lines', i, 'after_line_station_id'], '앞 노선역·km 는 역할이 "노선 위 정거장"일 때만');
+  });
 });
 
 export const FacilityCreateSchema = contract.create;

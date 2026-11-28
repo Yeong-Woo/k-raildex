@@ -3,7 +3,7 @@ import { bigint, integer, numeric, pgTable, primaryKey, text, uuid } from 'drizz
 import { sql } from 'drizzle-orm';
 import { entityPk, fuzzy, meta, names, rec } from './columns';
 import { geographyPoint } from './types';
-import { line, operator, station } from './network';
+import { line, lineStation, operator, station } from './network';
 import { plan, planProgram } from './plan';
 import { refArea, refRegion } from './reference';
 import { service, trainClass } from './service';
@@ -291,6 +291,9 @@ export const facilityLine = pgTable(
       .notNull()
       .references(() => line.id, { onUpdate: 'cascade' }),
     role: text('role').notNull().default('serves'),
+    /** role located 만: 바로 앞 노선역·이정(0042) */
+    afterLineStationId: text('after_line_station_id').references(() => lineStation.id, { onUpdate: 'cascade' }),
+    km: numeric('km', { precision: 7, scale: 2, mode: 'number' }),
     note: text('note'),
     ord: integer('ord').notNull().default(0),
   },

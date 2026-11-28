@@ -69,6 +69,8 @@ const ID_FIELD_TARGET: Record<string, EntityType> = {
   service_id: 'service',
   from_line_station_id: 'line_station',
   to_line_station_id: 'line_station',
+  after_line_station_id: 'line_station',
+  branch_from_id: 'line_station',
   train_class_id: 'train_class',
 };
 const ID_LIST_TARGET: Record<string, EntityType> = {
@@ -142,6 +144,8 @@ export const CHILD_LABELS: Record<string, string> = {
   role: '역할',
   from_line_station_id: '구간 시작',
   to_line_station_id: '구간 끝',
+  after_line_station_id: '앞 노선역(노선 위 정거장)',
+  km: 'km',
   station_id: '역 그룹',
   target_plan_id: '대상 계획',
   relation: '관계',

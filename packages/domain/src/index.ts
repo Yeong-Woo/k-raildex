@@ -26,3 +26,4 @@ export * from './ops';
 export * from './ops-refetch';
 export * from './public';
 export * from './schema-graph';
+export * from './stops';

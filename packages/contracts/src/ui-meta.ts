@@ -225,6 +225,9 @@ export const entityUiMeta: Readonly<Record<EntityType, EntityUiMeta>> = {
       station_id: f('역 그룹', ref('station'), 'basic'),
       seq: f('순서', W.int, 'basic'),
       branch: f('지선', W.text, 'basic'),
+      branch_from_id: f('갈라지는 노선역', ref('line_station'), 'basic', {
+        help: '지선이 갈라져 나오는 노선역(같은 노선, 지선 행 하나에만 — 정거장 앞뒤 계산)',
+      }),
       km: f('영업거리(km)', W.num, 'basic'),
       station_code: f('역번호', W.text, 'basic'),
       order_confirmed: f('순서 확정', W.bool, 'basic'),
@@ -523,8 +526,8 @@ export const entityUiMeta: Readonly<Record<EntityType, EntityUiMeta>> = {
       coord_query: f('근사 위치 질의', W.text, 'location', { help: '주소·법정동 — 지오코더 입력' }),
       coord_note: f('좌표 메모', W.textarea, 'location'),
       description: f('설명', W.md, 'detail'),
-      lines: f('노선(담당 노선·붙은 선로)', editor('facility_lines'), 'relations', {
-        help: '담당 노선 = 차량을 맡는 노선, 붙은 선로 = 시설이 이어진 기지선 등',
+      lines: f('노선(담당 노선·붙은 선로·노선 위 정거장)', editor('facility_lines'), 'relations', {
+        help: '담당 노선 = 차량을 맡는 노선, 붙은 선로 = 시설이 이어진 기지선 등, 노선 위 정거장 = 신호장·신호소·조차장이 노선 위에 있는 자리(바로 앞 노선역·km — 정거장 순서에 쓰임)',
       }),
       osm_map: f('OSM 시설 선로', editor('facility_osm_map'), 'location', {
         help: 'OSM way 이름·id(예: 울산기지선). 좌표가 있으면 둘레 반경(m) 안 기지 선로(service=yard)는 자동. 지도 표시만',

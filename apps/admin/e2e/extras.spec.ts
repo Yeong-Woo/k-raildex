@@ -399,3 +399,17 @@ test('시설(차량기지): 망 메뉴에서 만들고 기능 체크·담당 노
   expect(d.data.functions).toEqual(['stabling', 'inspection', 'heavy_maintenance']);
   await removeEntity(page, 'facility', 'fac-e2e-depot');
 });
+
+test('정거장: 노선 [정거장] 탭 순서·앞뒤, 역 그룹 [앞뒤 정거장] 탭(노선별)', async ({ page }) => {
+  await page.goto('/data/line/line-fx-one?tab=stops');
+  const list = page.getByTestId('line-stops');
+  await expect(list).toContainText('본선');
+  const rows = page.getByTestId('stop-row');
+  await expect(rows.first()).toContainText('가');
+  await expect(rows.first()).toContainText('역');
+  expect(await rows.count()).toBeGreaterThanOrEqual(4);
+  await page.goto('/data/station/stn-fx-a?tab=neighbors');
+  const nb = page.getByTestId('neighbor-row');
+  await expect(nb).toHaveCount(2);
+  await expect(page.getByTestId('stop-neighbors')).toContainText('시험 2호선');
+});

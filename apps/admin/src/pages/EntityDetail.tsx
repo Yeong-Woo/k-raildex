@@ -22,6 +22,7 @@ import { changedFields, pretty } from '../lib/diff';
 import { fromSlug, toSlug } from '../lib/entity-types';
 import { emptyRecord, FormEngine } from '../form/FormEngine';
 import { LineStationsEditor } from '../editors/LineStationsEditor';
+import { LineStops, StopNeighbors } from '../editors/LineStops';
 import { StationLineStations } from '../editors/StationLineStations';
 import { ManagedStations } from '../editors/ManagedStations';
 import { AttachmentsTab } from '../editors/AttachmentsTab';
@@ -293,6 +294,10 @@ function Detail({ type, id, tab }: { type: EntityType; id: string; tab: string }
         <TabsList>
           <TabsTrigger value="info">정보</TabsTrigger>
           {!isNew && type === 'line' ? <TabsTrigger value="stations">역 순서</TabsTrigger> : null}
+          {!isNew && type === 'line' ? <TabsTrigger value="stops">정거장</TabsTrigger> : null}
+          {!isNew && (type === 'station' || type === 'facility') ? (
+            <TabsTrigger value="neighbors">앞뒤 정거장</TabsTrigger>
+          ) : null}
           {!isNew && type === 'station' ? <TabsTrigger value="line-stations">노선별</TabsTrigger> : null}
           {!isNew && type === 'line_station' ? <TabsTrigger value="managed">관리역</TabsTrigger> : null}
           {!isNew && FOCUS_MAP_TYPES.includes(type) ? <TabsTrigger value="map">지도</TabsTrigger> : null}
@@ -315,6 +320,16 @@ function Detail({ type, id, tab }: { type: EntityType; id: string; tab: string }
             {type === 'line' ? (
               <TabsContent value="stations" className="pt-4">
                 <LineStationsEditor lineId={id} />
+              </TabsContent>
+            ) : null}
+            {type === 'line' ? (
+              <TabsContent value="stops" className="pt-4">
+                <LineStops lineId={id} />
+              </TabsContent>
+            ) : null}
+            {type === 'station' || type === 'facility' ? (
+              <TabsContent value="neighbors" className="pt-4">
+                <StopNeighbors type={type} id={id} />
               </TabsContent>
             ) : null}
             {type === 'station' ? (

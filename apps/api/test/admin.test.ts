@@ -86,6 +86,24 @@ describe('목록·상세', () => {
     expect((await req('GET', '/v1/admin/map/focus/source/x')).statusCode).toBe(422);
   });
 
+  it('정거장 순서·앞뒤(lines/:id/stops, stops/:type/:id/neighbors)', async () => {
+    const r = (await req('GET', '/v1/admin/lines/line-fx-one/stops')).json();
+    expect(r.items.map((s: { node_id: string }) => s.node_id)).toEqual([
+      'stn-fx-a',
+      'stn-fx-b',
+      'stn-fx-c',
+      'stn-fx-d',
+    ]);
+    expect(r.items[0].next[0]).toMatchObject({ node_id: 'stn-fx-b', basis: 'sequence' });
+    const n = (await req('GET', '/v1/admin/stops/station/stn-fx-a/neighbors')).json();
+    expect(n.items.map((x: { line_id: string; direction: string }) => `${x.line_id}:${x.direction}`).sort()).toEqual([
+      'line-fx-one:next',
+      'line-fx-two:next',
+    ]);
+    expect((await req('GET', '/v1/admin/lines/line-nope/stops')).statusCode).toBe(404);
+    expect((await req('GET', '/v1/admin/stops/line/line-fx-one/neighbors')).statusCode).toBe(422);
+  });
+
   it('잘못된 쿼리 → 400/422, 모르는 종류 → 404', async () => {
     const bad = await req('GET', '/v1/admin/station?limit=1000');
     expect(bad.statusCode).toBe(400);

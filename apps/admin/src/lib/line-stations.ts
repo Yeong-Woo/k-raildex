@@ -11,6 +11,8 @@ export interface LsRow {
   station_kind?: string | null;
   station_geom?: { lng: number; lat: number } | null;
   branch: string | null;
+  /** 지선이 갈라져 나오는 노선역(지선 행만, 0042) */
+  branch_from_id?: string | null;
   km: number | null;
   station_code: string | null;
   order_confirmed: boolean;
