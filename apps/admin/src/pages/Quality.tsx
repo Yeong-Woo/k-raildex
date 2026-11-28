@@ -31,7 +31,7 @@ interface QualityItem {
   entity_id: string;
   label: string | null;
   detail: string | null;
-  /** 행 처리 단추 값(V-S04: 거리 초과일 때 앞 노선역 id, X-station-split: 병합할 역 id) */
+  /** 행 처리 단추 값(V-S04: 거리 초과일 때 앞 정거장 id, X-station-split: 병합할 역 id) */
   action_ref?: string | null;
 }
 
@@ -58,7 +58,7 @@ const ROW_TOOLS: Record<string, (it: QualityItem) => { label: string; href: stri
 };
 
 /**
- * V-S04 [거리 맞음]: 앞 역과의 거리가 상한을 넘지만 실제로 맞는 구간이면 그때의 앞 노선역을 적는다
+ * V-S04 [거리 맞음]: 앞 역과의 거리가 상한을 넘지만 실제로 맞는 구간이면 그때의 앞 정거장을 적는다
  * (line_station.gap_confirmed_prev_id). 앞 역이 바뀌면 다시 목록에 나온다. km 역행 행에는 단추가 없다.
  */
 function ConfirmGap({ it }: { it: QualityItem }) {

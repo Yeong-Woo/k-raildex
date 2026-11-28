@@ -22,7 +22,7 @@ import { changedFields, pretty } from '../lib/diff';
 import { fromSlug, toSlug } from '../lib/entity-types';
 import { emptyRecord, FormEngine } from '../form/FormEngine';
 import { LineStationsEditor } from '../editors/LineStationsEditor';
-import { LineStops, StopNeighbors } from '../editors/LineStops';
+import { LineStopTable, StopNeighbors } from '../editors/LineStops';
 import { StationLineStations } from '../editors/StationLineStations';
 import { ManagedStations } from '../editors/ManagedStations';
 import { AttachmentsTab } from '../editors/AttachmentsTab';
@@ -293,11 +293,8 @@ function Detail({ type, id, tab }: { type: EntityType; id: string; tab: string }
       >
         <TabsList>
           <TabsTrigger value="info">정보</TabsTrigger>
-          {!isNew && type === 'line' ? <TabsTrigger value="stations">역 순서</TabsTrigger> : null}
-          {!isNew && type === 'line' ? <TabsTrigger value="stops">정거장</TabsTrigger> : null}
-          {!isNew && (type === 'station' || type === 'facility') ? (
-            <TabsTrigger value="neighbors">앞뒤 정거장</TabsTrigger>
-          ) : null}
+          {!isNew && type === 'line' ? <TabsTrigger value="stations">정거장 순서</TabsTrigger> : null}
+          {!isNew && type === 'station' ? <TabsTrigger value="neighbors">앞뒤 정거장</TabsTrigger> : null}
           {!isNew && type === 'station' ? <TabsTrigger value="line-stations">노선별</TabsTrigger> : null}
           {!isNew && type === 'line_station' ? <TabsTrigger value="managed">관리역</TabsTrigger> : null}
           {!isNew && FOCUS_MAP_TYPES.includes(type) ? <TabsTrigger value="map">지도</TabsTrigger> : null}
@@ -319,17 +316,12 @@ function Detail({ type, id, tab }: { type: EntityType; id: string; tab: string }
           <>
             {type === 'line' ? (
               <TabsContent value="stations" className="pt-4">
-                <LineStationsEditor lineId={id} />
+                <LineStopsTab lineId={id} />
               </TabsContent>
             ) : null}
-            {type === 'line' ? (
-              <TabsContent value="stops" className="pt-4">
-                <LineStops lineId={id} />
-              </TabsContent>
-            ) : null}
-            {type === 'station' || type === 'facility' ? (
+            {type === 'station' ? (
               <TabsContent value="neighbors" className="pt-4">
-                <StopNeighbors type={type} id={id} />
+                <StopNeighbors stationId={id} />
               </TabsContent>
             ) : null}
             {type === 'station' ? (
@@ -494,6 +486,39 @@ function History({ path }: { path: string }) {
           </Card>
         );
       })}
+    </div>
+  );
+}
+
+/** 노선 [정거장 순서] 탭: 보기(위키백과 역 목록형 표) ↔ 편집(정거장 편집 표) */
+function LineStopsTab({ lineId }: { lineId: string }) {
+  const [edit, setEdit] = useState(false);
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex gap-1 text-sm" role="group" aria-label="정거장 순서 보기">
+        {(
+          [
+            [false, '보기'],
+            [true, '편집'],
+          ] as const
+        ).map(([v, label]) => (
+          <button
+            key={label}
+            type="button"
+            aria-pressed={edit === v}
+            data-testid={v ? 'stops-mode-edit' : 'stops-mode-view'}
+            className={
+              edit === v
+                ? 'rounded-full border border-primary bg-primary/10 px-3 py-0.5 font-semibold'
+                : 'rounded-full border border-border px-3 py-0.5 hover:bg-muted'
+            }
+            onClick={() => setEdit(v)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      {edit ? <LineStationsEditor lineId={lineId} /> : <LineStopTable lineId={lineId} />}
     </div>
   );
 }

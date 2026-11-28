@@ -9,13 +9,13 @@
 | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | FR-DM-001 | **정규화 관계형.** 조회·필터·관계에 쓰는 모든 값은 열 또는 관계 테이블로 둔다. `jsonb` 는 부가 정보(`extra`)·외부 원본 스냅샷·감사 전/후 값에만 쓴다. (Q15)                                                                                                                                                                                                                                   |
 | FR-DM-002 | **DB 가 무결성을 보장한다.** 참조는 FK, 값 범위는 CHECK, 유일성은 UNIQUE. 앱 검증은 DB 가 표현할 수 없는 규칙(8절)만.                                                                                                                                                                                                                                                                         |
-| FR-DM-003 | **원천 데이터만 저장, 파생 값은 뷰.** 역의 권역·소속 노선·정차 계통 종류·상태·개통일(노선역에서 계산), 노선의 권역, 상속 검수 상태, 개체 필드에서 나오는 연표 이벤트, 계획 현재 단계·개통 목표, 시점별 지도는 뷰로 계산한다(6절). (Q26·Q27·Q28·Q71)                                                                                                                                           |
+| FR-DM-003 | **원천 데이터만 저장, 파생 값은 뷰.** 역의 권역·소속 노선·정차 계통 종류·상태·개통일(정거장에서 계산), 노선의 권역, 상속 검수 상태, 개체 필드에서 나오는 연표 이벤트, 계획 현재 단계·개통 목표, 시점별 지도는 뷰로 계산한다(6절). (Q26·Q27·Q28·Q71)                                                                                                                                           |
 | FR-DM-004 | **보정(override) 계층 없음.** 공공데이터에서 온 값도 이관 후에는 개체 행의 값이다. 외부 데이터셋과의 대응은 `external_ref` 로만. (Q20·Q21)                                                                                                                                                                                                                                                    |
 | FR-DM-005 | **모든 큐레이션 개체는 출처 ≥ 1, `checked_at` 필수**(C-1).                                                                                                                                                                                                                                                                                                                                    |
 | FR-DM-006 | **전역 ID 레지스트리** `entity` 로 개체 간 다형 참조(출처 연결, 별칭, 외부 코드, 첨부, 이벤트 대상, 감사)에도 FK 를 건다. 삭제된 id 도 레지스트리에 남아 **영구 예약**된다.                                                                                                                                                                                                                   |
 | FR-DM-007 | 모든 쓰기 가능한 개체 테이블은 `version`(낙관적 잠금)·생성·수정·**소프트 삭제** 메타를 가진다. (Q37·Q38·Q74)                                                                                                                                                                                                                                                                                  |
 | FR-DM-008 | OSM(ODbL) 데이터는 스키마 `osm` 에만 둔다. `public` 스키마의 자체 데이터 테이블은 `osm` 을 FK 로 참조하지 않는다(매핑 표는 OSM id 숫자만 보관)(C-6, Q31).                                                                                                                                                                                                                                     |
-| FR-DM-009 | **역은 2단계**(용어 2026-11-27): `station` = **역 그룹**(이용자가 "소사역"이라 부르는 장소, 환승역이면 환승 그룹, 아니어도 반드시 존재, 공개 역 페이지 단위) / `line_station` = **노선역**(한 노선·한 운영기관의 역 — 이름·운영기관·상태·개통일·역번호·외부 코드·코레일 정거장 등급·소속 관리역). 문서·관리 앱에서 "역"을 단독 용어로 쓰지 않는다(이름 안에서만: "소사역"). (Q25 B → Q70~Q72) |
+| FR-DM-009 | **역은 2단계**(용어 2026-11-27): `station` = **역 그룹**(이용자가 "소사역"이라 부르는 장소, 환승역이면 환승 그룹, 아니어도 반드시 존재, 공개 역 페이지 단위) / `line_station` = **정거장**(한 노선·한 운영기관의 역 — 이름·운영기관·상태·개통일·역번호·외부 코드·코레일 정거장 등급·소속 관리역). 문서·관리 앱에서 "역"을 단독 용어로 쓰지 않는다(이름 안에서만: "소사역"). (Q25 B → Q70~Q72) |
 
 ## 2. 공통 규약
 
@@ -28,7 +28,7 @@
 | 출처       | `src-`  | `src-molit-nrp4-notice`                                                                                                     |
 | 운영기관   | `op-`   | `op-korail` (신설)                                                                                                          |
 | 역         | `stn-`  | `stn-seoul`                                                                                                                 |
-| 노선역     | `ls-`   | `ls-gyeongbu--seoul` (`ls-<노선 id 꼬리>--<역 id 꼬리>`, 같은 노선에 같은 역이 두 번이면 `-2`). **내부 id — 공개 URL 없음** |
+| 정거장     | `ls-`   | `ls-gyeongbu--seoul` (`ls-<노선 id 꼬리>--<역 id 꼬리>`, 같은 노선에 같은 역이 두 번이면 `-2`). **내부 id — 공개 URL 없음** |
 | 노선       | `line-` | `line-gyeongbu`                                                                                                             |
 | 열차 등급  | `tc-`   | `tc-ktx`                                                                                                                    |
 | 운행 계통  | `svc-`  | `svc-sudogwon-1`                                                                                                            |
@@ -143,7 +143,7 @@ CREATE INDEX ON entity_name USING gin (name gin_trgm_ops);
 ```
 
 - `internal`: RAFIS 내부 표기("S동탄") — 검색만, 화면에 별칭으로 안 보임. `source_raw`: 데이터셋 원문 이름.
-- 노선역(`ls-`)의 별칭도 여기에(노선별 표기 차이: "총신대입구(이수)").
+- 정거장(`ls-`)의 별칭도 여기에(노선별 표기 차이: "총신대입구(이수)").
 
 ### 3-2. 외부 코드 `external_ref` (Q21 A)
 
@@ -167,7 +167,7 @@ CREATE TABLE ref_external_system (
 );
 ```
 
-- 노선 문맥이 있는 코드(TAGO 역 id `tago_subway`, 표준데이터 행 `kric_std`)는 **노선역**에 붙인다. 노선 문맥이 없는 코드(RAFIS 역, 역키로정 역명)는 역에.
+- 노선 문맥이 있는 코드(TAGO 역 id `tago_subway`, 표준데이터 행 `kric_std`)는 **정거장**에 붙인다. 노선 문맥이 없는 코드(RAFIS 역, 역키로정 역명)는 역에.
 - 병합 금지 지시(`no_merge`)는 `ingest.match_rule`(08 문서).
 
 ### 3-3. 출처 연결 `record_source` (Q17 A)
@@ -185,7 +185,7 @@ CREATE TABLE record_source (
 );
 ```
 
-- 노선역은 노선의 출처를 따른다. 노선과 다른 출처가 필요할 때만 노선역 id 로 행을 둔다.
+- 정거장은 노선의 출처를 따른다. 노선과 다른 출처가 필요할 때만 정거장 id 로 행을 둔다.
 
 ### 3-4. 첨부 `entity_attachment` (Q47 B → Q77 A)
 
@@ -334,7 +334,7 @@ CREATE TABLE station (
   coord_note      text,
   grade           text, history_text text, intro_text text,   -- 철도역 정보 원문
   merge_into_id   text REFERENCES station(id),   -- 공사 중 분리 정거장(환승 미확정) → 개통 때 병합할 역 (Q73 A)
-  -- 단독 상태: 노선역이 하나도 없는 역(71곳: 폐역·시설 등)에서만 쓴다. 노선역이 있으면 NULL(V-H13)
+  -- 단독 상태: 정거장이 하나도 없는 역(71곳: 폐역·시설 등)에서만 쓴다. 정거장이 있으면 NULL(V-H13)
   own_status      text,
   FUZZY(own_opened), FUZZY(own_closed),
   REC,
@@ -347,12 +347,12 @@ CREATE INDEX ON station USING gist (geom);
 CREATE INDEX ON station USING gin (name_ko gin_trgm_ops);
 ```
 
-- **모든 역은 station 행을 가진다**(환승역이 아니어도, Q71 답변). 환승역이면 여러 노선역을 묶는다.
-- **그룹 기준(Q72 A)**: 공식 환승역(운영기관 안내·노선도의 환승 표시). 이름이 달라도 하나의 역, 노선별 표기는 노선역 이름·별칭으로 보존. 이름이 같아도 떨어진 역(신촌(2호선)·신촌(경의선))은 별개 역.
-- 역의 **상태·개통일·폐지일은 뷰**(`v_station_status`): 노선역이 있으면 하나라도 operating → operating, 개통 = 가장 이른 노선별 개통, 폐지 = 모두 closed 일 때 가장 늦은 폐지. 없으면 `own_*`.
+- **모든 역은 station 행을 가진다**(환승역이 아니어도, Q71 답변). 환승역이면 여러 정거장을 묶는다.
+- **그룹 기준(Q72 A)**: 공식 환승역(운영기관 안내·노선도의 환승 표시). 이름이 달라도 하나의 역, 노선별 표기는 정거장 이름·별칭으로 보존. 이름이 같아도 떨어진 역(신촌(2호선)·신촌(경의선))은 별개 역.
+- 역의 **상태·개통일·폐지일은 뷰**(`v_station_status`): 정거장이 있으면 하나라도 operating → operating, 개통 = 가장 이른 노선별 개통, 폐지 = 모두 closed 일 때 가장 늦은 폐지. 없으면 `own_*`.
 - 기존 `line_ids`·`line_classes`·`service_kinds`·`areas`·상속 review·`transfer_group` 은 저장하지 않는다(6절).
 
-### 4-6. 노선역 `line_station` (Q70 A·Q71 A·Q22 A)
+### 4-6. 정거장 `line_station` (Q70 A·Q71 A·Q22 A)
 
 ```sql
 CREATE TABLE line_station (
@@ -361,19 +361,19 @@ CREATE TABLE line_station (
   station_id      text NOT NULL REFERENCES station(id),
   seq             integer NOT NULL,
   branch          text,
-  branch_from_id  text REFERENCES line_station(id),   -- 지선이 갈라져 나오는 노선역(지선 행만, 정거장 4-19-1절, 0042)
+  branch_from_id  text REFERENCES line_station(id),   -- 지선이 갈라져 나오는 정거장(지선 행만, 정거장 4-19-1절, 0042)
   km              numeric(7,2),
   station_code    text,                      -- 이 노선의 역번호(K409, D011, 133)
   order_confirmed boolean NOT NULL DEFAULT true,
-  gap_confirmed_prev_id text,                -- V-S04 거리 확인: 확인할 때의 앞 노선역 id(앞 역이 바뀌면 효력 없음, 0030)
+  gap_confirmed_prev_id text,                -- V-S04 거리 확인: 확인할 때의 앞 정거장 id(앞 역이 바뀌면 효력 없음, 0030)
   name_ko         text,                      -- 역 대표 이름과 다를 때만(노선별 표기)
   name_en         text,
   operator_id     text REFERENCES operator(id),   -- 이 노선 구간 운영기관(노선 운영기관과 다를 때 필수 아님 → NULL 이면 노선 운영기관)
   -- 한국철도공사 정거장 등급(직제상 지위, 직제규정 시행세칙 — 0032, 2026-11-27). station.kind(시설 기능)와 별개.
-  -- 운영기관(v_line_station_operator)이 한국철도공사인 노선역만(V-H18)
+  -- 운영기관(v_line_station_operator)이 한국철도공사인 정거장만(V-H18)
   korail_class    text,            -- korailStationClass 코드
   korail_mgmt_grade smallint,      -- 관리역 1~3급(korail_class = management 일 때만)
-  managed_by_id   text REFERENCES line_station(id),   -- 이 노선역을 관할하는 관리역(노선역, 예: 경인선 부천)
+  managed_by_id   text REFERENCES line_station(id),   -- 이 정거장을 관할하는 관리역(정거장, 예: 경인선 부천)
   status          text NOT NULL,             -- 이 노선에서의 상태(연장 공사 구간 표현 = Q22 A)
   FUZZY(opened), FUZZY(closed),              -- 이 노선에서의 영업 개시·종료
   geom            geography(Point,4326),     -- 승강장 위치(알 때만, 출처 field='geom')
@@ -384,7 +384,7 @@ CREATE TABLE line_station (
 CREATE INDEX ON line_station (station_id);
 ```
 
-- 공개 URL 은 없고 역 페이지의 "노선별" 절·노선 페이지의 역 순서에 보인다.
+- 공개 URL 은 없고 역 페이지의 "노선별" 절·노선 페이지의 정거장 순서에 보인다.
 - 별칭·외부 코드·출처·첨부는 `ls-` id 로 공통 테이블에.
 
 ### 4-7. 노선 `line`
@@ -470,7 +470,7 @@ CREATE TABLE stop_pattern (
   seq integer NOT NULL, note text,
   UNIQUE (service_id, code)
 );
-CREATE TABLE stop_pattern_stop (           -- 정차역 = 노선역 (Q72 A)
+CREATE TABLE stop_pattern_stop (           -- 정차역 = 정거장 (Q72 A)
   pattern_id      bigint REFERENCES stop_pattern(id) ON DELETE CASCADE,
   seq             integer NOT NULL,
   line_station_id text NOT NULL REFERENCES line_station(id),
@@ -609,7 +609,7 @@ CREATE TABLE event_target (event_id text REFERENCES event(id), entity_id text RE
 CREATE TABLE event_area (event_id text REFERENCES event(id), area_code text REFERENCES ref_area(code), PRIMARY KEY (event_id, area_code));
 ```
 
-- 대상은 역(그룹)·노선·운행 계통·계획(Q72 A). 개체 필드에서 나오는 이벤트(노선역의 개통 포함)는 `v_event_all` 뷰가 같은 결정적 id 로 만든다.
+- 대상은 역(그룹)·노선·운행 계통·계획(Q72 A). 개체 필드에서 나오는 이벤트(정거장의 개통 포함)는 `v_event_all` 뷰가 같은 결정적 id 로 만든다.
 
 ### 4-13. 열차번호대 `train_number_range`
 
@@ -699,12 +699,12 @@ CREATE TABLE route_map (
 CREATE TABLE timetable_set (
   id              text PRIMARY KEY,       -- tt-<역>-<route_code>-<day>-<dir>
   station_id      text NOT NULL REFERENCES station(id),
-  line_station_id text REFERENCES line_station(id),   -- 노선역(Q72 A). 해석 못 하면 NULL + 품질 목록
+  line_station_id text REFERENCES line_station(id),   -- 정거장(Q72 A). 해석 못 하면 NULL + 품질 목록
   service_id      text REFERENCES service(id),
   route_code      text NOT NULL,
   day_type text NOT NULL, direction text NOT NULL, direction_label text, day_note text,
   data_as_of text, source_id text NOT NULL REFERENCES source(id), import_run_id bigint,
-  UNIQUE NULLS NOT DISTINCT (station_id, route_code, day_type, direction, line_station_id)  -- 분기역 시간표는 노선역별 세트(Q148, 0037)
+  UNIQUE NULLS NOT DISTINCT (station_id, route_code, day_type, direction, line_station_id)  -- 분기역 시간표는 정거장별 세트(Q148, 0037)
 );
 CREATE TABLE timetable_entry (
   set_id text REFERENCES timetable_set(id) ON DELETE CASCADE,
@@ -740,7 +740,7 @@ CREATE TABLE glossary_term (
 
 ### 4-19. 시설 `facility` (0035, 2026-11-27 사용자 지시)
 
-역 그룹과 별개인 철도 시설(id `fac-`). `kind` = depot 차량기지 · test_track 시험 선로(0037) · signal_station 신호장 · signal_post 신호소 · yard 조차장(0038). 신호장·조차장은 2026-11-27 역 그룹에서 옮겼고, 신호장·신호소는 2026-11-28 나눴다(0042·0043 — 옛 값 signal_box 는 소프트 삭제된 행에만). 노선 위치는 `facility_line` role located(바로 앞 노선역·km — 정거장 4-19-1절).
+역 그룹과 별개인 철도 시설(id `fac-`). `kind` = depot 차량기지 · test_track 시험 선로(0037). 신호장·신호소·조차장은 2026-11-27 역 그룹에서 시설로 옮겼다가(0038) 2026-11-28 정거장으로 되돌렸다(0044·0045 — 4-19-1절. 옛 값은 소프트 삭제된 시설에만).
 
 ```sql
 CREATE TABLE facility (
@@ -753,28 +753,21 @@ CREATE TABLE facility (
   description text, REC
 );
 CREATE TABLE facility_line (facility_id text REFERENCES facility(id), line_id text REFERENCES line(id),
-  role text NOT NULL DEFAULT 'serves',   -- serves 담당 노선(차량을 맡는 노선) / connects 붙은 선로(기지선 등) / located 노선 위 정거장(0042)
-  after_line_station_id text REFERENCES line_station(id),  -- located 만: 이 노선에서 바로 앞 노선역(NULL = 노선 첫머리)
-  km numeric(7,2),                        -- located 만: 이 노선 이정
-  note text, ord int, PRIMARY KEY (facility_id, line_id, role),
-  CHECK (role = 'located' OR (after_line_station_id IS NULL AND km IS NULL)));
+  role text NOT NULL DEFAULT 'serves',   -- serves 담당 노선(차량을 맡는 노선) / connects 붙은 선로(기지선 등)
+  note text, ord int, PRIMARY KEY (facility_id, line_id, role));
 ```
 
-#### 4-19-1. 정거장 (0042, 2026-11-28 사용자 지시 — A안)
+#### 4-19-1. 정거장 순서 (0042·0044·0045, 2026-11-28 사용자 지시)
 
-정거장 = 역(여객역)·화물역·신호장·신호소·조차장을 통틀어 이르는 말. **새 개체를 두지 않고** 노선역과 노선 위 시설을 노선 순서로 엮은 파생 뷰로 둔다(저장하지 않음). 목적은 노선의 정거장을 순서대로 정리하고 정거장마다 앞뒤 정거장·거리를 보이는 것.
+"노선역"을 **정거장**이라 부른다(식별자 `line_station`·`ls-` 는 그대로). 정거장 = 역(여객역)·화물역·신호장·신호소·조차장 — 신호장·신호소·조차장도 시설이 아니라 정거장이다(0044 에서 시설 39곳을 정거장으로 통합: 0038 에서 지운 옛 역 그룹은 같은 id 로 되살리고, 없으면 새로 만듦).
 
-- 정거장 종류(`stopKind`, 운영기관과 무관한 일반 종류): station 역 · freight_station 화물역(역 그룹 `kind`) · signal_station 신호장 · signal_post 신호소 · yard 조차장(시설 `kind`). 코레일 정거장 등급(`line_station.korail_class`)과는 별개.
-- 노선 위 시설 자리: `facility_line` role located — `after_line_station_id`(같은 노선의 바로 앞 노선역, 없으면 첫머리)·`km`. 같은 노선역 뒤에 여럿이면 km → `ord` 순. 차량기지·시험 선로는 정거장이 아니다(V-H19).
-- 노선 안 지선: `line_station.branch_from_id` = 지선(`branch`)이 갈라져 나오는 노선역(같은 노선, 지선 행 하나에만 두면 된다 — 관리 앱 [역 순서] 탭의 지선 칸 아래 "갈라지는 곳").
-- `v_line_stop`(line_id, branch, node_type station|facility, node_id, line_station_id, facility_id, stop_kind, name_ko, km, status, pos): 같은 노선·지선 안 순번 `pos` = 노선역 `seq`, 시설은 앞 노선역 바로 뒤(km → ord).
-- `v_line_stop_link`(from → to, 노선 순서 방향): basis sequence = 같은 노선·지선에서 이웃, branch = 갈라지는 노선역 → 지선 첫 정거장. `distance_km` = 두 정거장 km 가 모두 있을 때 차이(같은 노선 이정 기준으로 본다), 하나라도 없으면 NULL(미확인).
-- `v_stop_neighbor`(정거장별 direction prev·next): 분기 정거장·여러 노선에 걸친 정거장은 여러 행. 다른 노선의 지선(별도 노선 개체)과 만나는 곳은 그 노선의 행으로 함께 나온다(같은 역 그룹·시설).
-- API `GET /v1/admin/lines/:id/stops`, `GET /v1/admin/stops/:type/:id/neighbors`(04 문서). 관리 앱 노선 [정거장] 탭·역 그룹·시설 [앞뒤 정거장] 탭.
-
-- 0034 의 역 그룹 하위 표(`station_depot`·`station_depot_line`)는 0035 에서 없앴다. `station.kind = depot` 인 역 그룹은 시설로 옮긴다. 신호장(signal_box)·조차장(yard)도 시설로 옮기고(0038), 분기점·연결선(junction) 역 그룹은 지운다 — 연결선은 원 노선의 지선(노선 개체)으로 둔다(2026-11-27 사용자 지시). 0039(2026-11-28)에서 역 그룹 종류를 station·freight 로 줄였다.
-- 공개: `/facilities/<id>/`, 지도 현재 보기 "차량기지" 레이어(`/v1/public/map/depots.geojson`).
-- OSM 시설 선로(0036): `facility_osm_map`(facility_id, way_names, way_ids, radius_m 기본 800) — OSM id·이름만. 뷰 `osm.v_facility_way` = 이름·개별 way + 시설 좌표 반경 안 기지 안 선로(`service=yard`, 수집기 `ways_yards_kr`) + 붙은 기지선(role connects·line_role depot_line)의 노선 선형. 기지 안 선로는 노선 이름 배정(`osm.v_line_way`)에 쓰지 않는다.
+- 구분: 정거장의 코레일 정거장 등급 `korail_class` 조차장(yard)·신호장(signal_station)·신호소(signal_post) — 이 세 등급은 운영기관과 관계없이 쓴다(V-H18 완화). 그 밖은 역 그룹 종류(여객역·화물역·운전 취급 `operational`). 운전 취급 역 그룹 = 여객·화물 취급 없이 교행·대피·조성만 하는 곳.
+- 노선 안 지선: `line_station.branch_from_id` = 지선(`branch`)이 갈라져 나오는 정거장(같은 노선, 지선 행 하나에만 — 관리 앱 [정거장 순서] 편집 표의 지선 칸 아래 "갈라지는 곳"). V-H19.
+- `v_line_stop`(line_id, branch, line_station_id, station_id, name_ko, stop_class, km, status, pos): 같은 노선·지선 안 순번.
+- `v_line_stop_link`(from → to, 노선 순서 방향): basis sequence = 같은 노선·지선에서 이웃, branch = 갈라지는 정거장 → 지선 첫 정거장. `distance_km` = 두 정거장 km 가 모두 있을 때 차이, 하나라도 없으면 NULL(미확인).
+- `v_stop_neighbor`(역 그룹별 direction prev·next): 분기·여러 노선에 걸친 역 그룹은 여러 행.
+- 관리 앱 노선 [정거장 순서] 탭 = 보기(위키백과 "역 목록"형 표: 번호·정거장(한자·로마자)·구분·접속 노선·역간 거리·영업 거리·소재지, 본선·지선별) ↔ 편집. 역 그룹 [앞뒤 정거장] 탭. API `GET /v1/admin/lines/:id/stops`, `GET /v1/admin/stations/:id/stop-neighbors`.
+- 0042 의 시설 쪽 장치(시설 종류 신호장·신호소·조차장, `facility_line` role located·앞 정거장·km)는 0045 에서 없앴다.
 
 ### 4-19. OSM 스키마 `osm` (Q31 A)
 
@@ -899,8 +892,8 @@ CREATE TABLE app_setting (key text PRIMARY KEY, value jsonb NOT NULL, updated_at
 | 도메인                                  | 값 (라벨)                                                                                                                                                                                                                                                                                                          |
 | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `entity_type`                           | source, operator, station, line_station, line, train_class, service, plan_program, plan, event, train_number_range, rolling_stock_range, transfer_center, route_map, glossary_term                                                                                                                                 |
-| `status`(역 단독·노선역·노선·운행 계통) | operating 운영 중 / suspended 휴업 / under_construction 공사 중 / planned 계획 / abandoned 계획 폐기 / closed 폐선·폐역·운행 종료                                                                                                                                                                                  |
-| `station.kind`                          | station 여객역 / freight 화물역. 0039(2026-11-28)부터 이 둘만 — 옛 값(signal_box·junction·yard·depot)은 소프트 삭제된 행에만 남는다(CHECK 는 살아 있는 행만 검사)                                                                                                                                                  |
+| `status`(역 단독·정거장·노선·운행 계통) | operating 운영 중 / suspended 휴업 / under_construction 공사 중 / planned 계획 / abandoned 계획 폐기 / closed 폐선·폐역·운행 종료                                                                                                                                                                                  |
+| `station.kind`                          | station 여객역 / freight 화물역 / operational 운전 취급(신호장·신호소·조차장 — 0044). 0039(2026-11-28)부터 station·freight, 0044 에서 operational 추가 — 옛 값(signal_box·junction·yard·depot)은 소프트 삭제된 행에만 남는다(CHECK 는 살아 있는 행만 검사)                                                         |
 | `facility.functions`                    | stabling 주박 / inspection 검수 / light_maintenance 경정비 / heavy_maintenance 중정비 / track_maintenance 시설·선로 보수 (0034)                                                                                                                                                                                    |
 | `station.korail_class`                  | management 관리역 / ordinary 보통역 / operating_halt 운전간이역 / staffed_halt 배치간이역 / consigned_ticket 갑종 위탁발매소 / unstaffed_halt 무배치간이역(을종 위탁 포함) / temporary_platform 임시승강장 / yard 조차장 / signal_station 신호장 / signal_post 신호소 (한국철도공사 직제규정 시행세칙, 0031)       |
 | `coord_source` / `coord_basis`          | official, manual, derived / parcel, district, township, existing_station                                                                                                                                                                                                                                           |
@@ -944,12 +937,12 @@ CREATE TABLE app_setting (key text PRIMARY KEY, value jsonb NOT NULL, updated_at
 
 | 뷰                                                                  | 정의                                                                                                                                                                                                                                                                                               | 기존 대응                  |
 | ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
-| `v_station_status`                                                  | 역 상태·개통·폐지 = 노선역에서 계산(4-5절), 없으면 `own_*`                                                                                                                                                                                                                                         | `Station.status/opened_at` |
-| `v_station_line`                                                    | 역 그룹 ↔ 노선(노선역의 seq·km·역번호·상태·이름·운영기관 = v_line_station_operator)                                                                                                                                                                                                                | `Station.line_ids`         |
-| `v_line_station_operator`                                           | 노선역의 현재 운영기관(노선역 값 > 노선 운영기관이 하나면 그것, 통합 기관은 승계 기관) · basis line_station/line/ambiguous/none (0032)                                                                                                                                                             | 관리 앱·V-H18              |
+| `v_station_status`                                                  | 역 상태·개통·폐지 = 정거장에서 계산(4-5절), 없으면 `own_*`                                                                                                                                                                                                                                         | `Station.status/opened_at` |
+| `v_station_line`                                                    | 역 그룹 ↔ 노선(정거장의 seq·km·역번호·상태·이름·운영기관 = v_line_station_operator)                                                                                                                                                                                                                | `Station.line_ids`         |
+| `v_line_station_operator`                                           | 정거장의 현재 운영기관(정거장 값 > 노선 운영기관이 하나면 그것, 통합 기관은 승계 기관) · basis line_station/line/ambiguous/none (0032)                                                                                                                                                             | 관리 앱·V-H18              |
 | `v_line_branch`                                                     | 지선 → 본선(국토교통부 고시 노선번호: 지선 다섯 자리의 앞 세 자리 = 본선 번호, 0033. 그 본선 번호가 없으면 `line.branch_of_id`, basis line_no·manual, 0037. 노선번호가 없는 연결선·기지선도 `branch_of_id` 가 있으면 포함, 0040). 저장하지 않음 — `line.parent_line_id`(Q22 공사 구간 통합)와 별개 | 노선 목록·상세 지선        |
 | `v_station_line_class`                                              | 소속 노선 rail_class 합집합(없으면 conventional)                                                                                                                                                                                                                                                   | `line_classes`             |
-| `v_station_service`                                                 | 정차 계통: 정차 패턴의 노선역 → 역, 패턴 없으면 소속 노선 모든 역(`assumed`)                                                                                                                                                                                                                       | `service_kinds`            |
+| `v_station_service`                                                 | 정차 계통: 정차 패턴의 정거장 → 역, 패턴 없으면 소속 노선 모든 역(`assumed`)                                                                                                                                                                                                                       | `service_kinds`            |
 | `v_station_area` · `v_line_area` · `v_service_area` · `v_plan_area` | 권역(기존 build.ts 규칙 이식)                                                                                                                                                                                                                                                                      | `areas`                    |
 | `v_station_review`                                                  | 소속 노선 중 하나라도 verified 면 verified                                                                                                                                                                                                                                                         | 상속 review                |
 | `v_plan_stage`                                                      | stage_override ?? 단계 이력 규칙(아래)                                                                                                                                                                                                                                                             | `Plan.stage`               |
@@ -968,9 +961,9 @@ CREATE TABLE app_setting (key text PRIMARY KEY, value jsonb NOT NULL, updated_at
 
 연도 Y 의 "그 시점 노선도"를 규칙으로 계산한다.
 
-1. **현재 운영 중**인 노선·노선역 전부에서 출발.
+1. **현재 운영 중**인 노선·정거장 전부에서 출발.
 2. 미개통 계획 P 의 개통 예정 시점 T = `v_plan_target_open`. T 의 시작 연도 ≤ Y 이면 P 를 적용한다(미정은 "목표 미정" 칸에서만, 목표가 지난 미개통은 현재 연도에 "지연" 표시).
-   - `plan_line role=new/extends`: 그 노선(공사 중·계획 상태)·노선역을 더한다. extends 는 연장 대상 노선의 색·이름으로 이어 그린다. new 도 노선 레코드가 있으면 노선 이름으로(계획 이름은 plan_id 로 정보 패널에, 0022). 계획 하나가 노선 여럿을 신설·연장하면(인덕원동탄선 사업 = 인덕원동탄선 + 서동탄~동탄 1호선 연장) 노선마다 따로 그리고 이름·색은 그 노선(새 노선의 `line.color` 도 쓴다), 첫 노선은 `plan:<계획>`, 나머지는 `plan:<계획>:<노선>`(0023).
+   - `plan_line role=new/extends`: 그 노선(공사 중·계획 상태)·정거장을 더한다. extends 는 연장 대상 노선의 색·이름으로 이어 그린다. new 도 노선 레코드가 있으면 노선 이름으로(계획 이름은 plan_id 로 정보 패널에, 0022). 계획 하나가 노선 여럿을 신설·연장하면(인덕원동탄선 사업 = 인덕원동탄선 + 서동탄~동탄 1호선 연장) 노선마다 따로 그리고 이름·색은 그 노선(새 노선의 `line.color` 도 쓴다), 첫 노선은 `plan:<계획>`, 나머지는 `plan:<계획>:<노선>`(0023).
    - `role=replaces`: 해당 노선(또는 from~to 구간)을 숨긴다. `plan_station role=closes`: 그 역을 숨긴다.
    - `role=upgrades`·`shares`: 지도 변화 없음(정보 패널에만).
    - 노선 레코드가 아직 없는 계획(구상·계획 단계)은 `v_plan_shape` 선형과 `plan_station role=new` 역으로 그린다.
@@ -984,7 +977,7 @@ CREATE TABLE app_setting (key text PRIMARY KEY, value jsonb NOT NULL, updated_at
 
 운행 계통은 선형을 갖지 않는다(물리 노선 ≠ 운행 계통). 지도 강조용으로 노선 선형에서 잘라 파생한다(물리화 뷰, `refresh_derived`).
 
-1. 계통 노선(`service_line`)마다 정차 패턴(모든 패턴 합)에 들어간 노선역을 **노선 순서**(`seq`, 같은 `branch` 끼리)로 정렬해 이웃한 두 역을 잇는다(패턴 순서가 아닌 노선 순서 — 분기 계통도 맞게).
+1. 계통 노선(`service_line`)마다 정차 패턴(모든 패턴 합)에 들어간 정거장을 **노선 순서**(`seq`, 같은 `branch` 끼리)로 정렬해 이웃한 두 역을 잇는다(패턴 순서가 아닌 노선 순서 — 분기 계통도 맞게).
 2. 두 역(점 = `mv_map_station`)이 같은 선형 조각 위(300 m 안)면 그 사이를 자르고(`mv_service_segment`), 다른 조각이면 두 조각을 가까운 끝까지 이어 붙인다. 조각이 없으면 두 역 근처 통로(역 사이 거리 25%, 최소 1 km) 안의 노선 선형, 그것도 없으면 직선(`approximate`, 흐리게).
 3. 정차역이 하나도 없는 계통 노선(운행 예정 연장 — 1호선 연장 등)은 노선 선형 전체를 노선 상태(공사 중 등)로.
 4. 공개 API `GET /v1/public/map/services/{id}.geojson` — 계통·상태·approximate 별 MultiLineString. OSM 유래라 ODbL 표기.
@@ -993,7 +986,7 @@ CREATE TABLE app_setting (key text PRIMARY KEY, value jsonb NOT NULL, updated_at
 ## 7. 검색
 
 - `mv_search(entity_id, type, name, name_kind, chosung, code, area_codes, url_path, rank_boost)` + GIN trigram.
-- 정확 일치 → 앞부분 → 포함 → trigram 유사도. 초성 질의는 `chosung`. 역번호는 노선역 `station_code`. 노선역 이름·별칭은 역(그룹) 결과로 모은다.
+- 정확 일치 → 앞부분 → 포함 → trigram 유사도. 초성 질의는 `chosung`. 역번호는 정거장 `station_code`. 정거장 이름·별칭은 역(그룹) 결과로 모은다.
 
 ## 8. 검증 규칙 (Q46 A: 일단 구현, 운영하며 조정)
 
@@ -1003,26 +996,26 @@ FK 전부, CHECK(코드값·좌표 범위·퍼지 날짜·범위·자기 참조 
 
 ### 8-2. Hard (위반 = 적용 거부)
 
-| ID    | 규칙                                                                                                                                                                                       |
-| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| V-H01 | 큐레이션 개체는 `record_source`(field NULL) ≥ 1 (노선역은 노선 출처로 충족)                                                                                                                |
-| V-H02 | `merge_into_id` 대상은 자신이 `merge_into_id` 를 갖지 않음, 대상 역은 미개통 노선역만 가진 역이 아님(운영 중 역이어야)                                                                     |
-| V-H03 | 환승센터 반영 내역의 상위 계획은 kind transfer_center                                                                                                                                      |
-| V-H04 | scope `line` 계획은 `plan_ref` ≥ 1 (station·facility 는 0 허용)                                                                                                                            |
-| V-H05 | 정차 패턴 역 ≥ 2, 정차역(노선역)의 노선은 그 운행 계통 노선이어야 함(예외 플래그 허용)                                                                                                     |
-| V-H06 | `line.start/end_station_id` 는 그 노선의 노선역에 있어야 함                                                                                                                                |
-| V-H07 | `plan_geometry.via_station_ids` 역 존재·좌표 보유                                                                                                                                          |
-| V-H08 | `coord_same_as_id` 대상 좌표 보유, 자기 자신 아님                                                                                                                                          |
-| V-H09 | `successor_id` 순환 금지                                                                                                                                                                   |
-| V-H10 | 퍼지 날짜 `closed ≥ opened`                                                                                                                                                                |
-| V-H11 | operating 이면 `closed` 없음                                                                                                                                                               |
-| V-H12 | 삭제(소프트) 시 활성 행이 참조하면 거부하고 참조 목록 반환                                                                                                                                 |
-| V-H13 | 노선역이 있는 역은 `own_status/own_opened/own_closed` 가 NULL                                                                                                                              |
-| V-H14 | `merge_into_id` 가 있는 역은 노선역이 모두 미개통(under_construction·planned)                                                                                                              |
-| V-H15 | 공개 첨부(`is_public`)의 문서는 `publishable`                                                                                                                                              |
-| V-H16 | `plan_milestone` basis official·press 는 출처 필수                                                                                                                                         |
-| V-H18 | `managed_by_id` 가 가리키는 역은 `korail_class = management`, 관리역 자신은 `managed_by_id` 없음(0031)                                                                                     |
-| V-H19 | 노선 위 정거장(`facility_line` located)은 신호장·신호소·조차장만, 앞 노선역은 같은 노선의 살아 있는 노선역. `line_station.branch_from_id` 는 같은 노선의 다른 지선(또는 본선) 노선역(0042) |
+| ID    | 규칙                                                                                                                   |
+| ----- | ---------------------------------------------------------------------------------------------------------------------- |
+| V-H01 | 큐레이션 개체는 `record_source`(field NULL) ≥ 1 (정거장은 노선 출처로 충족)                                            |
+| V-H02 | `merge_into_id` 대상은 자신이 `merge_into_id` 를 갖지 않음, 대상 역은 미개통 정거장만 가진 역이 아님(운영 중 역이어야) |
+| V-H03 | 환승센터 반영 내역의 상위 계획은 kind transfer_center                                                                  |
+| V-H04 | scope `line` 계획은 `plan_ref` ≥ 1 (station·facility 는 0 허용)                                                        |
+| V-H05 | 정차 패턴 역 ≥ 2, 정차역(정거장)의 노선은 그 운행 계통 노선이어야 함(예외 플래그 허용)                                 |
+| V-H06 | `line.start/end_station_id` 는 그 노선의 정거장에 있어야 함                                                            |
+| V-H07 | `plan_geometry.via_station_ids` 역 존재·좌표 보유                                                                      |
+| V-H08 | `coord_same_as_id` 대상 좌표 보유, 자기 자신 아님                                                                      |
+| V-H09 | `successor_id` 순환 금지                                                                                               |
+| V-H10 | 퍼지 날짜 `closed ≥ opened`                                                                                            |
+| V-H11 | operating 이면 `closed` 없음                                                                                           |
+| V-H12 | 삭제(소프트) 시 활성 행이 참조하면 거부하고 참조 목록 반환                                                             |
+| V-H13 | 정거장이 있는 역은 `own_status/own_opened/own_closed` 가 NULL                                                          |
+| V-H14 | `merge_into_id` 가 있는 역은 정거장이 모두 미개통(under_construction·planned)                                          |
+| V-H15 | 공개 첨부(`is_public`)의 문서는 `publishable`                                                                          |
+| V-H16 | `plan_milestone` basis official·press 는 출처 필수                                                                     |
+| V-H18 | `managed_by_id` 가 가리키는 역은 `korail_class = management`, 관리역 자신은 `managed_by_id` 없음(0031)                 |
+| V-H19 | `line_station.branch_from_id`(갈라지는 정거장)는 같은 노선의 다른 지선(또는 본선) 정거장(0042)                         |
 
 ### 8-3. Soft (경고, 품질 대시보드)
 
@@ -1031,7 +1024,7 @@ FK 전부, CHECK(코드값·좌표 범위·퍼지 날짜·범위·자기 참조 
 | V-S01 | 출처가 `wiki` 뿐                                                                                                                                                                                                                                                                     |
 | V-S02 | 운영 중 여객역인데 좌표 없음 / 시·도 미상                                                                                                                                                                                                                                            |
 | V-S03 | 좌표가 시·도 경계 밖(경계 데이터 확보 시)                                                                                                                                                                                                                                            |
-| V-S04 | 같은 노선 인접 역 거리 초과 또는 km 역행 — 상한: 양 끝이 고속열차(high_speed 계통 정차 패턴) 정차역이면 80km, 고속·일반열차(intercity) 정차역이면 50km, 그 밖 30km. 거리 초과는 검수자가 맞다고 확인하면(`gap_confirmed_prev_id` = 그때의 앞 노선역) 빠진다. km 역행은 빠지지 않는다 |
+| V-S04 | 같은 노선 인접 역 거리 초과 또는 km 역행 — 상한: 양 끝이 고속열차(high_speed 계통 정차 패턴) 정차역이면 80km, 고속·일반열차(intercity) 정차역이면 50km, 그 밖 30km. 거리 초과는 검수자가 맞다고 확인하면(`gap_confirmed_prev_id` = 그때의 앞 정거장) 빠진다. km 역행은 빠지지 않는다 |
 | V-S05 | `order_confirmed=false`                                                                                                                                                                                                                                                              |
 | V-S06 | 동명 역 1km 이내 별개 역(병합 후보)                                                                                                                                                                                                                                                  |
 | V-S07 | `checked_at` 1년 이상                                                                                                                                                                                                                                                                |
@@ -1041,7 +1034,7 @@ FK 전부, CHECK(코드값·좌표 범위·퍼지 날짜·범위·자기 참조 
 | V-S11 | 미개통 계획(scope line)인데 기대 일정(개통 예정) 없음 — 미래 지도에 안 나옴                                                                                                                                                                                                          |
 | V-S12 | 미래 지도 대상인데 선형이 schematic 뿐                                                                                                                                                                                                                                               |
 | V-S13 | 개통 예정이 지났는데 미개통(지연)                                                                                                                                                                                                                                                    |
-| V-S14 | 시간표 세트의 노선역 미해석                                                                                                                                                                                                                                                          |
+| V-S14 | 시간표 세트의 정거장 미해석                                                                                                                                                                                                                                                          |
 
 이관 검수 목록(같은 틀, 07 문서): `X-milestone-auto`(기대 일정 출처 자동 선택, Q100 A) · `X-stage-override`(현재 단계 수동 지정) · `X-plan-abandoned-evidence`(stage_override = abandoned 인데 단계 이력에 폐기 항목 없음 — "폐기 근거 필요", Q101 A) · `X-service-dropped-stops`(운행 계통 `extra.dropped_stops` 의 정차역 중 아직 그 패턴에 그 역의 정차역이 없는 것, Q105 A) · `X-source-license-unknown`.
 
@@ -1049,11 +1042,11 @@ FK 전부, CHECK(코드값·좌표 범위·퍼지 날짜·범위·자기 참조 
 
 1. 삭제 = **소프트 삭제**(`deleted_at`). 개체 행과 `entity` 행에 시각을 기록한다. id 는 영구 예약(다시 쓰지 않음).
 2. 활성 행이 참조 중이면 삭제를 거부한다(V-H12).
-3. 하위 관계 행(노선역·정차 패턴·반영 내역·단계 이력·첨부 등)은 지우지 않고 **부모와 함께 숨긴다**(뷰·API 가 부모의 `deleted_at` 으로 걸러냄). 복구하면 함께 돌아온다. 노선역은 독립 개체라 노선 삭제 시 함께 소프트 삭제 표시한다.
+3. 하위 관계 행(정거장·정차 패턴·반영 내역·단계 이력·첨부 등)은 지우지 않고 **부모와 함께 숨긴다**(뷰·API 가 부모의 `deleted_at` 으로 걸러냄). 복구하면 함께 돌아온다. 정거장은 독립 개체라 노선 삭제 시 함께 소프트 삭제 표시한다.
 4. 공개 사이트·검색·파생 뷰·데이터 덤프에서 제외. 관리 앱 **휴지통**에서 보기·복구(`restore` op).
 5. 영구 삭제(purge)는 관리자가 휴지통에서 명시적으로 할 때만(참조·감사 스냅샷은 남김).
 6. 실재했던 개체는 삭제가 아니라 상태(`closed`·`abandoned`)로 둔다. 삭제는 잘못 만든 레코드·중복에만.
-7. **역 병합**(merge_station): A → B. A 의 노선역을 B 아래로 옮기고(같은 노선이 이미 있으면 하나로 합침), A 를 가리키는 행(plan_station, transfer_center_station, event_target, timetable_set, external_ref, entity_name, record_source, entity_attachment)을 B 로, A 의 이름을 B 의 `entity_name(former)` 로, `id_redirect(A→B)`, A 는 소프트 삭제. 한 변경 묶음.
+7. **역 병합**(merge_station): A → B. A 의 정거장을 B 아래로 옮기고(같은 노선이 이미 있으면 하나로 합침), A 를 가리키는 행(plan_station, transfer_center_station, event_target, timetable_set, external_ref, entity_name, record_source, entity_attachment)을 B 로, A 의 이름을 B 의 `entity_name(former)` 로, `id_redirect(A→B)`, A 는 소프트 삭제. 한 변경 묶음.
 
 ## 10. 기존 스키마 → 새 스키마 대응 요약
 
@@ -1064,9 +1057,9 @@ FK 전부, CHECK(코드값·좌표 범위·퍼지 날짜·범위·자기 참조 
 | `provenance.*`                                                   | `record_source` · `checked_at` · `provenance_note`                                                                                                                      |
 | `*_source`                                                       | `record_source.field`                                                                                                                                                   |
 | `aliases[]`                                                      | `entity_name`                                                                                                                                                           |
-| `codes{}` · 보정 키                                              | `external_ref`(역 또는 노선역)                                                                                                                                          |
-| `Station`(병합된 역 하나)                                        | `station`(대표 정보) + 노선역마다 `line_station`(상태·개통일·역번호·코드)                                                                                               |
-| `Station.status/opened_at/closed_at`                             | 노선역으로(노선 없는 역은 `own_*`) — 다중 노선 역의 노선별 개통일은 Q95 A                                                                                               |
+| `codes{}` · 보정 키                                              | `external_ref`(역 또는 정거장)                                                                                                                                          |
+| `Station`(병합된 역 하나)                                        | `station`(대표 정보) + 정거장마다 `line_station`(상태·개통일·역번호·코드)                                                                                               |
+| `Station.status/opened_at/closed_at`                             | 정거장으로(노선 없는 역은 `own_*`) — 다중 노선 역의 노선별 개통일은 Q95 A                                                                                               |
 | `Station.transfer_group`                                         | 폐지(역 = 그룹)                                                                                                                                                         |
 | `Line.region[]` · `operator_name`                                | `line_region` · `line_operator`                                                                                                                                         |
 | `LineStation`                                                    | `line_station`(id `ls-…`)                                                                                                                                               |

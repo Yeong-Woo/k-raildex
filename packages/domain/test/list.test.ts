@@ -103,7 +103,7 @@ describe('listEntities', () => {
       'ls-fx-one--fx-c',
       'ls-fx-one--fx-d',
     ]);
-    // 노선역 이름은 역 이름을 따른다(다를 때만 자체 이름)
+    // 정거장 이름은 역 이름을 따른다(다를 때만 자체 이름)
     const two = await listEntities(db, 'line_station', { filters: { line_id: 'line-fx-two' }, sort: 'seq' });
     expect(two.items.map((i) => i.name_ko)).toEqual(['가(2호선)', '마']);
     expect((await listEntities(db, 'station', { region: '41' })).total).toBe(3);
@@ -112,7 +112,7 @@ describe('listEntities', () => {
   });
 
   it('노선·운영기관 관계 필터', async () => {
-    // line-fx-two 노선역: 가(2호선)·마
+    // line-fx-two 정거장: 가(2호선)·마
     expect((await listEntities(db, 'station', { line: 'line-fx-two' })).total).toBe(2);
     expect((await listEntities(db, 'line_station', { line: 'line-fx-one' })).total).toBe(4);
     // 운영기관: line-fx-one 만 op-fx-metro

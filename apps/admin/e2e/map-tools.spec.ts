@@ -1,5 +1,5 @@
 /**
- * 지도 도구(FR-ADM-050·073·074): 노선 편집(역 점 클릭 → 노선역 추가·저장) · 계획 선형 편집(경유역 클릭 → schematic 저장) ·
+ * 지도 도구(FR-ADM-050·073·074): 노선 편집(역 점 클릭 → 정거장 추가·저장) · 계획 선형 편집(경유역 클릭 → schematic 저장) ·
  * OSM 매핑 점검(way 클릭 → relation 추가).
  * 전역 준비는 픽스처만 넣으므로(OSM 없음) 작은 OSM 추출을 E2E DB 에 직접 넣는다(osm 스키마만 — 자체 데이터는 API 로만 바꾼다).
  */
@@ -258,7 +258,7 @@ test('지도 정보 팝업: 편집 중이 아닐 때 역 점을 클릭하면 역
   await expect(page).toHaveURL(/\/data\/station\/stn-fx-a/);
 });
 
-test('노선 편집: 지도에서 역을 클릭해 노선역에 넣고 저장하면 유지된다', async ({ page }) => {
+test('노선 편집: 지도에서 역을 클릭해 정거장에 넣고 저장하면 유지된다', async ({ page }) => {
   const api = process.env.E2E_API_URL;
   // 앞 시험(여러 건 입력)이 역을 더했을 수 있으므로 지금 목록을 기준으로 본다
   const stationsOf = async () =>
@@ -308,8 +308,8 @@ test('노선 편집: 지도에서 역을 클릭해 노선역에 넣고 저장하
   await expect(page.getByTestId('lm-dirty')).toBeVisible();
   await expect(page.getByTestId('lm-marker')).toHaveCount(before.length + 1);
 
-  await page.getByRole('button', { name: '역 순서 저장' }).click();
-  await expect(toast(page, '역 순서를 저장했습니다')).toBeVisible();
+  await page.getByRole('button', { name: '정거장 순서 저장' }).click();
+  await expect(toast(page, '정거장 순서를 저장했습니다')).toBeVisible();
   await expect(page.getByTestId('lm-dirty')).toHaveCount(0);
 
   await page.reload();

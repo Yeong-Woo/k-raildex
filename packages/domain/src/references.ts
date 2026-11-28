@@ -15,7 +15,7 @@ interface FkRef {
 
 /** 참조하는 행의 소유 개체 id 를 내는 SQL 식(r = 참조 테이블 별칭). null 이면 소유자 없음(항상 활성) */
 function ownerExpr(table: string, column: string, targetTable: string): { expr: string | null; join?: string } {
-  // 노선의 노선역은 노선의 하위로 본다(노선 삭제 시 함께 휴지통으로 — 0012 트리거)
+  // 노선의 정거장은 노선의 하위로 본다(노선 삭제 시 함께 휴지통으로 — 0012 트리거)
   if (targetTable === 'line' && table === 'line_station' && column === 'line_id') return { expr: 'r.line_id' };
   const entityTable = Object.values(ENTITY_SPECS).find((s) => s.table === table);
   if (entityTable) return { expr: 'r.id' };

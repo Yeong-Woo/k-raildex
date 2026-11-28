@@ -1,4 +1,4 @@
-/** 지도(FR-ADM-070~076): 역·시설·노선 편집(역 그룹 좌표 / 시설 좌표 / 현재 노선 노선역 — 2026-11-28 한 화면으로 통합) · 미래 노선 편집 · 미래 지도 · 위성 비교 · OSM 매핑 점검.
+/** 지도(FR-ADM-070~076): 역·시설·노선 편집(역 그룹 좌표 / 시설 좌표 / 현재 노선 정거장 — 2026-11-28 한 화면으로 통합) · 미래 노선 편집 · 미래 지도 · 위성 비교 · OSM 매핑 점검.
  * 화면 전환은 사이드바 메뉴만 쓴다(탭 줄 없음). 역·선 클릭 → 정보 팝업(map/FeaturePopup). */
 import { lazy, Suspense } from 'react';
 import { useNavigate, useRouterState, useSearch } from '@tanstack/react-router';

@@ -1,4 +1,4 @@
-/** 노선 역 순서 편집기(FR-ADM-050)의 순수 계산 — km 역행·일괄 상태·PUT 본문 */
+/** 노선 정거장 순서 편집기(FR-ADM-050)의 순수 계산 — km 역행·일괄 상태·PUT 본문 */
 
 export interface LsRow {
   /** 화면 키(저장하지 않음) */
@@ -11,7 +11,7 @@ export interface LsRow {
   station_kind?: string | null;
   station_geom?: { lng: number; lat: number } | null;
   branch: string | null;
-  /** 지선이 갈라져 나오는 노선역(지선 행만, 0042) */
+  /** 지선이 갈라져 나오는 정거장(지선 행만, 0042) */
   branch_from_id?: string | null;
   km: number | null;
   station_code: string | null;

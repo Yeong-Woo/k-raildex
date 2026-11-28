@@ -128,7 +128,7 @@ beforeAll(async () => {
 afterAll(async () => t?.close());
 
 describe('노선·역·운행 계통', () => {
-  it('노선 목록·상세: 역 순서·구간별 상태·관련 계획·내부 필드 없음', async () => {
+  it('노선 목록·상세: 정거장 순서·구간별 상태·관련 계획·내부 필드 없음', async () => {
     const list = await ok('/v1/public/lines', publicLineListSchema);
     expect(list.items.map((l) => l.id)).toEqual(['line-fx-one', 'line-fx-two']);
     expect(list.items[0]!.station_count).toBe(4);

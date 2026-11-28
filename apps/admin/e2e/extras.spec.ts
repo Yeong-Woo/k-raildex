@@ -290,7 +290,7 @@ test('계획 편집: 노선 없는 계획에 [새 노선 만들기]로 노선을
   await expect(page.getByTestId('quality-items').locator('tr', { hasText: 'plan-e2e-noline' })).toHaveCount(0);
 });
 
-test('노선역 상세 [관리역]: 코레일 노선역을 관리역으로 저장하고 소속 노선역을 넣고 뺀다', async ({ page }) => {
+test('정거장 상세 [관리역]: 코레일 정거장을 관리역으로 저장하고 소속 정거장을 넣고 뺀다', async ({ page }) => {
   const api = process.env.E2E_API_URL;
   const post = async (type: string, data: unknown) => {
     const r = await page.request.post(`${api}/v1/admin/${type}`, { data });
@@ -331,9 +331,9 @@ test('노선역 상세 [관리역]: 코레일 노선역을 관리역으로 저�
     status: 'operating',
   });
 
-  // 코레일이 아닌 노선역(시험 1호선 = op-fx-metro)에는 등급을 못 쓴다고 안내
+  // 코레일이 아닌 정거장(시험 1호선 = op-fx-metro)에는 등급을 못 쓴다고 안내
   await page.goto('/data/line-station/ls-fx-one--fx-a?tab=managed');
-  await expect(page.getByTestId('managed-stations')).toContainText('한국철도공사가 아닌 노선역');
+  await expect(page.getByTestId('managed-stations')).toContainText('한국철도공사가 아닌 정거장');
 
   await page.goto('/data/line-station/ls-e2e-korail--fx-a');
   await page.getByLabel('정거장 등급(코레일)').selectOption('management');
@@ -344,11 +344,11 @@ test('노선역 상세 [관리역]: 코레일 노선역을 관리역으로 저�
 
   await page.getByRole('tab', { name: '관리역' }).click();
   const box = page.getByTestId('managed-stations');
-  await expect(box).toContainText('관리역 2급 · 소속 노선역 0곳');
+  await expect(box).toContainText('관리역 2급 · 소속 정거장 0곳');
   await pickRef(page, box, 'ls-e2e-korail--fx-b', /ls-e2e-korail--fx-b|코레일시험선/);
   await box.getByTestId('managed-add').click();
-  await expect(toast(page, '소속 노선역으로 넣었습니다')).toBeVisible();
-  await expect(box).toContainText('소속 노선역 1곳');
+  await expect(toast(page, '소속 정거장으로 넣었습니다')).toBeVisible();
+  await expect(box).toContainText('소속 정거장 1곳');
   const sub = await (await page.request.get(`${api}/v1/admin/line-station/ls-e2e-korail--fx-b`)).json();
   expect(sub.data.managed_by_id).toBe('ls-e2e-korail--fx-a');
 
@@ -361,19 +361,19 @@ test('노선역 상세 [관리역]: 코레일 노선역을 관리역으로 저�
   await page.goto('/data/line-station/ls-e2e-korail--fx-a?tab=managed');
   await page.getByRole('button', { name: 'ls-e2e-korail--fx-b 소속에서 빼기' }).click();
   await expect(toast(page, '소속에서 뺐습니다')).toBeVisible();
-  await expect(page.getByTestId('managed-stations')).toContainText('소속 노선역 0곳');
+  await expect(page.getByTestId('managed-stations')).toContainText('소속 정거장 0곳');
   for (const id of ['ls-e2e-korail--fx-b', 'ls-e2e-korail--fx-a']) await removeEntity(page, 'line-station', id);
 });
 
 test('시설(차량기지): 망 메뉴에서 만들고 기능 체크·담당 노선을 저장한다', async ({ page }) => {
   const api = process.env.E2E_API_URL;
-  // 사이드바 "망" 에 역 그룹 → 노선역 → 노선 … → 시설 순서
+  // 사이드바 "망" 에 역 그룹 → 정거장 → 노선 … → 시설 순서
   await page.goto('/');
   await expect(page.getByRole('link', { name: '시설', exact: true })).toBeVisible();
   const labels = await page.locator('nav a').allInnerTexts();
   const at = (t: string) => labels.findIndex((x) => x.trim() === t);
-  expect(at('역 그룹')).toBeLessThan(at('노선역'));
-  expect(at('노선역')).toBeLessThan(at('노선'));
+  expect(at('역 그룹')).toBeLessThan(at('정거장'));
+  expect(at('정거장')).toBeLessThan(at('노선'));
   expect(at('시설')).toBeGreaterThan(at('노선'));
   expect(labels.map((x) => x.trim())).not.toContain('현재 노선 편집');
   expect(labels.map((x) => x.trim())).toEqual(expect.arrayContaining(['역·시설·노선 편집', '미래 노선 편집']));
@@ -400,16 +400,18 @@ test('시설(차량기지): 망 메뉴에서 만들고 기능 체크·담당 노
   await removeEntity(page, 'facility', 'fac-e2e-depot');
 });
 
-test('정거장: 노선 [정거장] 탭 순서·앞뒤, 역 그룹 [앞뒤 정거장] 탭(노선별)', async ({ page }) => {
-  await page.goto('/data/line/line-fx-one?tab=stops');
-  const list = page.getByTestId('line-stops');
-  await expect(list).toContainText('본선');
+test('정거장 순서: [보기] 위키형 표, 역 그룹 [앞뒤 정거장] 탭(노선별)', async ({ page }) => {
+  await page.goto('/data/line/line-fx-one?tab=stations');
+  await expect(page.getByTestId('stops-mode-view')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByTestId('stop-section').first()).toContainText('본선');
   const rows = page.getByTestId('stop-row');
   await expect(rows.first()).toContainText('가');
-  await expect(rows.first()).toContainText('역');
+  await expect(rows.first()).toContainText('101');
+  await expect(rows.first()).toContainText('시험 2호선');
   expect(await rows.count()).toBeGreaterThanOrEqual(4);
+  await page.getByTestId('stops-mode-edit').click();
+  await expect(page.getByTestId('ls-row').first()).toBeVisible();
   await page.goto('/data/station/stn-fx-a?tab=neighbors');
-  const nb = page.getByTestId('neighbor-row');
-  await expect(nb).toHaveCount(2);
+  await expect(page.getByTestId('neighbor-row')).toHaveCount(2);
   await expect(page.getByTestId('stop-neighbors')).toContainText('시험 2호선');
 });

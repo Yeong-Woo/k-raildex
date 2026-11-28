@@ -363,7 +363,7 @@ describe('공통 도구', () => {
 });
 
 describe('lineStationResolver(2026-11-27)', () => {
-  it('운행 계통 노선 후보가 여럿이면 기지선·연결선 노선역을 빼고 하나면 그것', () => {
+  it('운행 계통 노선 후보가 여럿이면 기지선·연결선 정거장을 빼고 하나면 그것', () => {
     const lsOf = lineStationResolver(
       [
         { id: 'ls-gyeongbu--bj', line_id: 'line-gyeongbu', station_id: 'stn-bj', line_role: null },
@@ -378,7 +378,7 @@ describe('lineStationResolver(2026-11-27)', () => {
   });
 });
 
-describe('분기역 시간표 노선역 나누기(Q148)', () => {
+describe('분기역 시간표 정거장 나누기(Q148)', () => {
   // 가(분기역) — 경부: 나·가·다·라 / 경인: 가·마·바. 계통 노선 = 경부·경인
   const ls = [
     ['gb', ['na', 'ga', 'da', 'ra']],
@@ -412,10 +412,10 @@ describe('분기역 시간표 노선역 나누기(Q148)', () => {
       ['tt-ga-k1-weekday-down--gi', 'ls-gi--ga', 1],
     ]);
   });
-  it('모두 한 노선이면 세트에 노선역만 적는다', () => {
+  it('모두 한 노선이면 세트에 정거장만 적는다', () => {
     expect(split(set(['stn-na', 'stn-sa']))).toEqual([{ ...set(['stn-na', 'stn-sa']), line_station_id: 'ls-gb--ga' }]);
   });
-  it('이미 노선역이 있으면 그대로', () => {
+  it('이미 정거장이 있으면 그대로', () => {
     const s = { ...set(['stn-ba']), line_station_id: 'ls-gb--ga' };
     expect(split(s)).toEqual([s]);
   });

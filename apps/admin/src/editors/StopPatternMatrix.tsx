@@ -1,4 +1,4 @@
-/** 정차 패턴 매트릭스(FR-ADM-052): 운행 계통 노선들의 노선역(행) × 패턴(열), ● 정차 / — 통과 */
+/** 정차 패턴 매트릭스(FR-ADM-052): 운행 계통 노선들의 정거장(행) × 패턴(열), ● 정차 / — 통과 */
 import { useQueries } from '@tanstack/react-query';
 import { codeLabel, codes, type StopPattern } from '@k-raildex/contracts';
 import { Button, cn, Input, Select } from '@k-raildex/ui';
@@ -58,7 +58,7 @@ export function StopPatternMatrix({
       });
   });
   const candIds = candidates.map((c) => c.id);
-  // 패턴에 있지만 후보(계통 노선의 노선역)에 없는 정차역 — V-H05 위반 후보
+  // 패턴에 있지만 후보(계통 노선의 정거장)에 없는 정차역 — V-H05 위반 후보
   for (const p of value)
     for (const s of p.stops)
       if (!candIds.includes(s) && !candidates.some((c) => c.id === s))
@@ -84,7 +84,7 @@ export function StopPatternMatrix({
   if (lines.length === 0)
     return (
       <p className="text-sm text-fg-muted">
-        먼저 [노선 순서]에 소속 노선을 넣으세요. 후보 역은 그 노선들의 노선역입니다.
+        먼저 [노선 순서]에 소속 노선을 넣으세요. 후보 역은 그 노선들의 정거장입니다.
       </p>
     );
 
@@ -96,7 +96,7 @@ export function StopPatternMatrix({
           <thead className="bg-muted/50 text-xs">
             <tr>
               <th className="sticky left-0 min-w-44 bg-muted px-2 py-1.5 text-left font-medium text-fg-muted">
-                노선역 ({candidates.length})
+                정거장 ({candidates.length})
               </th>
               {value.map((p, i) => (
                 <th key={i} className="min-w-36 border-l border-border px-1.5 py-1.5 align-top font-normal">
@@ -175,7 +175,7 @@ export function StopPatternMatrix({
             })}
           </tbody>
         </table>
-        {loading ? <p className="p-2 text-xs text-fg-muted">노선역 불러오는 중…</p> : null}
+        {loading ? <p className="p-2 text-xs text-fg-muted">정거장 불러오는 중…</p> : null}
       </div>
       <Button variant="secondary" size="sm" className="self-start" onClick={addPattern}>
         <Plus className="size-4" /> 패턴 추가

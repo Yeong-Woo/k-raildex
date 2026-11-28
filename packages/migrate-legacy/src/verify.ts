@@ -1,6 +1,6 @@
 /**
  * 역변환·대조(WP 3.10, docs/07-migration.md 4절). 새 DB → 기존 JSON 형태(역·노선·노선-역·계획·연표·시간표 요약)를 다시 만들어
- * data/build/*.json 과 필드 단위로 비교한다. 역 상태·개통일은 노선역에서 다시 계산한 값(v_station_status)으로 비교한다.
+ * data/build/*.json 과 필드 단위로 비교한다. 역 상태·개통일은 정거장에서 다시 계산한 값(v_station_status)으로 비교한다.
  * 이 역변환은 대조 전용이다(기존 사이트 공급에 쓰지 않는다, FR-MIG-003).
  */
 import { REGIONS } from '@k-raildex/db';
@@ -564,7 +564,7 @@ export async function runVerify(db: Queryable, legacy: LegacyData, tr: Transform
   const ids = (await rows<{ id: string }>(db, `SELECT id FROM entity WHERE deleted_at IS NULL`)).map((r) => r.id);
   const hardViolations = await runHardRules(db, ids);
 
-  // ---- 역·노선역
+  // ---- 역·정거장
   const rev = await reverseStations(db);
   const stationDiff = diffEntity(
     'station',
@@ -575,7 +575,7 @@ export async function runVerify(db: Queryable, legacy: LegacyData, tr: Transform
     (f, l) => {
       if (f === 'review_status') return 'D-2';
       if (f === 'kind') return '역 그룹 종류 정리(0039): 신호장·조차장·차량기지·분기점은 시설·지선으로';
-      if (f === 'service_kinds' && droppedStops.has(String(l.id))) return '정차역 노선역 미해석으로 제외(이관 리포트)';
+      if (f === 'service_kinds' && droppedStops.has(String(l.id))) return '정차역 정거장 미해석으로 제외(이관 리포트)';
       if ((f === 'opened_at' || f === 'closed_at') && multiLine.has(String(l.id))) return 'D-6';
       return null;
     },
@@ -699,7 +699,7 @@ export async function runVerify(db: Queryable, legacy: LegacyData, tr: Transform
       ? undefined
       : `${String(Math.floor(Number(m) / 60)).padStart(2, '0')}:${String(Number(m) % 60).padStart(2, '0')}`;
   const ttCombos = new Set(ttRev.map((r) => `${String(r.station_id)}|${String(r.service_id)}|${String(r.day_type)}`));
-  // 분기역 세트를 노선역별로 나눔(Q148, lineStationSplitter) — 원래 id + "--<노선>"
+  // 분기역 세트를 정거장별로 나눔(Q148, lineStationSplitter) — 원래 id + "--<노선>"
   const splitBases = new Set(
     ttRev
       .map((r) => String(r.id))
@@ -736,7 +736,7 @@ export async function runVerify(db: Queryable, legacy: LegacyData, tr: Transform
     ],
     (f, l, m) => {
       if (splitBases.has(String(l.id)) && ['first', 'last', 'count', 'by_hour', 'direction_label'].includes(f))
-        return '분기역 시간표를 노선역별로 나눔(Q148) — 노선역 미정 행만 남음';
+        return '분기역 시간표를 정거장별로 나눔(Q148) — 정거장 미정 행만 남음';
       if (!String(l.route_code).startsWith('MTR') && ['first', 'last', 'count', 'by_hour'].includes(f) && !m.count)
         return '운행정보 보강 세트 시각 행 미재구성(kric-train-ops 미실행)';
       return null;
@@ -744,13 +744,13 @@ export async function runVerify(db: Queryable, legacy: LegacyData, tr: Transform
     // 운행정보 보강 세트는 수집기 kric-train-ops 가 새 DB(역명·별칭·정차 패턴)로 다시 만든다(Q104 A) — 기존과 다른 세트의 설명
     (kind, r) => {
       const id = String(r.id);
-      if (kind === 'missing' && splitBases.has(id)) return '분기역 시간표를 노선역별 세트로 나눔(Q148)';
+      if (kind === 'missing' && splitBases.has(id)) return '분기역 시간표를 정거장별 세트로 나눔(Q148)';
       if (kind === 'extra' && id.includes('--') && splitBases.has(id.split('--')[0]!))
-        return '분기역 시간표를 노선역별 세트로 나눔(Q148)';
+        return '분기역 시간표를 정거장별 세트로 나눔(Q148)';
       if (String(r.route_code).startsWith('MTR')) return null;
       const k = `${String(r.station_id)}|${String(r.service_id)}|${String(r.day_type)}`;
       if (kind === 'missing' && r.direction === 'unknown' && ttCombos.has(k))
-        return '방향 unknown 세트 → 정차역 순서로 상·하행 판정(같은 역·계통·요일 세트가 이미 있어 생략)';
+        return '방향 unknown 세트 → 정차정거장 순서로 상·하행 판정(같은 역·계통·요일 세트가 이미 있어 생략)';
       if (kind === 'extra' && !legacyOpsStations.has(`${String(r.station_id)}|${String(r.route_code)}`))
         return '기존에 해석하지 못한 운행정보 역명을 새 DB 역명·별칭으로 해석(새 역의 세트)';
       return null;

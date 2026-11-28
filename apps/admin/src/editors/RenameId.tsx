@@ -94,7 +94,7 @@ export function RenameIdButton({
       >
         <div className="flex flex-col gap-3 text-sm" data-testid="rename-dialog">
           <p className="text-xs text-fg-muted">
-            지금 id <code>{id}</code>. 참조{referenceCount ? ` ${referenceCount}곳` : ''}(노선역·계획·시간표 등)이 모두
+            지금 id <code>{id}</code>. 참조{referenceCount ? ` ${referenceCount}곳` : ''}(정거장·계획·시간표 등)이 모두
             새 id 로 바뀌고, 옛 id 주소는 새 id 로 넘어갑니다. 옛 id 는 다시 쓸 수 없습니다.
           </p>
           <div>

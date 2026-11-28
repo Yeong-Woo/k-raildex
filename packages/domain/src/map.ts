@@ -244,7 +244,7 @@ export async function osmWays(db: Queryable, q: OsmWaysQuery): Promise<FeatureCo
   };
 }
 
-/** 노선 선형 점검: 배정된 OSM way(선) + 노선역(점, 자체 좌표) + 배정 설정 */
+/** 노선 선형 점검: 배정된 OSM way(선) + 정거장(점, 자체 좌표) + 배정 설정 */
 export async function lineGeometry(db: Queryable, lineId: string): Promise<FeatureCollection> {
   const line = await db.query<{
     id: string;
@@ -379,7 +379,7 @@ export interface MapFocus {
   type: MapFocusType;
   id: string;
   name_ko: string | null;
-  /** 개체 자신(노선역이면 그 역 그룹, 운행 계통이면 지나는 노선) */
+  /** 개체 자신(정거장이면 그 역 그룹, 운행 계통이면 지나는 노선) */
   primary: MapFocusSet;
   /** 둘레(역 그룹이 지나는 노선, 노선의 역 그룹·지선·시설, 시설이 담당하는 노선 등) */
   context: MapFocusSet;
@@ -419,7 +419,7 @@ export async function mapFocus(db: Queryable, type: MapFocusType, id: string): P
       );
       primary.station_ids = [r.rows[0]!.station_id];
       context.line_ids = [r.rows[0]!.line_id];
-      // 같은 노선의 앞뒤 노선역
+      // 같은 노선의 앞뒤 정거장
       context.station_ids = await ids(
         `WITH me AS (SELECT line_id, seq FROM line_station WHERE id = $1)
          SELECT x.station_id AS id FROM line_station x, me

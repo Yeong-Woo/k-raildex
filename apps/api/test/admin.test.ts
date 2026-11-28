@@ -86,22 +86,24 @@ describe('목록·상세', () => {
     expect((await req('GET', '/v1/admin/map/focus/source/x')).statusCode).toBe(422);
   });
 
-  it('정거장 순서·앞뒤(lines/:id/stops, stops/:type/:id/neighbors)', async () => {
+  it('정거장 순서 표·앞뒤(lines/:id/stops, stations/:id/stop-neighbors)', async () => {
     const r = (await req('GET', '/v1/admin/lines/line-fx-one/stops')).json();
-    expect(r.items.map((s: { node_id: string }) => s.node_id)).toEqual([
+    expect(r.items.map((s: { station_id: string }) => s.station_id)).toEqual([
       'stn-fx-a',
       'stn-fx-b',
       'stn-fx-c',
       'stn-fx-d',
     ]);
-    expect(r.items[0].next[0]).toMatchObject({ node_id: 'stn-fx-b', basis: 'sequence' });
-    const n = (await req('GET', '/v1/admin/stops/station/stn-fx-a/neighbors')).json();
+    expect(r.items[0]).toMatchObject({ station_code: '101', stop_class: 'station' });
+    expect(r.items[0].next[0]).toMatchObject({ station_id: 'stn-fx-b', basis: 'sequence' });
+    expect(r.items[0].connections).toEqual([expect.objectContaining({ line_id: 'line-fx-two' })]);
+    const n = (await req('GET', '/v1/admin/stations/stn-fx-a/stop-neighbors')).json();
     expect(n.items.map((x: { line_id: string; direction: string }) => `${x.line_id}:${x.direction}`).sort()).toEqual([
       'line-fx-one:next',
       'line-fx-two:next',
     ]);
     expect((await req('GET', '/v1/admin/lines/line-nope/stops')).statusCode).toBe(404);
-    expect((await req('GET', '/v1/admin/stops/line/line-fx-one/neighbors')).statusCode).toBe(422);
+    expect((await req('GET', '/v1/admin/stations/stn-nope/stop-neighbors')).statusCode).toBe(404);
   });
 
   it('잘못된 쿼리 → 400/422, 모르는 종류 → 404', async () => {
@@ -296,7 +298,7 @@ describe('쓰기', () => {
   });
 });
 
-describe('노선역 목록', () => {
+describe('정거장 목록', () => {
   const url = '/v1/admin/lines/line-fx-one/stations';
   type Ls = { id: string; seq: number; version: number; station_id: string; station_name_ko: string };
 

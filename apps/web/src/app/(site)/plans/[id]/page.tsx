@@ -346,8 +346,8 @@ export default async function PlanPage({ params }: { params: Params }) {
             ) : null}
             {p.stations.length ? (
               <p className="muted" style={{ fontSize: 'var(--kr-text-xs)', marginTop: 'var(--kr-space-2)' }}>
-                굵은 테두리 = 신설 역, 가는 테두리 = 기존·환승·폐역 예정 역(역할 표기). 순서는 이름순이며 실제 역 순서와
-                다를 수 있습니다.
+                굵은 테두리 = 신설 역, 가는 테두리 = 기존·환승·폐역 예정 역(역할 표기). 순서는 이름순이며 실제 정거장
+                순서와 다를 수 있습니다.
               </p>
             ) : null}
           </Section>

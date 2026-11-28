@@ -36,7 +36,7 @@ export type Op =
       id: string;
       into_id: string;
       reason?: string;
-      /** 같은 역임을 확인한 근거 출처 — 옮겨진 노선역의 station_id 출처로 붙는다(C-1, Q73 A) */
+      /** 같은 역임을 확인한 근거 출처 — 옮겨진 정거장의 station_id 출처로 붙는다(C-1, Q73 A) */
       source_id?: string;
     };
 
@@ -523,7 +523,7 @@ async function softDelete(
   }
   const refs = await findReferences(ctx.db, type, id, { activeOnly: true });
   if (type === 'line') {
-    // 함께 휴지통으로 가는 노선역을 다른 개체(정차 패턴·시간표·계획 구간)가 가리키면 거부
+    // 함께 휴지통으로 가는 정거장을 다른 개체(정차 패턴·시간표·계획 구간)가 가리키면 거부
     const lsIds = (
       await ctx.db.query<{ id: string }>(`SELECT id FROM line_station WHERE line_id = $1 AND deleted_at IS NULL`, [id])
     ).rows.map((r) => r.id);
@@ -568,7 +568,7 @@ async function purge(ctx: Ctx, type: EntityType, id: string): Promise<Omit<OpRes
   const table = ENTITY_SPECS[type].table;
   if (type === 'line') {
     const ls = await ctx.db.query<{ id: string }>(`SELECT id FROM line_station WHERE line_id = $1`, [id]);
-    if (ls.rows.length) throw new DomainError('referenced', `노선역 ${ls.rows.length}개를 먼저 영구 삭제해야 함`);
+    if (ls.rows.length) throw new DomainError('referenced', `정거장 ${ls.rows.length}개를 먼저 영구 삭제해야 함`);
   }
   await ctx.db.query(`DELETE FROM "${table}" WHERE id = $1`, [id]);
   for (const t of ['entity_name', 'external_ref', 'record_source', 'entity_attachment']) {
@@ -629,7 +629,7 @@ async function renameId(
 }
 
 /**
- * 역 병합(03 문서 9절): from 을 into 로 합친다. from 의 노선역은 into 아래로(같은 노선이 이미 있으면 그쪽으로 참조를 옮기고 from 쪽은 삭제),
+ * 역 병합(03 문서 9절): from 을 into 로 합친다. from 의 정거장은 into 아래로(같은 노선이 이미 있으면 그쪽으로 참조를 옮기고 from 쪽은 삭제),
  * from 을 가리키는 행은 into 로, from 의 이름은 into 의 옛 이름으로, id_redirect(from → into), from 은 소프트 삭제.
  */
 async function mergeStation(
@@ -870,7 +870,7 @@ async function insertChild(ctx: Ctx, child: ChildSpec, parentId: string, value: 
   }
 }
 
-/** 검증 범위에 관련 개체를 더한다(노선역 → 노선·역 등) */
+/** 검증 범위에 관련 개체를 더한다(정거장 → 노선·역 등) */
 function addRelated(ctx: Ctx, type: EntityType, row: AnyObject | null): void {
   if (!row) return;
   ctx.affected.add(String(row.id));

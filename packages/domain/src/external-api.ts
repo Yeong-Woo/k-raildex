@@ -1304,7 +1304,7 @@ export interface ComparePair {
   entity_id: string | null;
   entity_type: string | null;
   label: string | null;
-  /** 편집 화면으로 갈 개체(노선역이면 그 역) */
+  /** 편집 화면으로 갈 개체(정거장이면 그 역) */
   link_type: string | null;
   link_id: string | null;
   status: 'same' | 'diff' | 'missing';
@@ -1379,7 +1379,7 @@ export async function compareApiCall(
   for (const r of refs.rows) byCode.set(r.code, [...(byCode.get(r.code) ?? []), r.entity_id]);
   const ids = [...new Set(refs.rows.map((r) => r.entity_id))];
   const labels = await entityLabels(db, ids);
-  // 이름·좌표: 역 · 노선역(역 이름·좌표로 대체)
+  // 이름·좌표: 역 · 정거장(역 이름·좌표로 대체)
   const info = new Map<
     string,
     { name: string | null; lat: number | null; lng: number | null; station_id: string | null }
@@ -1473,7 +1473,7 @@ export async function compareApiCall(
   };
 }
 
-/** 역 선택기 → 외부 코드: 역 자신과 그 노선역의 external_ref(system) */
+/** 역 선택기 → 외부 코드: 역 자신과 그 정거장의 external_ref(system) */
 export async function externalCodesFor(
   db: Queryable,
   entityId: string,

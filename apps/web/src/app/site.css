@@ -730,7 +730,7 @@ details.more > .body {
   }
 }
 
-/* ---- 노선 상세: 역 순서 ---- */
+/* ---- 노선 상세: 정거장 순서 ---- */
 .route {
   list-style: none;
   margin: 0;
@@ -990,7 +990,7 @@ details.more > .body {
   background: var(--kr-fg);
   color: var(--kr-surface);
 }
-/* 노선역 탭(역 시간표, Q148) — 링크(자바스크립트 없이) */
+/* 정거장 탭(역 시간표, Q148) — 링크(자바스크립트 없이) */
 .seg.tabs {
   flex-wrap: wrap;
   margin: 0 0 var(--kr-space-3);

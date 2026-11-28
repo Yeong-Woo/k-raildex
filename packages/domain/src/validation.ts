@@ -29,7 +29,7 @@ export const HARD_RULES: HardRule[] = [
   },
   {
     id: 'V-H05',
-    message: '정차역(노선역)의 노선이 운행 계통 노선에 없음',
+    message: '정차역(정거장)의 노선이 운행 계통 노선에 없음',
     sql: `SELECT sp.service_id AS entity_id, x.id AS detail
             FROM stop_pattern sp JOIN stop_pattern_stop ps ON ps.pattern_id = sp.id
             JOIN line_station x ON x.id = ps.line_station_id
@@ -38,7 +38,7 @@ export const HARD_RULES: HardRule[] = [
   },
   {
     id: 'V-H05b',
-    message: '정차역이 삭제된 노선역',
+    message: '정차역이 삭제된 정거장',
     sql: `SELECT sp.service_id AS entity_id, x.id AS detail
             FROM stop_pattern sp JOIN stop_pattern_stop ps ON ps.pattern_id = sp.id
             JOIN line_station x ON x.id = ps.line_station_id
@@ -95,7 +95,7 @@ export const HARD_RULES: HardRule[] = [
   },
   {
     id: 'V-H13',
-    message: '노선역이 있는 역은 단독 상태·개통일(own_*)을 비워야 함',
+    message: '정거장이 있는 역은 단독 상태·개통일(own_*)을 비워야 함',
     sql: `SELECT s.id AS entity_id, NULL AS detail FROM station s
            WHERE (s.id = ANY($1) OR EXISTS (SELECT 1 FROM line_station x WHERE x.station_id = s.id AND x.id = ANY($1)))
              AND s.deleted_at IS NULL
@@ -105,7 +105,7 @@ export const HARD_RULES: HardRule[] = [
   {
     id: 'V-H14',
     message:
-      '병합 예정(merge_into_id) 역의 노선역은 모두 미개통(공사 중·계획)이어야 함 — 개통하면 같은 변경 묶음에서 병합',
+      '병합 예정(merge_into_id) 역의 정거장은 모두 미개통(공사 중·계획)이어야 함 — 개통하면 같은 변경 묶음에서 병합',
     sql: `SELECT s.id AS entity_id, x.id AS detail FROM station s JOIN line_station x ON x.station_id = s.id AND x.deleted_at IS NULL
            WHERE (s.id = ANY($1) OR x.id = ANY($1)) AND s.deleted_at IS NULL AND s.merge_into_id IS NOT NULL
              AND x.status NOT IN ('under_construction', 'planned')`,
@@ -113,11 +113,13 @@ export const HARD_RULES: HardRule[] = [
   {
     id: 'V-H18',
     message:
-      '코레일 정거장 등급·관리역은 운영기관이 한국철도공사인 노선역만. 관리역(managed_by_id)은 정거장 등급이 관리역인 코레일 노선역이어야 하고, 관리역 자신은 다른 관리역에 속하지 않음',
+      '코레일 정거장 등급·관리역은 운영기관이 한국철도공사인 정거장만. 관리역(managed_by_id)은 정거장 등급이 관리역인 코레일 정거장이어야 하고, 관리역 자신은 다른 관리역에 속하지 않음',
     sql: `SELECT x.id AS entity_id, '운영기관 ' || coalesce(vo.operator_id, '미상') AS detail
             FROM line_station x JOIN v_line_station_operator vo ON vo.line_station_id = x.id
            WHERE x.id = ANY($1) AND x.deleted_at IS NULL
-             AND (x.korail_class IS NOT NULL OR x.managed_by_id IS NOT NULL) AND vo.operator_id IS DISTINCT FROM 'op-korail'
+             -- 조차장·신호장·신호소 세 등급은 운영기관과 관계없이 쓴다(정거장 구분, 2026-11-28)
+             AND ((x.korail_class IS NOT NULL AND x.korail_class NOT IN ('yard', 'signal_station', 'signal_post'))
+                  OR x.managed_by_id IS NOT NULL) AND vo.operator_id IS DISTINCT FROM 'op-korail'
           UNION ALL
           SELECT x.id, x.managed_by_id FROM line_station x
             JOIN line_station m ON m.id = x.managed_by_id
@@ -128,21 +130,8 @@ export const HARD_RULES: HardRule[] = [
   },
   {
     id: 'V-H19',
-    message:
-      '정거장 위치(0042): 노선 위 정거장(located)은 신호장·신호소·조차장만, 앞 노선역은 같은 노선의 살아 있는 노선역. 갈라지는 노선역(branch_from_id)은 같은 노선의 다른 지선(또는 본선) 노선역',
-    sql: `SELECT fl.facility_id AS entity_id, fl.line_id || ' 시설 종류 ' || f.kind AS detail
-            FROM facility_line fl JOIN facility f ON f.id = fl.facility_id
-           WHERE fl.facility_id = ANY($1) AND f.deleted_at IS NULL AND fl.role = 'located'
-             AND f.kind NOT IN ('signal_station', 'signal_post', 'yard')
-          UNION ALL
-          SELECT fl.facility_id, fl.line_id || ' 앞 노선역 ' || fl.after_line_station_id
-            FROM facility_line fl JOIN facility f ON f.id = fl.facility_id
-            LEFT JOIN line_station a ON a.id = fl.after_line_station_id
-           WHERE (fl.facility_id = ANY($1) OR fl.after_line_station_id = ANY($1)) AND f.deleted_at IS NULL
-             AND fl.after_line_station_id IS NOT NULL
-             AND (a.id IS NULL OR a.deleted_at IS NOT NULL OR a.line_id <> fl.line_id)
-          UNION ALL
-          SELECT x.id, x.branch_from_id FROM line_station x LEFT JOIN line_station j ON j.id = x.branch_from_id
+    message: '갈라지는 정거장(branch_from_id)은 같은 노선의 다른 지선(또는 본선) 정거장이어야 함(0042)',
+    sql: `SELECT x.id AS entity_id, x.branch_from_id AS detail FROM line_station x LEFT JOIN line_station j ON j.id = x.branch_from_id
            WHERE (x.id = ANY($1) OR x.line_id = ANY($1) OR x.branch_from_id = ANY($1)) AND x.deleted_at IS NULL
              AND x.branch_from_id IS NOT NULL
              AND (j.id IS NULL OR j.deleted_at IS NOT NULL OR j.line_id <> x.line_id

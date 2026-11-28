@@ -16,7 +16,7 @@ export interface SourceGroup {
   checked_at: string;
   /** 대상 필드(없으면 "전체") — 중복 제거 */
   fields: string[];
-  /** 노선역 등 하위 개체 출처일 때 그 개체 id */
+  /** 정거장 등 하위 개체 출처일 때 그 개체 id */
   entity_ids: string[];
   locators: string[];
   notes: string[];

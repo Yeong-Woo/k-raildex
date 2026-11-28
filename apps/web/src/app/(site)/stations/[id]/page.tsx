@@ -65,7 +65,7 @@ export default async function StationPage({ params, searchParams }: { params: Pa
   const fromServices = s.services.length > 0;
   const trains = s.services.filter((x) => serviceGroupOf(x.kind) === 'train');
   const metros = s.services.filter((x) => serviceGroupOf(x.kind) === 'metro');
-  // 노선역 탭(round-07 Q148): 시간표가 둘 이상 노선(노선역)에 붙으면 노선별로 나눠 보인다. 노선역 미정 세트는 "노선 미정" 탭
+  // 정거장 탭(round-07 Q148): 시간표가 둘 이상 노선(정거장)에 붙으면 노선별로 나눠 보인다. 정거장 미정 세트는 "노선 미정" 탭
   const ttKey = (lid: string | null) => lid ?? 'none';
   const ttLines = [...new Set(s.timetables.map((t) => ttKey(t.line_id)))];
   const ttSelRaw = firstParam(sp.tt);

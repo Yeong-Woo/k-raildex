@@ -66,7 +66,7 @@ export interface TagoBuildContext {
   hasStation: (id: string) => boolean;
   hasService: (id: string) => boolean;
   lineStationOf: (stationId: string, serviceId: string | null) => string | null;
-  /** 분기역 세트를 노선역별로 나누기(Q148, lineStationSplitter) — 없으면 나누지 않는다 */
+  /** 분기역 세트를 정거장별로 나누기(Q148, lineStationSplitter) — 없으면 나누지 않는다 */
   splitSet?: (set: TimetableSet) => TimetableSet[];
 }
 
@@ -198,7 +198,7 @@ export function buildTagoSets(
       }
       const lsId = ctx.lineStationOf(stationId, serviceId);
       if (lsId) stats.line_station_resolved++;
-      else issues.add('시간표 노선역 미해석', `${id} (${serviceId ?? '운행 계통 없음'})`);
+      else issues.add('시간표 정거장 미해석', `${id} (${serviceId ?? '운행 계통 없음'})`);
       byId.set(id, {
         _tago: tago,
         id,

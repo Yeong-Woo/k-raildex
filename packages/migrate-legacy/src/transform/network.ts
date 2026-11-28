@@ -1,5 +1,5 @@
 /**
- * 역·노선·노선역 변환(WP 3.3, docs/07-migration.md 3-2·3-3절, Q70~Q73·Q95 A).
+ * 역·노선·정거장 변환(WP 3.3, docs/07-migration.md 3-2·3-3절, Q70~Q73·Q95 A).
  */
 import {
   lineStationId,
@@ -34,7 +34,7 @@ export const STATION_CODE_SYSTEMS = new Set([
   'korail_stn_cd',
   'tago_train',
 ]);
-/** 노선 문맥 코드(노선역으로, Q72 A) */
+/** 노선 문맥 코드(정거장으로, Q72 A) */
 export const LINE_CONTEXT_CODE_SYSTEMS = new Set(['tago_subway', 'kric_station_std', 'molit_metro_lines']);
 /** 노선 codes 키 → 외부 시스템 코드(같은 키가 역·노선에 다른 뜻으로 쓰임) */
 export const LINE_CODE_SYSTEMS: Readonly<Record<string, string>> = {
@@ -156,7 +156,7 @@ export function transformNetwork(input: NetworkInput, report: MigrationReport): 
     return r?.service_id ? (serviceLines.get(r.service_id) ?? null) : null;
   };
 
-  // ---------------------------------------------------------------- 노선역 + 역
+  // ---------------------------------------------------------------- 정거장 + 역
   const lineStations: LineStationCreate[] = [];
   const lsRefs = new Map<string, ExternalRef[]>();
   const stations: StationCreate[] = [];
@@ -192,7 +192,7 @@ export function transformNetwork(input: NetworkInput, report: MigrationReport): 
         }
         if (stClosed && (a.status === 'closed' || a.status === 'abandoned')) closed = stClosed;
       }
-      if (a.status !== s.status) report.count('노선역.상태가 역 상태와 다름(배분)');
+      if (a.status !== s.status) report.count('정거장.상태가 역 상태와 다름(배분)');
       lineStations.push({
         id: lsIdOf(a.r.line_id),
         line_id: a.r.line_id,
@@ -215,7 +215,7 @@ export function transformNetwork(input: NetworkInput, report: MigrationReport): 
         closed,
         geom: null,
         note: null,
-        // 노선의 출처와 다르면 노선역 출처로(기존 행의 provenance)
+        // 노선의 출처와 다르면 정거장 출처로(기존 행의 provenance)
         sources: [...new Set(a.r.provenance.sources)].map((source_id) => ({
           source_id,
           field: null,
@@ -260,11 +260,11 @@ export function transformNetwork(input: NetworkInput, report: MigrationReport): 
         if (target) {
           const id = lsIdOf(target);
           lsRefs.set(id, [...(lsRefs.get(id) ?? []), ref(system, code)]);
-          report.count(`노선 문맥 코드.노선역으로.${system}`);
+          report.count(`노선 문맥 코드.정거장으로.${system}`);
         } else {
-          stationRefs.push(ref(system, code, '노선역 미해석 — 역에 보관(이관)'));
+          stationRefs.push(ref(system, code, '정거장 미해석 — 역에 보관(이관)'));
           report.add(
-            '노선 문맥 코드 노선역 미해석(역에 보관)',
+            '노선 문맥 코드 정거장 미해석(역에 보관)',
             `${s.id} ${system}=${code} (노선 ${[...lineIds].join(', ') || '없음'})`,
           );
         }

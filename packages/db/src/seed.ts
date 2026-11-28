@@ -44,14 +44,14 @@ const AREA_EN: Record<string, string> = {
   national: 'Nationwide',
 };
 
-/** 외부 데이터셋 코드 체계. entity_type = 코드를 붙이는 개체(노선 문맥 코드는 노선역, Q72 A) */
+/** 외부 데이터셋 코드 체계. entity_type = 코드를 붙이는 개체(노선 문맥 코드는 정거장, Q72 A) */
 export const EXTERNAL_SYSTEMS = [
   { code: 'tago_subway', name: 'TAGO 지하철역 ID', entity: 'line_station' },
   { code: 'kric_station_std', name: '전국도시철도역사정보 표준데이터 역번호', entity: 'line_station' },
   { code: 'molit_metro_lines', name: '국토교통부 도시철도 전체노선 역 키', entity: 'line_station' },
   { code: 'rafis', name: '국가철도공단 RAFIS 역', entity: 'station' },
   { code: 'korail_station_kilo', name: '코레일 역키로정내역 역명', entity: 'station' },
-  { code: 'korail_ktx_stations', name: '코레일 KTX 노선역정보', entity: 'station' },
+  { code: 'korail_ktx_stations', name: '코레일 KTX 정거장정보', entity: 'station' },
   { code: 'kric_station_info', name: '국가철도공단 철도역 정보', entity: 'station' },
   { code: 'korail_station_loc', name: '코레일 역 위치', entity: 'station' },
   { code: 'korail_stn_cd', name: '코레일 역 코드', entity: 'station' },

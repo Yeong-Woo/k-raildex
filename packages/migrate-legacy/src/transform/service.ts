@@ -43,7 +43,7 @@ export function transformTrainClass(
 }
 
 /**
- * 정차역 → 노선역(07 문서 3-3): 운행 계통 노선들 중 그 역의 노선역. 하나면 확정,
+ * 정차역 → 정거장(07 문서 3-3): 운행 계통 노선들 중 그 역의 정거장. 하나면 확정,
  * 여럿이면 패턴 순서상 앞뒤 역과 같은 노선을 우선, 그래도 못 풀면 리포트하고 그 정차역을 뺀다.
  * 뺀 정차역은 `dropped` 에 모아 운행 계통 `extra.dropped_stops` 로 남긴다 → 품질 목록 X-service-dropped-stops(Q105 A).
  */
@@ -52,7 +52,7 @@ export interface DroppedStop {
   /** 기존 정차 순서(1부터) */
   seq: number;
   station_id: string;
-  /** not_on_service_lines = 운행 계통 노선에 그 역의 노선역 없음, ambiguous = 후보 여럿, pattern_dropped = 패턴 전체 제외(해석 정차역 2개 미만) */
+  /** not_on_service_lines = 운행 계통 노선에 그 역의 정거장 없음, ambiguous = 후보 여럿, pattern_dropped = 패턴 전체 제외(해석 정차역 2개 미만) */
   reason: 'not_on_service_lines' | 'ambiguous' | 'pattern_dropped';
   candidates?: string[];
 }
@@ -77,7 +77,7 @@ export function resolveStops(
       continue;
     }
     if (c.length === 0) {
-      report.add('정차 패턴 정차역 노선역 미해석(정차역 제외)', `${serviceId}/${patternId}: ${sid}`);
+      report.add('정차 패턴 정차역 정거장 미해석(정차역 제외)', `${serviceId}/${patternId}: ${sid}`);
       dropped.push({ pattern: patternId, seq: i + 1, station_id: sid, reason: 'not_on_service_lines' });
       continue;
     }
@@ -120,7 +120,7 @@ export function transformService(
   for (const p of s.stop_patterns ?? []) {
     const patDropped: DroppedStop[] = [];
     const stops = resolveStops(s.id, p.id, s.line_ids, p.station_ids, lsByStation, report, patDropped);
-    // 같은 노선역이 연달아 나오면(순환선 기점 반복 등) 그대로 둔다 — DB 는 (pattern, seq) 키
+    // 같은 정거장이 연달아 나오면(순환선 기점 반복 등) 그대로 둔다 — DB 는 (pattern, seq) 키
     if (stops.length < 2) {
       report.add(
         '정차 패턴 정차역 2개 미만(패턴 제외)',

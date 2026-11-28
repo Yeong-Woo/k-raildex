@@ -208,14 +208,14 @@ export const entityUiMeta: Readonly<Record<EntityType, EntityUiMeta>> = {
       history_text: f('역연혁(원문)', W.textarea, 'detail'),
       intro_text: f('역소개(원문)', W.textarea, 'detail'),
       merge_into_id: f('개통 때 병합할 역', ref('station'), 'relations', { help: '공사 중 분리 정거장(Q73)' }),
-      own_status: f('단독 상태', code('status'), 'dates', { help: '노선역이 없는 역에서만' }),
+      own_status: f('단독 상태', code('status'), 'dates', { help: '정거장이 없는 역에서만' }),
       own_opened: f('단독 개통일', W.fuzzy, 'dates'),
       own_closed: f('단독 폐지일', W.fuzzy, 'dates'),
       ...recFields,
     },
   },
   line_station: {
-    label: '노선역',
+    label: '정거장',
     titleField: 'id',
     listColumns: ['id', 'line_id', 'station_id', 'seq', 'station_code', 'status'],
     groups: groups('basic', 'class', 'location', 'dates', 'names', 'provenance', 'memo'),
@@ -225,14 +225,14 @@ export const entityUiMeta: Readonly<Record<EntityType, EntityUiMeta>> = {
       station_id: f('역 그룹', ref('station'), 'basic'),
       seq: f('순서', W.int, 'basic'),
       branch: f('지선', W.text, 'basic'),
-      branch_from_id: f('갈라지는 노선역', ref('line_station'), 'basic', {
-        help: '지선이 갈라져 나오는 노선역(같은 노선, 지선 행 하나에만 — 정거장 앞뒤 계산)',
+      branch_from_id: f('갈라지는 정거장', ref('line_station'), 'basic', {
+        help: '지선이 갈라져 나오는 정거장(같은 노선, 지선 행 하나에만 — 정거장 앞뒤 계산)',
       }),
       km: f('영업거리(km)', W.num, 'basic'),
       station_code: f('역번호', W.text, 'basic'),
       order_confirmed: f('순서 확정', W.bool, 'basic'),
       gap_confirmed_prev_id: f('앞 역 거리 확인', ref('line_station'), 'basic', {
-        help: '앞 역과의 거리가 V-S04 상한을 넘지만 맞다고 확인한 앞 노선역. 품질 화면 [거리 맞음]으로 채운다',
+        help: '앞 역과의 거리가 V-S04 상한을 넘지만 맞다고 확인한 앞 정거장. 품질 화면 [거리 맞음]으로 채운다',
       }),
       name_ko: f('노선별 이름', W.text, 'basic', { help: '역 대표 이름과 다를 때만' }),
       name_en: f('노선별 영문 이름', W.text, 'basic'),
@@ -240,10 +240,10 @@ export const entityUiMeta: Readonly<Record<EntityType, EntityUiMeta>> = {
         help: '비우면 노선 운영기관(노선 운영기관이 둘 이상이면 적어야 함)',
       }),
       korail_class: f('정거장 등급(코레일)', code('korailStationClass'), 'class', {
-        help: '한국철도공사 직제상 지위 — 운영기관이 한국철도공사인 노선역만',
+        help: '한국철도공사 직제상 지위 — 운영기관이 한국철도공사인 정거장만',
       }),
       korail_mgmt_grade: f('관리역 등급(급)', W.int, 'class', { help: '관리역일 때 1~3급' }),
-      managed_by_id: f('관리역(소속)', ref('line_station'), 'class', { help: '이 노선역을 관할하는 관리역(노선역)' }),
+      managed_by_id: f('관리역(소속)', ref('line_station'), 'class', { help: '이 정거장을 관할하는 관리역(정거장)' }),
       status: f('상태', code('status'), 'class'),
       opened: f('개통일', W.fuzzy, 'dates'),
       closed: f('폐지일', W.fuzzy, 'dates'),
@@ -526,8 +526,8 @@ export const entityUiMeta: Readonly<Record<EntityType, EntityUiMeta>> = {
       coord_query: f('근사 위치 질의', W.text, 'location', { help: '주소·법정동 — 지오코더 입력' }),
       coord_note: f('좌표 메모', W.textarea, 'location'),
       description: f('설명', W.md, 'detail'),
-      lines: f('노선(담당 노선·붙은 선로·노선 위 정거장)', editor('facility_lines'), 'relations', {
-        help: '담당 노선 = 차량을 맡는 노선, 붙은 선로 = 시설이 이어진 기지선 등, 노선 위 정거장 = 신호장·신호소·조차장이 노선 위에 있는 자리(바로 앞 노선역·km — 정거장 순서에 쓰임)',
+      lines: f('노선(담당 노선·붙은 선로)', editor('facility_lines'), 'relations', {
+        help: '담당 노선 = 차량을 맡는 노선, 붙은 선로 = 시설이 이어진 기지선 등',
       }),
       osm_map: f('OSM 시설 선로', editor('facility_osm_map'), 'location', {
         help: 'OSM way 이름·id(예: 울산기지선). 좌표가 있으면 둘레 반경(m) 안 기지 선로(service=yard)는 자동. 지도 표시만',

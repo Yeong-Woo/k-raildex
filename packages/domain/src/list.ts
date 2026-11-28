@@ -22,9 +22,9 @@ export interface ListQuery {
   region?: string;
   /** 권역 코드(파생 뷰) */
   area?: string;
-  /** 노선 id — 역 그룹(노선역 소속)·노선역·운행 계통(지나는 노선)·시설(시설 노선)·노선(본선) */
+  /** 노선 id — 역 그룹(정거장 소속)·정거장·운행 계통(지나는 노선)·시설(시설 노선)·노선(본선) */
   line?: string;
-  /** 운영기관 id — 노선(line_operator)·노선역(지정 또는 노선 운영기관)·역 그룹·운행 계통(노선 경유)·시설 */
+  /** 운영기관 id — 노선(line_operator)·정거장(지정 또는 노선 운영기관)·역 그룹·운행 계통(노선 경유)·시설 */
   operator?: string;
   include_deleted?: boolean;
   /** 휴지통: 삭제된 것만 */
@@ -220,7 +220,7 @@ function lineCond(type: EntityType, line: string, p: Params): string {
   }
 }
 
-/** 노선역의 실제 운영기관: 지정값, 없으면 노선 운영기관 */
+/** 정거장의 실제 운영기관: 지정값, 없으면 노선 운영기관 */
 const LS_OPERATOR = (ls: string, v: string) =>
   `(${ls}.operator_id = ${v} OR (${ls}.operator_id IS NULL AND EXISTS (SELECT 1 FROM line_operator lo WHERE lo.line_id = ${ls}.line_id AND lo.operator_id = ${v})))`;
 

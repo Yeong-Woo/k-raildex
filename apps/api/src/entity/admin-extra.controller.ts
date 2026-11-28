@@ -1,5 +1,5 @@
 /**
- * 하위 자원·보조 경로(docs/04-api.md 4·4-1·4-3절): 휴지통, 참조, ID 변경, 역 병합, 노선역 목록, 참조 선택기, 코드값.
+ * 하위 자원·보조 경로(docs/04-api.md 4·4-1·4-3절): 휴지통, 참조, ID 변경, 역 병합, 정거장 목록, 참조 선택기, 코드값.
  */
 import { Body, Controller, Get, HttpCode, Inject, Param, Post, Put, Query } from '@nestjs/common';
 import { codes, idSchema } from '@k-raildex/contracts';
@@ -10,7 +10,7 @@ import {
   schemaCases,
   schemaGraph,
   schemaTrace,
-  lineStops,
+  lineStopTable,
   stopNeighbors,
   TRACE_ROOT_TYPES,
 } from '@k-raildex/domain';
@@ -56,7 +56,7 @@ export class AdminExtraController {
     return { items: await schemaCases(this.svc.db) };
   }
 
-  /** 한 개체에서 계획·노선·노선역·역 그룹·시설·지도 선형·OSM relation 까지 관계 추적 */
+  /** 한 개체에서 계획·노선·정거장·역 그룹·시설·지도 선형·OSM relation 까지 관계 추적 */
   @Get('schema/trace')
   @RequireScope('admin:read')
   async schemaTrace(@Query() query: Q) {
@@ -124,7 +124,7 @@ export class AdminExtraController {
     return { ...this.svc.toWriteResponse(r, opts.dry_run), old_id: id };
   }
 
-  /** 병합 미리 보기(저장 없음): 옮겨질 노선역·참조·거리 */
+  /** 병합 미리 보기(저장 없음): 옮겨질 정거장·참조·거리 */
   @Get('stations/:id/merge-preview')
   @RequireScope('admin:read')
   async mergePreview(@Param('id') id: string, @Query('into_id') into: string | undefined) {
@@ -162,20 +162,20 @@ export class AdminExtraController {
     return { line_id: id, items, total: items.length };
   }
 
-  /** 정거장 순서(0042): 노선역 + 노선 위 신호장·신호소·조차장, 앞뒤 정거장·거리(km 차이, 없으면 null) */
+  /** 정거장 순서 표(위키백과 역 목록형): 번호·이름·구분·접속 노선·역간 거리·영업 거리·소재지, 앞뒤 정거장 */
   @Get('lines/:id/stops')
   @RequireScope('admin:read')
   async lineStops(@Param('id') id: string) {
-    const items = await lineStops(this.svc.db, id);
+    const items = await lineStopTable(this.svc.db, id);
     return { line_id: id, items, total: items.length };
   }
 
-  /** 한 정거장(역 그룹 station · 시설 facility)의 모든 노선 앞뒤 정거장 */
-  @Get('stops/:type/:id/neighbors')
+  /** 한 역 그룹의 모든 노선 앞뒤 정거장·거리 */
+  @Get('stations/:id/stop-neighbors')
   @RequireScope('admin:read')
-  async stopNeighbors(@Param('type') type: string, @Param('id') id: string) {
-    const items = await stopNeighbors(this.svc.db, type, id);
-    return { node_type: type, node_id: id, items, total: items.length };
+  async stopNeighbors(@Param('id') id: string) {
+    const items = await stopNeighbors(this.svc.db, id);
+    return { station_id: id, items, total: items.length };
   }
 
   @Put('lines/:id/stations')
@@ -193,7 +193,7 @@ export class AdminExtraController {
       const items = await this.svc.lineStations(id);
       return { line_id: id, changeset_id: null, data_version: null, dry_run: opts.dry_run, ops: [], items };
     }
-    const r = await this.svc.apply(p, ops, opts, `노선역 목록 교체 ${id}`);
+    const r = await this.svc.apply(p, ops, opts, `정거장 목록 교체 ${id}`);
     return {
       line_id: id,
       changeset_id: r.changeset_id,

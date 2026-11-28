@@ -1,6 +1,6 @@
 /**
- * 노선 역 순서에서 새 역 그룹 만들어 넣기(2026-11-27 사용자 지시 — 폐선 노선처럼 기존 역 그룹이 없는 역을 바로 추가).
- * 역 그룹을 바로 만들고(POST /v1/admin/station, 출처 = 노선 출처) 노선역 행을 넣는다 — 노선역은 [역 순서 저장] 때 저장된다.
+ * 노선 정거장 순서에서 새 역 그룹 만들어 넣기(2026-11-27 사용자 지시 — 폐선 노선처럼 기존 역 그룹이 없는 역을 바로 추가).
+ * 역 그룹을 바로 만들고(POST /v1/admin/station, 출처 = 노선 출처) 정거장 행을 넣는다 — 정거장은 [정거장 순서 저장] 때 저장된다.
  */
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useState, type ReactNode } from 'react';
@@ -55,7 +55,7 @@ export function NewStationForLine({
         json: { id, name_ko: name.trim(), kind, checked_at: new Date().toISOString().slice(0, 10), sources },
       }),
     onSuccess: () => {
-      toast.success(`역 그룹 ${name} 를 만들었습니다 — 역 순서를 저장하면 노선에 들어갑니다`);
+      toast.success(`역 그룹 ${name} 를 만들었습니다 — 정거장 순서를 저장하면 노선에 들어갑니다`);
       onCreated(id, status);
       setOpen(false);
       setId('stn-');
@@ -125,7 +125,7 @@ export function NewStationForLine({
             'ns-kind',
           )}
           {field(
-            '이 노선에서의 상태(노선역)',
+            '이 노선에서의 상태(정거장)',
             <Select id="ns-status" value={status} onChange={(e) => setStatus(e.target.value)}>
               {codes.status.values.map((v) => (
                 <option key={v} value={v}>
@@ -138,7 +138,7 @@ export function NewStationForLine({
           <p className="text-xs text-fg-muted sm:col-span-2">
             넣을 자리: <strong>{where}</strong>. 출처는 노선의 출처를 붙입니다
             {sources.length ? `(${sources.map((s) => s.source_id).join(', ')})` : ''}. 좌표·개통·폐지일은 만든 뒤 역
-            편집·노선역 행에서 넣습니다.
+            편집·정거장 행에서 넣습니다.
           </p>
           {line.data && !sources.length ? (
             <p className="text-xs text-danger sm:col-span-2">노선에 출처가 없어 만들 수 없습니다.</p>

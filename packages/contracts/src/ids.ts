@@ -25,7 +25,7 @@ export const ID_PREFIX: Readonly<Record<EntityType, string>> = {
   facility: 'fac',
 };
 
-/** 슬러그: 소문자·숫자·하이픈. 노선역(ls-)은 `--` 구분자를 허용한다 */
+/** 슬러그: 소문자·숫자·하이픈. 정거장(ls-)은 `--` 구분자를 허용한다 */
 const SLUG = '[a-z0-9]+(?:-{1,2}[a-z0-9]+)*';
 
 export function idPattern(type: EntityType): RegExp {
@@ -48,7 +48,7 @@ export function entityTypeOfId(id: string): EntityType | null {
 export const idSchema = (type: EntityType) =>
   z.string().regex(idPattern(type), { message: `${ID_PREFIX[type]}- 로 시작하는 id 형식이 아님` });
 
-/** 노선역 id: ls-<노선 id 꼬리>--<역 id 꼬리>[-n] */
+/** 정거장 id: ls-<노선 id 꼬리>--<역 id 꼬리>[-n] */
 export function lineStationId(lineId: string, stationId: string, n = 1): string {
   const lineTail = lineId.replace(/^line-/, '');
   const stnTail = stationId.replace(/^stn-/, '');

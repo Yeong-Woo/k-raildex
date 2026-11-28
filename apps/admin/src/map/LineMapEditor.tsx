@@ -1,7 +1,7 @@
 /**
- * 노선 편집(지도, FR-ADM-050·070): 노선 목록(ReviewPicker: 검수 필요 빨강·정상 초록 태그와 필터)에서 노선을 고르면 그 노선을 강조하고 노선역(line_station)을 순서 번호로 보여 준다.
+ * 노선 편집(지도, FR-ADM-050·070): 노선 목록(ReviewPicker: 검수 필요 빨강·정상 초록 태그와 필터)에서 노선을 고르면 그 노선을 강조하고 정거장(line_station)을 순서 번호로 보여 준다.
  * 왼쪽 목록에서 순서(위로/아래로)·삭제·km 를 고치고, "지도에서 역 추가"를 켜면 역 점 클릭으로 역을 넣는다
- * (이웃 역 사이 경로가 가장 적게 늘어나는 자리, 좌표가 없으면 끝). 저장은 노선 상세 [역 순서] 탭과 같은
+ * (이웃 역 사이 경로가 가장 적게 늘어나는 자리, 좌표가 없으면 끝). 저장은 노선 상세 [정거장 순서] 탭과 같은
  * PUT /v1/admin/lines/:id/stations(도메인 적용기, 행 version 확인) — editors/useLineStations.
  * 선은 현재 지도 물리화 뷰(mv_map_line, OSM)라 파생 갱신 뒤에 바뀐다. 역 점은 mv_map_station.
  */
@@ -49,7 +49,7 @@ const SEL_LAYERS: LayerSpec[] = [
     },
   },
 ];
-/** 노선역 순서대로 이은 선(지선별) — 순서 확인용 */
+/** 노선정거장 순서대로 이은 선(지선별) — 순서 확인용 */
 const PATH_LAYERS: LayerSpec[] = [
   {
     id: 'lm-path',
@@ -102,9 +102,10 @@ export function LineMapEditor({
   const ls = useLineStations(lineId);
   const { rows, setRows } = ls;
   const fitWanted = useRef(!keepView);
-  /** 고른 노선 해제(노선 목록으로). 저장 안 한 역 순서가 있으면 묻는다 */
+  /** 고른 노선 해제(노선 목록으로). 저장 안 한 정거장 순서가 있으면 묻는다 */
   const clearLine = () => {
-    if (ls.dirty && !window.confirm('저장하지 않은 역 순서 변경이 있습니다. 버리고 노선 선택을 해제할까요?')) return;
+    if (ls.dirty && !window.confirm('저장하지 않은 정거장 순서 변경이 있습니다. 버리고 노선 선택을 해제할까요?'))
+      return;
     onLineChange(null);
   };
 
@@ -213,7 +214,7 @@ export function LineMapEditor({
   rowsRef.current = rows;
   const infoRef = useRef(stationInfo);
   infoRef.current = stationInfo;
-  /** 역 그룹을 이 노선 노선역 초안에 넣는다(이웃 역 사이 경로가 가장 적게 늘어나는 자리, 좌표가 없으면 끝) */
+  /** 역 그룹을 이 노선 정거장 초안에 넣는다(이웃 역 사이 경로가 가장 적게 늘어나는 자리, 좌표가 없으면 끝) */
   const addStation = (id: string, nameKo: string | null) => {
     const name = nameKo ?? id;
     const cur = rowsRef.current;
@@ -346,7 +347,7 @@ export function LineMapEditor({
             <Card className="flex flex-col" data-testid="lm-stations">
               <div className="flex items-center gap-2 border-b border-border px-3 py-2">
                 <strong className="text-xs" data-testid="lm-stations-title">
-                  역 순서 · {rows.length}개 역
+                  정거장 순서 · {rows.length}개 역
                 </strong>
                 {ls.dirty ? (
                   <Badge tone="warn" data-testid="lm-dirty">
@@ -358,7 +359,7 @@ export function LineMapEditor({
                     <RotateCcw className="size-3.5" /> 되돌리기
                   </Button>
                   <Button size="sm" disabled={!ls.dirty || ls.save.isPending} onClick={() => ls.save.mutate()}>
-                    {ls.save.isPending ? '저장 중…' : '역 순서 저장'}
+                    {ls.save.isPending ? '저장 중…' : '정거장 순서 저장'}
                   </Button>
                 </div>
               </div>
@@ -403,7 +404,7 @@ export function LineMapEditor({
                 </ul>
               ) : null}
               {rows.length === 0 ? (
-                <Empty>노선역이 없습니다. [지도에서 역 추가]로 넣으세요.</Empty>
+                <Empty>정거장이 없습니다. [지도에서 역 추가]로 넣으세요.</Empty>
               ) : (
                 <ol className="flex flex-col">
                   {rows.map((r, i) => (
@@ -506,7 +507,7 @@ export function LineMapEditor({
               <p className="border-t border-border px-3 py-1.5 text-[11px] text-fg-muted">
                 지선·역번호·노선별 상태·개통일 등 나머지 칸은{' '}
                 <Link to="/data/$type/$id" params={{ type: 'line', id: lineId }} search={{ tab: 'stations' } as never}>
-                  노선 상세 [역 순서] 탭
+                  노선 상세 [정거장 순서] 탭
                 </Link>
                 에서 고칩니다.
               </p>
@@ -531,7 +532,7 @@ export function LineMapEditor({
               >
                 1
               </span>{' '}
-              번호 = 노선역 순서(역 그룹 점 색은 다른 목록과 같은 상태 색)
+              번호 = 노선정거장 순서(역 그룹 점 색은 다른 목록과 같은 상태 색)
             </li>
           </ul>
           <p className="mt-1">선형 © OpenStreetMap contributors, ODbL — 참고용</p>

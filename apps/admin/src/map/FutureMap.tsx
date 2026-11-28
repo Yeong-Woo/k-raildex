@@ -64,7 +64,7 @@ function gaps(p: LineProps): string[] {
   const out: string[] = [];
   if (p.plan_id && !p.target_precision) out.push('기대 일정 없음');
   if (p.quality === 'schematic') out.push('선형 schematic 뿐(개략)');
-  if (p.plan_id && !p.line_id && p.quality === 'station_sequence') out.push('선형 없음 — 역 순서로 연결');
+  if (p.plan_id && !p.line_id && p.quality === 'station_sequence') out.push('선형 없음 — 정거장 순서로 연결');
   if (p.delayed) out.push('개통 목표가 지났지만 미개통(지연)');
   return out;
 }

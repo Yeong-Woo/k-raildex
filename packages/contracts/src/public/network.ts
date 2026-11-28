@@ -50,7 +50,7 @@ export const publicLineListItemSchema = z
 export const publicLineListSchema = pubList(publicLineListItemSchema);
 export type PublicLineListItem = z.infer<typeof publicLineListItemSchema>;
 
-/** 노선의 역 순서 한 칸(노선역 — 노선마다 이름·역번호·구간별 상태) */
+/** 노선의 정거장 순서 한 칸(정거장 — 노선마다 이름·역번호·구간별 상태) */
 export const publicLineStopSchema = z
   .object({
     station_id: z.string(),

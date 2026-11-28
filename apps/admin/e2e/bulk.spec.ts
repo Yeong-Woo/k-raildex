@@ -21,7 +21,7 @@ test('여러 건 입력: 표 붙여 넣기 → 열 대응·미리 보기(오류 
 
   await page.getByRole('button', { name: '변경 묶음 만들기(1행)' }).click();
   await expect(page).toHaveURL(/\/changesets\/cs-/);
-  await expect(page.getByText('여러 건 입력: 노선역')).toBeVisible();
+  await expect(page.getByText('여러 건 입력: 정거장')).toBeVisible();
   await page.getByRole('button', { name: '승인(반영)' }).click();
   await expect(toast(page, '승인(반영)했습니다')).toBeVisible();
 

@@ -107,21 +107,21 @@ const EXPLAIN: Record<string, string> = {
   'line.areas':
     '권역은 새 시스템에서 v_line_area 로 계산(line_region → ref_region.area_code, 3개 권역 이상이면 national). 기존 build.ts 규칙 이식이라 차이는 시·도(line_region) 데이터 차이다.',
   'line.station_order':
-    '역 순서 = 노선역(line_station.seq). 기존 line-stations order 와 다르면 이관 뒤 순서 수정이거나 역 병합(역 = 환승 그룹, Q70 A)으로 노선역의 station_id 가 바뀐 경우.',
-  'line.station_codes': '역번호는 노선역으로 옮겼다(Q71 A). 차이는 이관 뒤 역번호 보강·수정.',
+    '정거장 순서 = 정거장(line_station.seq). 기존 line-stations order 와 다르면 이관 뒤 순서 수정이거나 역 병합(역 = 환승 그룹, Q70 A)으로 정거장의 station_id 가 바뀐 경우.',
+  'line.station_codes': '역번호는 정거장으로 옮겼다(Q71 A). 차이는 이관 뒤 역번호 보강·수정.',
   'line.color': '노선 색은 출처가 있는 공식 색만 둔다(색 출처 record_source field color).',
   'station.status':
-    '역 상태는 새 시스템에서 노선역 상태로 계산(v_station_status: 운영 > 휴업 > 공사 중 > 계획 > 폐지, Q71 A). 기존은 역 레코드에 직접 적었다 — 다중 노선 역에서 한 노선만 공사 중이거나, 기존 상태가 노선별 상태와 어긋났던 경우.',
+    '역 상태는 새 시스템에서 정거장 상태로 계산(v_station_status: 운영 > 휴업 > 공사 중 > 계획 > 폐지, Q71 A). 기존은 역 레코드에 직접 적었다 — 다중 노선 역에서 한 노선만 공사 중이거나, 기존 상태가 노선별 상태와 어긋났던 경우.',
   'station.opened':
-    '역 개통일은 노선역 개통일 중 가장 이른 것(v_station_status, Q95 A). 기존은 163개 역에만 역 단위로 있었다 — 새 값이 더 많이 채워지는 것은 노선역 개통일(노선 개통일 상속 포함)에서 온 것.',
-  'station.closed': '폐지일은 모든 노선역이 폐지일 때만 역 폐지일(v_station_status).',
+    '역 개통일은 정거장 개통일 중 가장 이른 것(v_station_status, Q95 A). 기존은 163개 역에만 역 단위로 있었다 — 새 값이 더 많이 채워지는 것은 정거장 개통일(노선 개통일 상속 포함)에서 온 것.',
+  'station.closed': '폐지일은 모든 정거장이 폐지일 때만 역 폐지일(v_station_status).',
   'station.line_ids':
-    '역 ↔ 노선 = 노선역(v_station_line). 기존 Station.line_ids 와 다르면 노선역 추가·삭제(이관 뒤 수정).',
+    '역 ↔ 노선 = 정거장(v_station_line). 기존 Station.line_ids 와 다르면 정거장 추가·삭제(이관 뒤 수정).',
   'station.areas':
     '역 권역: 시·도가 있으면 그 권역 하나, 없으면 소속 노선 권역(v_station_area). 기존은 일부 역(32)에 areas 가 없었다.',
-  'station.line_classes': '소속 노선 rail_class 합집합(없으면 conventional) — 노선역 차이를 따라간다.',
+  'station.line_classes': '소속 노선 rail_class 합집합(없으면 conventional) — 정거장 차이를 따라간다.',
   'station.service_kinds':
-    '정차 계통 = 정차 패턴의 노선역, 패턴이 없으면 소속 노선 모든 역(v_station_service). 기존은 정차 패턴의 역 id 로 계산해 운행 계통 노선에 없는 역도 정차로 셌다. 새 정차 패턴은 노선역을 가리키므로, 운행 계통 노선(service_line)에 그 역의 노선역이 없으면 이관 때 정차역에서 뺐다(extra.dropped_stops, reason not_on_service_lines — Soft 목록 X-service-dropped-stops 로 관리 앱에서 보정 대상). 운행 계통 노선을 보태거나 정차역을 다시 넣으면 사라지는 차이(데이터 보정 과제, 코드 차이 아님).',
+    '정차 계통 = 정차 패턴의 정거장, 패턴이 없으면 소속 노선 모든 역(v_station_service). 기존은 정차 패턴의 역 id 로 계산해 운행 계통 노선에 없는 역도 정차로 셌다. 새 정차 패턴은 정거장을 가리키므로, 운행 계통 노선(service_line)에 그 역의 정거장이 없으면 이관 때 정차역에서 뺐다(extra.dropped_stops, reason not_on_service_lines — Soft 목록 X-service-dropped-stops 로 관리 앱에서 보정 대상). 운행 계통 노선을 보태거나 정차역을 다시 넣으면 사라지는 차이(데이터 보정 과제, 코드 차이 아님).',
   'plan.stage':
     '현재 단계 = stage_override ?? 단계 이력 규칙(plan_current_stage). 기존 build-plans.ts 규칙을 이식했고 같은 날 폐기·휴면 정렬(0018)을 고쳤다.',
   'plan.target_open':
@@ -208,7 +208,7 @@ async function main(): Promise<void> {
       cur.stations.map((x) => x.station_code ?? '-'),
     );
   }
-  counts.push(['노선역', legacy.lineStations.length, lineStationTotal]);
+  counts.push(['정거장', legacy.lineStations.length, lineStationTotal]);
 
   // 이관 때 뺀 정차역(service.extra.dropped_stops) — 정차 계통 차이의 원인 표시
   const dropped = new Map<string, string[]>();

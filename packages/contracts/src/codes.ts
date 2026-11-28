@@ -23,7 +23,7 @@ export const codes = {
     source: { ko: '출처' },
     operator: { ko: '운영기관' },
     station: { ko: '역' },
-    line_station: { ko: '노선역' },
+    line_station: { ko: '정거장' },
     line: { ko: '노선' },
     train_class: { ko: '열차 등급' },
     service: { ko: '운행 계통' },
@@ -48,7 +48,11 @@ export const codes = {
   stationKind: table({
     station: { ko: '여객역' },
     freight: { ko: '화물역' },
-    // 신호장·신호소·조차장·차량기지는 시설(facilityKind), 분기점·연결선은 지선(line)으로 옮김 — 0038·0039, 2026-11-28
+    operational: {
+      ko: '운전 취급',
+      desc: '여객·화물 취급 없이 교행·대피·조성만 하는 정거장(신호장·신호소·조차장 — 구분은 정거장의 코레일 정거장 등급, 0044)',
+    },
+    // 차량기지는 시설(facilityKind), 분기점·연결선은 지선(line). 신호장·신호소·조차장은 2026-11-28 시설에서 되돌림(0044)
   }),
   /** 한국철도공사 정거장 등급(직제상 지위, 직제규정 시행세칙 — 0031) */
   korailStationClass: table({
@@ -67,27 +71,12 @@ export const codes = {
   facilityKind: table({
     depot: { ko: '차량기지' },
     test_track: { ko: '시험 선로', desc: '차량·부품 시험용 선로(영업 노선 아님, Q141)' },
-    // 신호장·신호소(2026-11-27 역 그룹에서 이전)는 2026-11-28 둘로 나눔(signal_box → signal_station·signal_post, 0042·0043)
-    signal_station: { ko: '신호장', desc: '여객·화물 취급 없이 열차 교행·대피를 하는 정거장' },
-    signal_post: { ko: '신호소', desc: '열차 교행·대피 없이 신호만 다루는 정거장(분기 등)' },
-    yard: { ko: '조차장', desc: '화차 조성·입환 시설(2026-11-27 역 그룹에서 이전)' },
+    // 신호장·신호소·조차장은 2026-11-28 정거장으로 되돌림(구분 = 정거장의 코레일 정거장 등급, 0044·0045)
   }),
   /** 시설 ↔ 노선 역할(0035) */
   facilityLineRole: table({
     serves: { ko: '담당 노선', desc: '이 시설이 차량을 맡는 노선' },
     connects: { ko: '붙은 선로', desc: '시설이 이어진 노선(기지선 등)' },
-    located: {
-      ko: '노선 위 정거장',
-      desc: '신호장·신호소·조차장이 이 노선 위에 있는 자리(앞 노선역·km) — 정거장 순서(0042)',
-    },
-  }),
-  /** 정거장 종류(일반 종류, 운영기관과 무관 — 0042, 2026-11-28). 노선역은 역 그룹 종류, 노선 위 시설은 시설 종류에서 */
-  stopKind: table({
-    station: { ko: '역' },
-    freight_station: { ko: '화물역' },
-    signal_station: { ko: '신호장' },
-    signal_post: { ko: '신호소' },
-    yard: { ko: '조차장' },
   }),
   /** 시설(차량기지) 기능(0035) */
   facilityFunction: table({

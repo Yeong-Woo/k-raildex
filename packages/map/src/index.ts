@@ -99,7 +99,7 @@ export const GEOMETRY_QUALITY_LABELS: Readonly<Record<string, string>> = {
   osm_construction: 'OSM 공사 선형',
   official: '공식 도면',
   traced: '도면 추출',
-  station_sequence: '역 순서 연결',
+  station_sequence: '정거장 순서 연결',
   schematic: '선형 미확정(개략)',
 };
 

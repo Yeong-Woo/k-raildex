@@ -1,4 +1,4 @@
-/** 노선 상세(P1): 역 순서(본선·지선·순서 미확인, 구간별 상태), 운행 계통, 연혁, 관련 계획, 제원, 근거 자료, 출처 */
+/** 노선 상세(P1): 정거장 순서(본선·지선·순서 미확인, 구간별 상태), 운행 계통, 연혁, 관련 계획, 제원, 근거 자료, 출처 */
 import type { Metadata } from 'next';
 import { codeLabel, isCode } from '@k-raildex/contracts';
 import {
@@ -24,7 +24,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const { id } = await params;
   const l = await getLine(id);
   const desc = clip(
-    `${l.name_ko}${l.name_en ? ` (${l.name_en})` : ''} — ${codeLabel('railClass', l.rail_class)}${l.is_wide_area ? '·광역철도 지정' : ''}, ${codeLabel('status', l.status)}. 역 ${l.stations.length}개${l.length_km ? `, 연장 ${fmtKm(l.length_km)}km` : ''}. 역 순서·운행 계통·연혁·관련 계획과 출처.`,
+    `${l.name_ko}${l.name_en ? ` (${l.name_en})` : ''} — ${codeLabel('railClass', l.rail_class)}${l.is_wide_area ? '·광역철도 지정' : ''}, ${codeLabel('status', l.status)}. 역 ${l.stations.length}개${l.length_km ? `, 연장 ${fmtKm(l.length_km)}km` : ''}. 정거장 순서·운행 계통·연혁·관련 계획과 출처.`,
   );
   return pageMeta(l.name_ko, desc, paths.line(l.id));
 }
@@ -201,7 +201,7 @@ export default async function LinePage({ params }: { params: Params }) {
       />
       <Toc
         items={[
-          { id: 'stations', label: '역 순서', count: l.stations.length },
+          { id: 'stations', label: '정거장 순서', count: l.stations.length },
           { id: 'services', label: '운행 계통', count: l.services.length },
           ...(l.branches.length ? [{ id: 'branches', label: '지선', count: l.branches.length }] : []),
           { id: 'history', label: '연혁', count: l.events.length },
@@ -215,7 +215,7 @@ export default async function LinePage({ params }: { params: Params }) {
         <div>
           <Section
             id="stations"
-            title="역 순서"
+            title="정거장 순서"
             sub={
               main.length
                 ? `${main[0]!.name_ko} → ${main[main.length - 1]!.name_ko}${main.some((s) => s.station_code) ? ` · 역번호 ${main.find((s) => s.station_code)?.station_code}~` : ''}`
@@ -228,7 +228,7 @@ export default async function LinePage({ params }: { params: Params }) {
               </p>
             ) : null}
             {l.stations.length === 0 ? (
-              <p className="empty surface">역 순서가 아직 없습니다(미확인).</p>
+              <p className="empty surface">정거장 순서가 아직 없습니다(미확인).</p>
             ) : (
               <div className="surface" style={{ padding: 'var(--kr-space-2) var(--kr-space-4)' }}>
                 {main.length ? (

@@ -23,14 +23,14 @@ test('홈: 검색·통계·바닥 고지, HTML 캐시 헤더', async ({ page }) 
   if (!process.env.WEB_DEV) expect(cc).toContain('s-maxage=30');
 });
 
-test('노선 목록 → 상세(역 순서·출처)', async ({ page }) => {
+test('노선 목록 → 상세(정거장 순서·출처)', async ({ page }) => {
   await page.goto('/lines/');
   await expect(page.getByRole('heading', { level: 1, name: '노선' })).toBeVisible();
   const first = page.locator('table.data tbody tr td a[href^="/lines/"]').first();
   const href = await first.getAttribute('href');
   expect(href).toMatch(/^\/lines\/[^/]+\/$/);
   await page.goto(href!);
-  await expect(page.locator('#stations-h')).toHaveText('역 순서');
+  await expect(page.locator('#stations-h')).toHaveText('정거장 순서');
   await expect(page.locator('#sources-h')).toHaveText('출처');
 });
 

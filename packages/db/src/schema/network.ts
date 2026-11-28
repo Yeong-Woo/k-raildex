@@ -1,4 +1,4 @@
-// 0006 운영기관·역·노선·노선역
+// 0006 운영기관·역·노선·정거장
 import {
   bigint,
   boolean,
@@ -147,17 +147,17 @@ export const lineStation = pgTable('line_station', {
     .references(() => station.id, { onUpdate: 'cascade' }),
   seq: integer('seq').notNull(),
   branch: text('branch'),
-  /** 지선이 갈라져 나오는 노선역(0042) */
+  /** 지선이 갈라져 나오는 정거장(0042) */
   branchFromId: text('branch_from_id').references((): AnyPgColumn => lineStation.id, { onUpdate: 'cascade' }),
   km: numeric('km', { precision: 7, scale: 2, mode: 'number' }),
   stationCode: text('station_code'),
   orderConfirmed: boolean('order_confirmed').notNull().default(true),
-  /** V-S04 거리 확인: 확인할 때의 앞 노선역 id(0030) */
+  /** V-S04 거리 확인: 확인할 때의 앞 정거장 id(0030) */
   gapConfirmedPrevId: text('gap_confirmed_prev_id'),
   nameKo: text('name_ko'),
   nameEn: text('name_en'),
   operatorId: text('operator_id').references(() => operator.id, { onUpdate: 'cascade' }),
-  /** 한국철도공사 정거장 등급·관리역(0032 — 코레일 노선역만, V-H18) */
+  /** 한국철도공사 정거장 등급·관리역(0032 — 코레일 정거장만, V-H18) */
   korailClass: text('korail_class'),
   korailMgmtGrade: smallint('korail_mgmt_grade'),
   managedById: text('managed_by_id').references((): AnyPgColumn => lineStation.id, { onUpdate: 'cascade' }),

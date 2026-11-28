@@ -1,5 +1,5 @@
 /**
- * 노선 역 순서 편집기(FR-ADM-050): 드래그 순서·행 추가/삭제·구간 일괄 상태·km 역행 경고. 저장 = 전체 교체(PUT).
+ * 노선 정거장 순서 편집기(FR-ADM-050): 드래그 순서·행 추가/삭제·구간 일괄 상태·km 역행 경고. 저장 = 전체 교체(PUT).
  * 역 추가: 기존 역 그룹 고르기 또는 [새 역 그룹 만들어 넣기](2026-11-27). 행을 하나 고르면 그 뒤에, 아니면 끝에 넣는다.
  */
 import { useQuery } from '@tanstack/react-query';
@@ -109,14 +109,14 @@ export function LineStationsEditor({ lineId }: { lineId: string }) {
   return (
     <Card>
       <CardHeader
-        title={`역 순서 · ${rows.length}개 역${dirty ? ' · 저장 안 됨' : ''}`}
+        title={`정거장 순서 · ${rows.length}개 역${dirty ? ' · 저장 안 됨' : ''}`}
         actions={
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" disabled={!dirty} onClick={() => setRows(original)}>
               <RotateCcw className="size-4" /> 되돌리기
             </Button>
             <Button size="sm" disabled={!dirty || save.isPending} onClick={() => save.mutate()}>
-              {save.isPending ? '저장 중…' : '역 순서 저장'}
+              {save.isPending ? '저장 중…' : '정거장 순서 저장'}
             </Button>
           </div>
         }
@@ -226,7 +226,7 @@ export function LineStationsEditor({ lineId }: { lineId: string }) {
         </div>
       </DndContext>
       {rows.length === 0 ? (
-        <Empty>노선역이 없습니다. 아래에서 기존 역 그룹을 고르거나 새 역 그룹을 만들어 넣으세요.</Empty>
+        <Empty>정거장이 없습니다. 아래에서 기존 역 그룹을 고르거나 새 역 그룹을 만들어 넣으세요.</Empty>
       ) : null}
       <div className="flex flex-wrap items-center gap-2 border-t border-border px-4 py-3">
         <Plus className="size-4 text-fg-muted" />
@@ -275,7 +275,7 @@ function SortableRow({
   regress: boolean;
   error: string | undefined;
   operators: { id: string; name_ko: string | null }[];
-  /** 갈라지는 노선역 후보(저장된 노선역) */
+  /** 갈라지는 정거장 후보(저장된 정거장) */
   junctions: { id: string; label: string; branch: string | null }[];
   onToggle: (shift: boolean) => void;
   onChange: (p: Partial<LsRow>) => void;
@@ -360,8 +360,8 @@ function SortableRow({
           {row.branch ? (
             <select
               className="mt-0.5 h-6 w-full rounded border border-border bg-bg px-0.5 text-[10px]"
-              aria-label="갈라지는 노선역"
-              title="이 지선이 갈라져 나오는 노선역(지선 행 하나에만 — 정거장 앞뒤 계산)"
+              aria-label="갈라지는 정거장"
+              title="이 지선이 갈라져 나오는 정거장(지선 행 하나에만 — 정거장 앞뒤 계산)"
               data-testid="ls-branch-from"
               value={row.branch_from_id ?? ''}
               onChange={(e) => onChange({ branch_from_id: s(e.target.value) })}

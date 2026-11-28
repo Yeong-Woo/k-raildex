@@ -1,8 +1,8 @@
 /**
- * 관리역 ↔ 소속 노선역(2026-11-27 사용자 지시 — 한국철도공사 직제규정 시행세칙의 관리역 체계, 0032).
- * 정거장 등급·관리역은 노선역 단위다(경인선 소사 = 보통역·부천역 소속, 서해선 소사 = 무배치간이역·부천역 소속).
- * 노선역 상세 [관리역] 탭: 이 노선역이 관리역이면 소속 노선역 목록·추가·빼기(각 소속 노선역의 managed_by_id 를 바꾼다),
- * 아니면 이 노선역의 관리역을 보여 준다. 운영기관이 한국철도공사인 노선역만 쓸 수 있다(V-H18).
+ * 관리역 ↔ 소속 정거장(2026-11-27 사용자 지시 — 한국철도공사 직제규정 시행세칙의 관리역 체계, 0032).
+ * 정거장 등급·관리역은 정거장 단위다(경인선 소사 = 보통역·부천역 소속, 서해선 소사 = 무배치간이역·부천역 소속).
+ * 정거장 상세 [관리역] 탭: 이 정거장이 관리역이면 소속 정거장 목록·추가·빼기(각 소속 정거장의 managed_by_id 를 바꾼다),
+ * 아니면 이 정거장의 관리역을 보여 준다. 운영기관이 한국철도공사인 정거장만 쓸 수 있다(V-H18).
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
@@ -31,7 +31,7 @@ export const korailClassText = (c: string | null | undefined) =>
 
 const KORAIL = 'op-korail';
 
-/** 소속 노선역의 managed_by_id 를 바꾼다(버전 확인) */
+/** 소속 정거장의 managed_by_id 를 바꾼다(버전 확인) */
 async function setManager(lsId: string, managerId: string | null, rationale: string) {
   const path = `/v1/admin/line-station/${encodeURIComponent(lsId)}`;
   const cur = await api<EntityResponse<LineStationLite>>(path);
@@ -80,19 +80,19 @@ export function ManagedStations({ ls, operatorId }: { ls: LineStationLite; opera
       const prev = cur.data.managed_by_id;
       if (prev && prev !== ls.id && !window.confirm(`${subId} 는 지금 ${prev} 소속입니다. 이 관리역으로 옮길까요?`))
         return null;
-      await setManager(subId, ls.id, `소속 노선역 추가 → 관리역 ${ls.id}`);
+      await setManager(subId, ls.id, `소속 정거장 추가 → 관리역 ${ls.id}`);
       return subId;
     },
     onSuccess: async (id) => {
       if (!id) return;
-      toast.success(`${id} 를 소속 노선역으로 넣었습니다`);
+      toast.success(`${id} 를 소속 정거장으로 넣었습니다`);
       setPick(null);
       await refresh();
     },
     onError: (e) => toast.error(errorText(e)),
   });
   const remove = useMutation({
-    mutationFn: (sub: ListItem) => setManager(sub.id, null, `소속 노선역 빼기 ← 관리역 ${ls.id}`),
+    mutationFn: (sub: ListItem) => setManager(sub.id, null, `소속 정거장 빼기 ← 관리역 ${ls.id}`),
     onSuccess: async () => {
       toast.success('소속에서 뺐습니다');
       await refresh();
@@ -104,12 +104,12 @@ export function ManagedStations({ ls, operatorId }: { ls: LineStationLite; opera
     return (
       <Card className="p-4 text-sm" data-testid="managed-stations">
         <p>
-          운영기관이 한국철도공사가 아닌 노선역입니다({operatorId ?? '운영기관 미정'}). 정거장 등급·관리역은 코레일
-          노선역에만 씁니다.
+          운영기관이 한국철도공사가 아닌 정거장입니다({operatorId ?? '운영기관 미정'}). 정거장 등급·관리역은 코레일
+          정거장에만 씁니다.
         </p>
         {!operatorId ? (
           <p className="mt-2 text-xs text-fg-muted">
-            노선 운영기관이 둘 이상이거나 없으면 [정보] 탭 "운영기관" 에 이 노선역의 운영기관을 적으세요(품질
+            노선 운영기관이 둘 이상이거나 없으면 [정보] 탭 "운영기관" 에 이 정거장의 운영기관을 적으세요(품질
             X-line-station-operator).
           </p>
         ) : null}
@@ -132,8 +132,8 @@ export function ManagedStations({ ls, operatorId }: { ls: LineStationLite; opera
           )}
         </p>
         <p className="mt-3 text-xs text-fg-muted">
-          이 노선역이 관리역이면 [정보] 탭에서 정거장 등급을 "관리역"으로 저장하세요. 그러면 여기서 소속 노선역을 넣고
-          뺄 수 있습니다. 이 노선역의 관리역은 [정보] 탭 "관리역(소속)" 으로 정하거나, 관리역의 이 탭에서 넣습니다.
+          이 정거장이 관리역이면 [정보] 탭에서 정거장 등급을 "관리역"으로 저장하세요. 그러면 여기서 소속 정거장을 넣고
+          뺄 수 있습니다. 이 정거장의 관리역은 [정보] 탭 "관리역(소속)" 으로 정하거나, 관리역의 이 탭에서 넣습니다.
         </p>
       </Card>
     );
@@ -145,12 +145,12 @@ export function ManagedStations({ ls, operatorId }: { ls: LineStationLite; opera
   return (
     <Card data-testid="managed-stations">
       <CardHeader
-        title={`관리역${ls.korail_mgmt_grade ? ` ${ls.korail_mgmt_grade}급` : ''} · 소속 노선역 ${subs.data?.total ?? 0}곳`}
+        title={`관리역${ls.korail_mgmt_grade ? ` ${ls.korail_mgmt_grade}급` : ''} · 소속 정거장 ${subs.data?.total ?? 0}곳`}
       />
       <div className="flex flex-col gap-3 p-4 text-sm">
         <div className="flex flex-wrap items-end gap-2">
           <div className="min-w-64 flex-1">
-            <label className="mb-1 block text-xs text-fg-muted">소속 노선역 추가</label>
+            <label className="mb-1 block text-xs text-fg-muted">소속 정거장 추가</label>
             <RefInput target="line_station" value={pick} onChange={setPick} />
           </div>
           <Button
@@ -163,7 +163,7 @@ export function ManagedStations({ ls, operatorId }: { ls: LineStationLite; opera
         </div>
         {items.length > 8 ? (
           <Input
-            placeholder="소속 노선역 찾기"
+            placeholder="소속 정거장 찾기"
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
             className="h-8"
@@ -172,7 +172,7 @@ export function ManagedStations({ ls, operatorId }: { ls: LineStationLite; opera
         {subs.isLoading ? (
           <Empty>불러오는 중…</Empty>
         ) : !shown.length ? (
-          <Empty>소속 노선역 없음</Empty>
+          <Empty>소속 정거장 없음</Empty>
         ) : (
           <ul className="divide-y divide-border rounded border border-border" data-testid="managed-list">
             {shown.map((s) => (
@@ -193,8 +193,8 @@ export function ManagedStations({ ls, operatorId }: { ls: LineStationLite; opera
           </ul>
         )}
         <p className="text-xs text-fg-muted">
-          소속 노선역을 넣으면 그 노선역의 "관리역(소속)" 이 이 노선역으로 바뀝니다(노선역마다 변경 묶음). 근거(직제규정
-          시행세칙 등)는 소속 노선역의 출처에 필드 managed_by_id 로 붙이세요.
+          소속 정거장을 넣으면 그 정거장의 "관리역(소속)" 이 이 정거장으로 바뀝니다(정거장마다 변경 묶음). 근거(직제규정
+          시행세칙 등)는 소속 정거장의 출처에 필드 managed_by_id 로 붙이세요.
         </p>
       </div>
     </Card>

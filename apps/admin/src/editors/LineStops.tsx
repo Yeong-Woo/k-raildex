@@ -1,148 +1,211 @@
 /**
- * 정거장(0042, 2026-11-28 사용자 지시): 노선 [정거장] 탭 = 노선역 + 노선 위 신호장·신호소·조차장을 노선 순서로,
- * 역 그룹·시설 [앞뒤 정거장] 탭 = 모든 노선의 앞뒤 정거장과 거리. 파생 값(DB 뷰, 저장 안 함) — 읽기 전용.
- * 순서·위치 고치기: 노선역은 [역 순서] 탭, 신호장 등은 시설 정보의 "노선 위 정거장"(앞 노선역·km).
+ * 정거장 순서(2026-11-28 사용자 지시 — 위키백과 "역 목록"과 비슷하게): 노선 상세 [정거장 순서] 탭의 보기 표.
+ * 본선·지선별 표, 열 = 번호(정거장 번호) · 정거장(한자·로마자) · 구분(코레일 정거장 등급 조차장·신호장·신호소 / 화물역·운전 취급) ·
+ * 접속 노선 · 역간 거리 · 영업 거리(km) · 소재지(바뀔 때만). 파생 값(DB 뷰) — 고치기는 [편집](LineStationsEditor).
+ * 역 그룹 [앞뒤 정거장] 탭(StopNeighbors) = 모든 노선의 앞뒤 정거장과 거리.
  */
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { codeLabel, isCode } from '@k-raildex/contracts';
-import { Badge, Card, CardHeader, Empty } from '@k-raildex/ui';
+import { Badge, Card, CardHeader, cn, Empty } from '@k-raildex/ui';
 import { api, errorText } from '../lib/api';
 
-type NodeType = 'station' | 'facility';
-interface StopRef {
-  node_type: NodeType;
-  node_id: string;
+interface LinkRef {
+  line_station_id: string;
+  station_id: string;
   name_ko: string | null;
   distance_km: number | null;
   basis: 'sequence' | 'branch';
-  branch: string | null;
 }
-interface LineStop {
+interface StopRow {
+  line_station_id: string;
   pos: number;
   branch: string | null;
-  node_type: NodeType;
-  node_id: string;
-  stop_kind: string;
+  station_id: string;
+  station_code: string | null;
   name_ko: string | null;
-  km: number | null;
+  name_hanja: string | null;
+  name_en: string | null;
+  stop_class: string;
   status: string;
-  prev: StopRef[];
-  next: StopRef[];
+  km: number | null;
+  prev: LinkRef[];
+  next: LinkRef[];
+  connections: { line_id: string; name_ko: string | null; status: string }[];
+  region_name: string | null;
+  address: string | null;
 }
 interface Neighbor {
   line_id: string;
   line_name_ko: string | null;
   branch: string | null;
   direction: 'prev' | 'next';
-  neighbor_type: NodeType;
-  neighbor_id: string;
+  neighbor_station_id: string;
   neighbor_name: string | null;
   distance_km: number | null;
   basis: 'sequence' | 'branch';
 }
 
-const kindLabel = (k: string) => (isCode('stopKind', k) ? codeLabel('stopKind', k) : k);
-const km = (v: number | null) => (v == null ? '미확인' : `${v.toFixed(1)} km`);
+/** 구분: 조차장·신호장·신호소(정거장 등급) / 화물역·운전 취급(역 그룹 종류). 여객역은 비움(위키 표처럼) */
+function classLabel(c: string): string | null {
+  if (c === 'station') return null;
+  if (isCode('korailStationClass', c)) return codeLabel('korailStationClass', c);
+  if (isCode('stationKind', c)) return codeLabel('stationKind', c);
+  return c;
+}
+const kmText = (v: number | null) => (v == null ? '' : v.toFixed(1));
+/** 주소에서 시·군·구(첫 "…시·…군·…구" 낱말, 시·도 다음) */
+function sigungu(address: string | null): string | null {
+  if (!address) return null;
+  const t = address.split(/\s+/);
+  return t.slice(1, 3).find((w) => /(시|군|구)$/.test(w)) ?? null;
+}
 
-function StopLink({ type, id, name }: { type: NodeType; id: string; name: string | null }) {
+function StationLink({ id, name }: { id: string; name: string | null }) {
   return (
-    <Link to="/data/$type/$id" params={{ type, id }} search={{}} className="underline-offset-2 hover:underline">
+    <Link to="/data/$type/$id" params={{ type: 'station', id }} search={{}} className="hover:underline">
       {name ?? id}
     </Link>
   );
 }
 
-function Refs({ refs }: { refs: StopRef[] }) {
-  if (!refs.length) return <span className="text-fg-muted">—</span>;
+function Section({ title, rows }: { title: string; rows: StopRow[] }) {
+  let lastPlace = '';
   return (
-    <ul className="flex flex-col gap-0.5">
-      {refs.map((r) => (
-        <li key={`${r.node_type}:${r.node_id}:${r.basis}`} className="flex flex-wrap items-center gap-1">
-          <StopLink type={r.node_type} id={r.node_id} name={r.name_ko} />
-          <span className={r.distance_km == null ? 'text-fg-muted' : ''}>{km(r.distance_km)}</span>
-          {r.basis === 'branch' ? <Badge>분기 {r.branch}</Badge> : null}
-        </li>
-      ))}
-    </ul>
+    <Card data-testid="stop-section">
+      <CardHeader title={title} />
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-muted/40 text-left text-xs text-fg-muted">
+            <tr>
+              <th className="w-16 px-3 py-2">번호</th>
+              <th className="px-2 py-2">정거장</th>
+              <th className="w-20 px-2 py-2">구분</th>
+              <th className="px-2 py-2">접속 노선</th>
+              <th className="w-20 px-2 py-2 text-right">역간 거리(km)</th>
+              <th className="w-20 px-2 py-2 text-right">영업 거리(km)</th>
+              <th className="w-44 px-3 py-2">소재지</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((s) => {
+              const seqPrev = s.prev.find((p) => p.basis === 'sequence');
+              const branchPrev = s.prev.find((p) => p.basis === 'branch');
+              const cls = classLabel(s.stop_class);
+              const place = [s.region_name, sigungu(s.address)].filter(Boolean).join(' ');
+              const showPlace = place && place !== lastPlace;
+              if (place) lastPlace = place;
+              const inactive = s.status !== 'operating';
+              return (
+                <tr
+                  key={s.line_station_id}
+                  className={cn('border-t border-border align-top', inactive && 'text-fg-muted')}
+                  data-testid="stop-row"
+                >
+                  <td className="px-3 py-1.5 font-mono text-xs">{s.station_code ?? ''}</td>
+                  <td className="px-2 py-1.5">
+                    <div className="flex flex-wrap items-baseline gap-x-1.5">
+                      <span className="font-medium">
+                        <StationLink id={s.station_id} name={s.name_ko} />
+                      </span>
+                      {s.name_hanja ? <span className="text-xs text-fg-muted">{s.name_hanja}</span> : null}
+                      {inactive && isCode('status', s.status) ? (
+                        <Badge tone={s.status === 'closed' ? 'danger' : 'warn'}>{codeLabel('status', s.status)}</Badge>
+                      ) : null}
+                    </div>
+                    {s.name_en ? <div className="text-[11px] text-fg-muted">{s.name_en}</div> : null}
+                    {branchPrev ? (
+                      <div className="text-[11px] text-fg-muted">
+                        ← <StationLink id={branchPrev.station_id} name={branchPrev.name_ko} />
+                        에서 분기
+                      </div>
+                    ) : null}
+                  </td>
+                  <td className="px-2 py-1.5 text-xs">{cls ? <Badge>{cls}</Badge> : null}</td>
+                  <td className="px-2 py-1.5 text-xs">
+                    {s.connections.map((c, i) => (
+                      <span key={c.line_id}>
+                        {i ? ' · ' : ''}
+                        <Link
+                          to="/data/$type/$id"
+                          params={{ type: 'line', id: c.line_id }}
+                          search={{ tab: 'stations' } as never}
+                          className={cn('hover:underline', c.status !== 'operating' && 'text-fg-muted')}
+                        >
+                          {c.name_ko ?? c.line_id}
+                        </Link>
+                      </span>
+                    ))}
+                  </td>
+                  <td className="px-2 py-1.5 text-right text-xs tabular-nums">
+                    {seqPrev ? (
+                      seqPrev.distance_km == null ? (
+                        <span className="text-fg-muted">미확인</span>
+                      ) : (
+                        kmText(seqPrev.distance_km)
+                      )
+                    ) : branchPrev?.distance_km != null ? (
+                      kmText(branchPrev.distance_km)
+                    ) : (
+                      ''
+                    )}
+                  </td>
+                  <td className="px-2 py-1.5 text-right text-xs tabular-nums">
+                    {s.km == null ? <span className="text-fg-muted">미확인</span> : kmText(s.km)}
+                  </td>
+                  <td className="px-3 py-1.5 text-xs">{showPlace ? place : ''}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </Card>
   );
 }
 
-/** 노선 [정거장] 탭 */
-export function LineStops({ lineId }: { lineId: string }) {
+/** 노선 [정거장 순서] 탭의 보기 표 */
+export function LineStopTable({ lineId }: { lineId: string }) {
+  const [hideClosed, setHideClosed] = useState(false);
   const q = useQuery({
     queryKey: ['line-stops', lineId],
-    queryFn: () => api<{ items: LineStop[] }>(`/v1/admin/lines/${encodeURIComponent(lineId)}/stops`),
+    queryFn: () => api<{ items: StopRow[] }>(`/v1/admin/lines/${encodeURIComponent(lineId)}/stops`),
   });
   if (q.isLoading) return <Empty>불러오는 중…</Empty>;
   if (q.error) return <Empty>{errorText(q.error)}</Empty>;
-  const items = q.data?.items ?? [];
-  const groups = new Map<string, LineStop[]>();
-  for (const s of items) {
-    const k = s.branch ?? '';
-    groups.set(k, [...(groups.get(k) ?? []), s]);
-  }
+  const all = q.data?.items ?? [];
+  const items = hideClosed ? all.filter((s) => s.status !== 'closed') : all;
+  const groups = new Map<string, StopRow[]>();
+  for (const s of items) groups.set(s.branch ?? '', [...(groups.get(s.branch ?? '') ?? []), s]);
+  const closedCount = all.filter((s) => s.status === 'closed').length;
   return (
     <div className="flex flex-col gap-4" data-testid="line-stops">
-      <p className="text-xs text-fg-muted">
-        정거장 = 역·화물역·신호장·신호소·조차장. 노선역과 노선 위 시설(앞 노선역·km)로 순서를 계산합니다(저장하지 않음).
-        거리는 두 정거장 km 가 모두 있을 때의 차이, 없으면 미확인. 노선역 순서는 [역 순서] 탭, 신호장 등의 자리는 시설
-        정보의 "노선 위 정거장"에서 고칩니다.
-      </p>
-      {items.length === 0 ? <Empty>정거장이 없습니다.</Empty> : null}
-      {[...groups.entries()].map(([branch, list]) => (
-        <Card key={branch || '-'}>
-          <CardHeader title={branch ? `지선 ${branch}` : '본선'} />
-          <table className="w-full text-sm">
-            <thead className="text-left text-xs text-fg-muted">
-              <tr>
-                <th className="w-10 px-3 py-2">#</th>
-                <th className="w-20 px-2 py-2">종류</th>
-                <th className="px-2 py-2">정거장</th>
-                <th className="w-20 px-2 py-2">km</th>
-                <th className="px-2 py-2">앞 정거장(거리)</th>
-                <th className="px-2 py-2">뒤 정거장(거리)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {list.map((s) => (
-                <tr
-                  key={`${s.node_type}:${s.node_id}`}
-                  className="border-t border-border align-top"
-                  data-testid="stop-row"
-                >
-                  <td className="px-3 py-1.5 text-xs text-fg-muted">{s.pos}</td>
-                  <td className="px-2 py-1.5">
-                    <Badge tone={s.node_type === 'facility' ? 'warn' : undefined}>{kindLabel(s.stop_kind)}</Badge>
-                  </td>
-                  <td className="px-2 py-1.5 font-medium">
-                    <StopLink type={s.node_type} id={s.node_id} name={s.name_ko} />
-                    {s.status !== 'operating' && isCode('status', s.status) ? (
-                      <span className="ml-1 text-xs text-fg-muted">{codeLabel('status', s.status)}</span>
-                    ) : null}
-                  </td>
-                  <td className="px-2 py-1.5 text-xs">{s.km ?? <span className="text-fg-muted">미확인</span>}</td>
-                  <td className="px-2 py-1.5 text-xs">
-                    <Refs refs={s.prev} />
-                  </td>
-                  <td className="px-2 py-1.5 text-xs">
-                    <Refs refs={s.next} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Card>
+      <div className="flex flex-wrap items-center gap-3 text-xs text-fg-muted">
+        <span>
+          정거장 {all.length}곳. 역간 거리 = 앞 정거장과의 영업 거리 차이(둘 다 있을 때만). 구분 = 코레일 정거장
+          등급(조차장·신호장·신호소) 또는 역 그룹 종류.
+        </span>
+        {closedCount ? (
+          <label className="flex items-center gap-1">
+            <input type="checkbox" checked={hideClosed} onChange={(e) => setHideClosed(e.target.checked)} /> 폐지{' '}
+            {closedCount}곳 숨기기
+          </label>
+        ) : null}
+      </div>
+      {items.length === 0 ? <Empty>정거장이 없습니다. [편집]에서 넣으세요.</Empty> : null}
+      {[...groups.entries()].map(([branch, rows]) => (
+        <Section key={branch || '-'} title={branch ? `지선 ${branch}` : '본선'} rows={rows} />
       ))}
     </div>
   );
 }
 
-/** 역 그룹·시설 [앞뒤 정거장] 탭 */
-export function StopNeighbors({ type, id }: { type: NodeType; id: string }) {
+/** 역 그룹 [앞뒤 정거장] 탭 */
+export function StopNeighbors({ stationId }: { stationId: string }) {
   const q = useQuery({
-    queryKey: ['stop-neighbors', type, id],
-    queryFn: () => api<{ items: Neighbor[] }>(`/v1/admin/stops/${type}/${encodeURIComponent(id)}/neighbors`),
+    queryKey: ['stop-neighbors', stationId],
+    queryFn: () => api<{ items: Neighbor[] }>(`/v1/admin/stations/${encodeURIComponent(stationId)}/stop-neighbors`),
   });
   if (q.isLoading) return <Empty>불러오는 중…</Empty>;
   if (q.error) return <Empty>{errorText(q.error)}</Empty>;
@@ -153,11 +216,7 @@ export function StopNeighbors({ type, id }: { type: NodeType; id: string }) {
     <Card data-testid="stop-neighbors">
       <CardHeader title="앞뒤 정거장(노선별, 분기면 여러 개)" />
       {items.length === 0 ? (
-        <Empty>
-          {type === 'facility'
-            ? '노선 위 자리가 없습니다 — 정보의 "노선 위 정거장"(앞 노선역·km)을 넣으면 계산됩니다.'
-            : '노선역이 없습니다.'}
-        </Empty>
+        <Empty>정거장이 없습니다.</Empty>
       ) : (
         <table className="w-full text-sm">
           <thead className="text-left text-xs text-fg-muted">
@@ -171,24 +230,29 @@ export function StopNeighbors({ type, id }: { type: NodeType; id: string }) {
             {[...byLine.entries()].map(([lineId, list]) => (
               <tr key={lineId} className="border-t border-border align-top" data-testid="neighbor-row">
                 <td className="px-4 py-1.5">
-                  <Link to="/data/$type/$id" params={{ type: 'line', id: lineId }} search={{ tab: 'stops' } as never}>
+                  <Link
+                    to="/data/$type/$id"
+                    params={{ type: 'line', id: lineId }}
+                    search={{ tab: 'stations' } as never}
+                  >
                     {list[0]!.line_name_ko ?? lineId}
                   </Link>
                 </td>
                 {(['prev', 'next'] as const).map((d) => (
                   <td key={d} className="px-2 py-1.5 text-xs">
-                    <Refs
-                      refs={list
+                    <ul className="flex flex-col gap-0.5">
+                      {list
                         .filter((n) => n.direction === d)
-                        .map((n) => ({
-                          node_type: n.neighbor_type,
-                          node_id: n.neighbor_id,
-                          name_ko: n.neighbor_name,
-                          distance_km: n.distance_km,
-                          basis: n.basis,
-                          branch: n.branch,
-                        }))}
-                    />
+                        .map((n) => (
+                          <li key={`${n.neighbor_station_id}:${n.basis}`} className="flex flex-wrap items-center gap-1">
+                            <StationLink id={n.neighbor_station_id} name={n.neighbor_name} />
+                            <span className={n.distance_km == null ? 'text-fg-muted' : ''}>
+                              {n.distance_km == null ? '미확인' : `${n.distance_km.toFixed(1)} km`}
+                            </span>
+                            {n.basis === 'branch' ? <Badge>분기 {n.branch}</Badge> : null}
+                          </li>
+                        ))}
+                    </ul>
                   </td>
                 ))}
               </tr>

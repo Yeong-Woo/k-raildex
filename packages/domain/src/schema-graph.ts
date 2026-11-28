@@ -1,7 +1,7 @@
 /**
  * 데이터 스키마 보기(관리 앱 "데이터 스키마", 2026-11-28 사용자 지시).
  * - schemaGraph: public·osm 스키마의 표·열·기본 키·외래 키 + 외래 키 없는 논리 관계(다형 entity_id, OSM id 배열)
- * - schemaTrace: 한 개체(계획·노선·노선역·역 그룹·시설)에서 출발해 계획 → 노선 → 노선역 → 역 그룹 → 시설 →
+ * - schemaTrace: 한 개체(계획·노선·정거장·역 그룹·시설)에서 출발해 계획 → 노선 → 정거장 → 역 그룹 → 시설 →
  *   지도 선형(OSM way·계획 선형) → OSM relation 까지 실제 데이터 관계를 그래프(노드·간선)로 돌려준다.
  *   OSM 좌표는 돌려주지 않는다(개수·길이·태그 이름만, C-6).
  * - schemaCases: 다양한 경우의 예시 개체를 DB 에서 골라 준다.
@@ -68,7 +68,7 @@ export const TABLE_LABELS: Record<string, string> = {
   event_area: '연표 이벤트 권역',
   event_target: '연표 이벤트 대상',
   external_ref: '외부 코드',
-  facility_line: '시설 노선(담당·붙은 선로·노선 위 정거장)',
+  facility_line: '시설 노선(담당·붙은 선로)',
   facility_osm_map: '시설 OSM 선로 대응',
   id_redirect: 'id 바뀜(옛 id → 새 id)',
   line_operator: '노선 운영기관',
@@ -115,7 +115,7 @@ export const TABLE_LABELS: Record<string, string> = {
   v_line_area: '노선 권역',
   v_line_branch: '노선 본선·지선',
   v_line_plan_shape: '노선 계획 선형',
-  v_line_station_operator: '노선역 운영기관',
+  v_line_station_operator: '정거장 운영기관',
   v_plan_area: '계획 권역',
   v_plan_shape: '계획 지도 선형',
   v_plan_stage: '계획 현재 단계',
@@ -302,7 +302,7 @@ export interface SchemaTrace {
 export const TRACE_ROOT_TYPES = ['plan', 'line', 'line_station', 'station', 'facility'] as const;
 export type TraceRootType = (typeof TRACE_ROOT_TYPES)[number];
 
-/** 노선 하나에서 보여 줄 노선역 수(앞·뒤 절반씩) */
+/** 노선 하나에서 보여 줄 정거장 수(앞·뒤 절반씩) */
 const LS_SAMPLE = 8;
 const MAX_LINES = 12;
 
@@ -373,7 +373,7 @@ export async function schemaTrace(db: Queryable, type: TraceRootType, id: string
       table: 'line_station',
     });
 
-  /** 노선 아래: 노선역(표본)·역 그룹·시설·본선·지도 선형·OSM relation */
+  /** 노선 아래: 정거장(표본)·역 그룹·시설·본선·지도 선형·OSM relation */
   const expandLine = async (lineId: string, depth: number, sample = LS_SAMPLE) => {
     const lk = await lineNode(lineId);
     if (!lk) return;
@@ -392,10 +392,10 @@ export async function schemaTrace(db: Queryable, type: TraceRootType, id: string
     );
     const rows = ls.rows;
     const pick = depth > 0 || rows.length <= sample ? rows : [...rows.slice(0, sample / 2), ...rows.slice(-sample / 2)];
-    if (pick.length < rows.length) b.truncated.push(`${lineId}: 노선역 ${rows.length}개 중 앞뒤 ${pick.length}개`);
+    if (pick.length < rows.length) b.truncated.push(`${lineId}: 정거장 ${rows.length}개 중 앞뒤 ${pick.length}개`);
     for (const r of depth > 0 ? [] : pick) {
       const k = lsNode(r);
-      b.edge(lk, k, '노선역', 'line_station.line_id');
+      b.edge(lk, k, '정거장', 'line_station.line_id');
       const sk = await stationNode(r.station_id);
       if (sk) b.edge(k, sk, '역 그룹', 'line_station.station_id');
     }
@@ -405,11 +405,11 @@ export async function schemaTrace(db: Queryable, type: TraceRootType, id: string
         layer: 'line_station',
         entity_type: null,
         id: lineId,
-        label: `노선역 ${rows.length}개`,
+        label: `정거장 ${rows.length}개`,
         sub: '펼치려면 이 노선에서 시작',
         table: 'line_station',
       });
-      b.edge(lk, ck, '노선역', 'line_station.line_id');
+      b.edge(lk, ck, '정거장', 'line_station.line_id');
     }
     // 본선(v_line_branch — 고시 노선번호 앞 세 자리, 없으면 수동 line.branch_of_id)·합칠 노선
     const rel = await one<{ parent_line_id: string | null; branch_of_line_id: string | null; basis: string | null }>(
@@ -636,7 +636,7 @@ export async function schemaTrace(db: Queryable, type: TraceRootType, id: string
         const k = lsNode(r);
         b.edge(k, sk, '역 그룹', 'line_station.station_id');
         await expandLine(r.line_id, 1);
-        b.edge(`line:${r.line_id}`, k, '노선역', 'line_station.line_id');
+        b.edge(`line:${r.line_id}`, k, '정거장', 'line_station.line_id');
         await plansOfLine(r.line_id);
       }
       const pst = await db.query<{ plan_id: string; role: string }>(
@@ -730,8 +730,8 @@ const CASES: { key: string; label: string; desc: string; type: TraceRootType; sq
   },
   {
     key: 'transfer',
-    label: '역 그룹: 환승(노선역 여럿)',
-    desc: '한 역 그룹에 노선역이 가장 많은 경우',
+    label: '역 그룹: 환승(정거장 여럿)',
+    desc: '한 역 그룹에 정거장이 가장 많은 경우',
     type: 'station',
     sql: `SELECT s.id, s.name_ko FROM station s JOIN line_station ls ON ls.station_id = s.id AND ls.deleted_at IS NULL WHERE s.deleted_at IS NULL GROUP BY s.id ORDER BY count(*) DESC, s.id LIMIT 1`,
   },
@@ -752,7 +752,7 @@ const CASES: { key: string; label: string; desc: string; type: TraceRootType; sq
   {
     key: 'old-line',
     label: '노선: 옛 노선(폐선)',
-    desc: '폐역 노선역을 가진 폐선 노선(중앙선(구) 등)',
+    desc: '폐역 정거장을 가진 폐선 노선(중앙선(구) 등)',
     type: 'line',
     sql: `SELECT l.id, l.name_ko FROM line l WHERE l.deleted_at IS NULL AND l.status = 'closed' ORDER BY (SELECT count(*) FROM line_station x WHERE x.line_id = l.id AND x.deleted_at IS NULL) DESC, l.id LIMIT 1`,
   },
@@ -772,14 +772,14 @@ const CASES: { key: string; label: string; desc: string; type: TraceRootType; sq
   },
   {
     key: 'signal-box',
-    label: '시설: 신호장',
-    desc: '노선 위 정거장 신호장(facility_line role located — 앞 노선역·km, 정거장 순서 v_line_stop)',
-    type: 'facility',
-    sql: `SELECT f.id, f.name_ko FROM facility f WHERE f.deleted_at IS NULL AND f.kind = 'signal_station' AND EXISTS (SELECT 1 FROM facility_line x WHERE x.facility_id = f.id AND x.role = 'located') ORDER BY f.id LIMIT 1`,
+    label: '정거장: 신호장',
+    desc: '신호장 정거장(역 그룹 종류 운전 취급, 정거장 코레일 등급 신호장 — 0044)',
+    type: 'station',
+    sql: `SELECT s.id, s.name_ko FROM station s WHERE s.deleted_at IS NULL AND s.kind = 'operational' AND EXISTS (SELECT 1 FROM line_station x WHERE x.station_id = s.id AND x.deleted_at IS NULL AND x.korail_class = 'signal_station') ORDER BY s.id LIMIT 1`,
   },
   {
     key: 'construction-station',
-    label: '노선역: 공사 중 정거장',
+    label: '정거장: 공사 중 정거장',
     desc: '공사 중 노선의 정거장(가칭) — 계획·노선·역 그룹이 함께',
     type: 'line_station',
     sql: `SELECT ls.id, s.name_ko FROM line_station ls JOIN station s ON s.id = ls.station_id JOIN plan_station ps ON ps.station_id = s.id WHERE ls.deleted_at IS NULL AND ls.status = 'under_construction' ORDER BY ls.id LIMIT 1`,

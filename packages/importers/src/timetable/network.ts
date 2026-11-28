@@ -1,5 +1,5 @@
 /**
- * 시간표 수집기가 쓰는 망 정보(역 이름·별칭·상태, 노선역, 운행 계통의 노선·정차 패턴·권역, 외부 코드).
+ * 시간표 수집기가 쓰는 망 정보(역 이름·별칭·상태, 정거장, 운행 계통의 노선·정차 패턴·권역, 외부 코드).
  * DB 에서 읽거나(loadNetworkContext) 이관 도구처럼 다른 원천에서 같은 모양으로 만든다.
  */
 import type { Queryable } from '@k-raildex/domain';
@@ -19,7 +19,7 @@ export interface NetLineStation {
   station_id: string;
   seq: number;
   station_code: string | null;
-  /** 노선 역할(기지선·연결선·삼각선이면 값) — 시간표 노선역 해석에서 후보가 여럿이면 뺀다 */
+  /** 노선 역할(기지선·연결선·삼각선이면 값) — 시간표 정거장 해석에서 후보가 여럿이면 뺀다 */
   line_role?: string | null;
   /** 노선 상태 — 분기역 시간표 행 나누기에서 운영·휴업 노선만 길로 쓴다 */
   line_status?: string | null;
@@ -30,7 +30,7 @@ export interface NetService {
   line_ids: string[];
   /** 정차 패턴별 역 id 순서 */
   stop_patterns: string[][];
-  /** 정차 패턴별 노선역 id 순서(stop_patterns 와 같은 모양) — 분기역 시간표 나누기(Q148) */
+  /** 정차 패턴별 정거장 id 순서(stop_patterns 와 같은 모양) — 분기역 시간표 나누기(Q148) */
   stop_pattern_ls?: string[][];
   areas: string[];
 }
@@ -122,7 +122,7 @@ export async function loadNetworkContext(db: Queryable): Promise<NetworkContext>
   return { stations, lineStations: ls.rows, services, tagoToStation, rafisRefs };
 }
 
-/** 세트의 노선역: 운행 계통 노선 ∩ 역의 노선역이 하나일 때만(Q72 A) */
+/** 세트의 정거장: 운행 계통 노선 ∩ 역의 정거장이 하나일 때만(Q72 A) */
 export function lineStationResolver(
   lineStations: Iterable<Pick<NetLineStation, 'id' | 'line_id' | 'station_id' | 'line_role'>>,
   serviceLines: (serviceId: string) => string[] | undefined,
@@ -138,21 +138,21 @@ export function lineStationResolver(
     const lines = new Set(serviceLines(serviceId) ?? []);
     const cand = (byStation.get(stationId) ?? []).filter((x) => lines.has(x.line_id));
     if (cand.length === 1) return cand[0]!.id;
-    // 후보가 여럿이면 기지선·연결선·삼각선(line_role) 노선역을 뺀다(예: 병점 = 경부선·병점기지선 → 경부선, 2026-11-27)
+    // 후보가 여럿이면 기지선·연결선·삼각선(line_role) 정거장을 뺀다(예: 병점 = 경부선·병점기지선 → 경부선, 2026-11-27)
     const main = cand.filter((x) => !x.line_role);
     return main.length === 1 ? main[0]!.id : null;
   };
 }
 
 /**
- * 분기역 시간표를 노선역별로 나눈다(round-07 Q148, 2026-11-27 사용자 결정 "시간표 데이터는 노선역에 붙이고 UI 는 탭으로 구분").
- * 세트의 노선역을 정하지 못했고(운행 계통 노선에 그 역의 노선역이 둘 이상) 행마다 행선지 역(id, 없으면 이름)이 있으면, 행마다
+ * 분기역 시간표를 정거장별로 나눈다(round-07 Q148, 2026-11-27 사용자 결정 "시간표 데이터는 정거장에 붙이고 UI 는 탭으로 구분").
+ * 세트의 정거장을 정하지 못했고(운행 계통 노선에 그 역의 정거장이 둘 이상) 행마다 행선지 역(id, 없으면 이름)이 있으면, 행마다
  * "이 역을 떠나 이 역을 다시 지나지 않고 행선지까지 가는 가장 짧은 길(구간 수)의 첫 구간이 어느 노선인가"로 고른다
  * (예: 1호선 계통 구로 — 인천행 = 경인선, 천안·소요산행 = 경부선; 청량리 — 서울역 쪽 = 1호선, 소요산 쪽 = 경원선).
  * 길은 먼저 그 운행 계통의 정차 패턴(이웃 정차역)으로 찾고(계통이 쓰지 않는 선로로 질러가지 않게), 없으면 운영·휴업 노선망
- * (이웃 노선역, seq 순)으로 찾는다. 그래도 못 정한 행은 정차 패턴이 그 역에서 쓰는 노선역이 하나뿐이면 그것으로 둔다.
- * 행이 모두 한 노선역이면 세트에 그 노선역을 적고, 여럿이면 노선역마다 세트를 나눈다(id = 원래 id + "--" + 노선 id 꼬리).
- * 정하지 못한 행(행선지 없음·길이 같음)은 노선역 없는 원래 id 세트에 남는다(품질 V-S14).
+ * (이웃 정거장, seq 순)으로 찾는다. 그래도 못 정한 행은 정차 패턴이 그 역에서 쓰는 정거장이 하나뿐이면 그것으로 둔다.
+ * 행이 모두 한 정거장이면 세트에 그 정거장을 적고, 여럿이면 정거장마다 세트를 나눈다(id = 원래 id + "--" + 노선 id 꼬리).
+ * 정하지 못한 행(행선지 없음·길이 같음)은 정거장 없는 원래 id 세트에 남는다(품질 V-S14).
  */
 export interface SplittableSet {
   id: string;
@@ -274,7 +274,7 @@ export function lineStationSplitter(
       n,
       lines: cand.filter((c) => (byStation.get(n) ?? []).some((x) => x.line_id === c.line_id)),
     }));
-    // 정차 패턴이 이 역에서 쓰는 후보 노선역(못 정한 행의 마지막 기준)
+    // 정차 패턴이 이 역에서 쓰는 후보 정거장(못 정한 행의 마지막 기준)
     const patternLs = new Set<string>();
     for (const [i, p] of (svc?.stop_patterns ?? []).entries())
       p.forEach((st, j) => {

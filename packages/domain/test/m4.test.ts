@@ -350,7 +350,7 @@ describe('품질·지도(픽스처)', () => {
     ]);
   });
 
-  it('고르기 목록(지도 편집·노선 편집): 개체별 걸린 규칙, 노선역 규칙은 그 역·노선에', async () => {
+  it('고르기 목록(지도 편집·노선 편집): 개체별 걸린 규칙, 정거장 규칙은 그 역·노선에', async () => {
     const lines = await reviewList(db, 'line');
     const s10 = await qualityItems(db, 'V-S10', { limit: 50, offset: 0 });
     expect(

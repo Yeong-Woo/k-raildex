@@ -1,6 +1,6 @@
 /**
  * 데이터 스키마(2026-11-28 사용자 지시): ERD(표·열·관계)와 실제 데이터 관계 예시.
- * - 관계도: 핵심 흐름(계획 → 노선 → 노선역 → 역 그룹 → 시설 → 지도 선형 → OSM relation) 표 관계도와, 고른 표 중심의 이웃 관계도
+ * - 관계도: 핵심 흐름(계획 → 노선 → 정거장 → 역 그룹 → 시설 → 지도 선형 → OSM relation) 표 관계도와, 고른 표 중심의 이웃 관계도
  * - 관계 예시: DB 에서 고른 여러 경우의 개체를 출발점으로 실제 행 사이 관계를 그린다(GET /v1/admin/schema/trace)
  */
 import { useQuery } from '@tanstack/react-query';
@@ -70,7 +70,7 @@ export interface SchemaSearch {
   id?: string;
 }
 
-/** 핵심 흐름 관계도(사용자 요청: 계획·노선·노선역·역 그룹·시설·지도 선형·OSM relation) */
+/** 핵심 흐름 관계도(사용자 요청: 계획·노선·정거장·역 그룹·시설·지도 선형·OSM relation) */
 const CORE_LAYERS: string[][] = [
   ['plan', 'plan_geometry'],
   ['plan_line', 'plan_station'],
@@ -223,7 +223,7 @@ function ErdTab({
           <div className="px-1 pb-2 text-sm text-fg-muted">
             {sel
               ? `왼쪽: ${sel.name} 를 가리키는 표 · 가운데: ${sel.name} · 오른쪽: ${sel.name} 가 가리키는 표. 점선은 외래 키 없는 논리 관계. 카드를 누르면 그 표로 옮긴다.`
-              : '핵심 흐름: 계획(plan) → 계획 노선·역 → 노선 → 노선역·시설 노선 → 역 그룹·시설 → OSM 대응(line_osm_map) → osm relation·way. 카드를 누르면 그 표 중심으로 본다.'}
+              : '핵심 흐름: 계획(plan) → 계획 노선·역 → 노선 → 정거장·시설 노선 → 역 그룹·시설 → OSM 대응(line_osm_map) → osm relation·way. 카드를 누르면 그 표 중심으로 본다.'}
           </div>
           <ErdCanvas
             layers={(focusLayers ?? CORE_LAYERS).map((l) => l.filter((n) => byName.has(n)))}
@@ -489,7 +489,7 @@ function TableDetail({
 const LAYERS: { key: string; label: string }[] = [
   { key: 'plan', label: '계획' },
   { key: 'line', label: '노선' },
-  { key: 'line_station', label: '노선역' },
+  { key: 'line_station', label: '정거장' },
   { key: 'station', label: '역 그룹' },
   { key: 'facility', label: '시설' },
   { key: 'map', label: '지도 선형' },
@@ -498,7 +498,7 @@ const LAYERS: { key: string; label: string }[] = [
 const ROOT_TYPES = [
   { value: 'plan', label: '계획' },
   { value: 'line', label: '노선' },
-  { value: 'line_station', label: '노선역' },
+  { value: 'line_station', label: '정거장' },
   { value: 'station', label: '역 그룹' },
   { value: 'facility', label: '시설' },
 ];

@@ -1,4 +1,4 @@
-/** 역 그룹 상세 [노선별] 탭(FR-ADM-051): 이 역 그룹에 속한 노선역 카드(운영기관·코레일 정거장 등급·관리역 포함) + 계산된 상태(읽기 전용) */
+/** 역 그룹 상세 [노선별] 탭(FR-ADM-051): 이 역 그룹에 속한 정거장 카드(운영기관·코레일 정거장 등급·관리역 포함) + 계산된 상태(읽기 전용) */
 import { useQueries, useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { codeLabel, formatFuzzy, isCode, type FuzzyDate } from '@k-raildex/contracts';
@@ -31,7 +31,7 @@ export function StationLineStations({ stationId, derived }: { stationId: string;
   return (
     <div className="flex flex-col gap-3">
       <Card>
-        <CardHeader title="역 그룹 상태(노선역에서 계산 — 읽기 전용)" />
+        <CardHeader title="역 그룹 상태(정거장에서 계산 — 읽기 전용)" />
         <dl className="grid grid-cols-2 gap-x-6 gap-y-1 p-4 text-sm sm:grid-cols-4" data-testid="station-derived">
           <dt className="text-fg-muted">상태</dt>
           <dd>{statusText(derived.status)}</dd>
@@ -50,7 +50,7 @@ export function StationLineStations({ stationId, derived }: { stationId: string;
       ) : !list.data?.items.length ? (
         <Card>
           <Empty>
-            노선역이 없는 역 그룹입니다. 상태·개통일은 [정보] 탭의 단독 상태(own_status·own_opened·own_closed) 칸에
+            정거장이 없는 역 그룹입니다. 상태·개통일은 [정보] 탭의 단독 상태(own_status·own_opened·own_closed) 칸에
             입력하세요.
           </Empty>
         </Card>
@@ -101,7 +101,7 @@ function LineStationCard({ data, derived }: { data: Obj; derived: Obj }) {
           params={{ type: 'line-station', id: String(data.id) }}
           search={{}}
           className="ml-auto text-fg-muted"
-          title="노선역 편집"
+          title="정거장 편집"
         >
           <ExternalLink className="size-3.5" />
         </Link>
@@ -122,7 +122,7 @@ function LineStationCard({ data, derived }: { data: Obj; derived: Obj }) {
             </dd>
           </>
         ) : null}
-        <dt className="text-fg-muted">노선역 이름</dt>
+        <dt className="text-fg-muted">정거장 이름</dt>
         <dd>{data.name_ko ? String(data.name_ko) : <span className="text-fg-muted">역 이름과 같음</span>}</dd>
         <dt className="text-fg-muted">순서</dt>
         <dd>

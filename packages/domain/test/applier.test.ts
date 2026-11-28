@@ -188,7 +188,7 @@ describe('삭제·복구·영구 삭제', () => {
     const e = await expectDomainError(apply([{ op: 'delete', entity_type: 'line', id: 'line-fx-one' }]), 'referenced');
     const tables = e.details.references?.map((r) => r.table) ?? [];
     expect(tables).toEqual(expect.arrayContaining(['service_line', 'plan_line', 'stop_pattern_stop']));
-    expect(tables).not.toContain('line_station'); // 자기 노선역은 함께 휴지통으로 가므로 참조가 아니다
+    expect(tables).not.toContain('line_station'); // 자기 정거장은 함께 휴지통으로 가므로 참조가 아니다
   });
 
   it('휴지통 → 복구 → 다시 삭제 → 영구 삭제, id 는 영구 예약', async () => {
@@ -218,7 +218,7 @@ describe('삭제·복구·영구 삭제', () => {
     expect(tomb.rows[0].d).toBe(true);
   });
 
-  it('노선을 지우면 노선역도 휴지통으로, 복구하면 함께 돌아온다(시험용 노선)', async () => {
+  it('노선을 지우면 정거장도 휴지통으로, 복구하면 함께 돌아온다(시험용 노선)', async () => {
     await apply([
       {
         op: 'create',
@@ -257,7 +257,7 @@ describe('ID 변경·역 병합', () => {
     expect(src.some((r) => r.owner_id === 'stn-fx-e2')).toBe(true);
   });
 
-  it('노선역 운영기관(v_line_station_operator): 노선역 값 > 노선 운영기관 하나, 통합 기관은 승계, 둘 이상이면 미정', async () => {
+  it('정거장 운영기관(v_line_station_operator): 정거장 값 > 노선 운영기관 하나, 통합 기관은 승계, 둘 이상이면 미정', async () => {
     const SRCS = [{ source_id: 'src-fixture-notice' }];
     const op = (id: string, data: Record<string, unknown> = {}) => ({
       op: 'create' as const,
@@ -322,20 +322,20 @@ describe('ID 변경·역 병합', () => {
     ]);
   });
 
-  it('코레일 정거장 등급·관리역(V-H18): 코레일 노선역만, 관리역 노선역만 소속 노선역을 갖는다', async () => {
+  it('코레일 정거장 등급·관리역(V-H18): 코레일 정거장만, 관리역 정거장만 소속 정거장을 갖는다', async () => {
     const upd = (id: string, data: Record<string, unknown>) =>
       apply([{ op: 'update', entity_type: 'line_station', id, data }]);
     await upd('ls-kc-k--fx-a', { korail_class: 'management', korail_mgmt_grade: 2 });
     await upd('ls-kc-k--fx-b', { korail_class: 'unstaffed_halt', managed_by_id: 'ls-kc-k--fx-a' });
     expect(await readEntity(db, 'line_station', 'ls-kc-k--fx-b')).toMatchObject({ managed_by_id: 'ls-kc-k--fx-a' });
-    // 운영기관이 코레일이 아니거나 미정인 노선역에는 못 넣는다
+    // 운영기관이 코레일이 아니거나 미정인 정거장에는 못 넣는다
     await expectDomainError(upd('ls-fx-one--fx-a', { korail_class: 'ordinary' }), 'validation', 'V-H18');
     await expectDomainError(upd('ls-kc-split--fx-a', { korail_class: 'ordinary' }), 'validation', 'V-H18');
-    // 통합 기관(SR 같은)을 승계한 코레일 노선역은 된다
+    // 통합 기관(SR 같은)을 승계한 코레일 정거장은 된다
     await upd('ls-kc-merged--fx-a', { korail_class: 'ordinary', managed_by_id: 'ls-kc-k--fx-a' });
-    // 관리역이 아닌 노선역을 관리역으로
+    // 관리역이 아닌 정거장을 관리역으로
     await expectDomainError(upd('ls-kc-merged--fx-a', { managed_by_id: 'ls-kc-k--fx-b' }), 'validation', 'V-H18');
-    // 소속 노선역이 있는 관리역의 등급을 내리면 거부
+    // 소속 정거장이 있는 관리역의 등급을 내리면 거부
     await expectDomainError(
       upd('ls-kc-k--fx-a', { korail_class: 'ordinary', korail_mgmt_grade: null }),
       'validation',
@@ -425,7 +425,7 @@ describe('ID 변경·역 병합', () => {
         },
       },
     ]);
-    // V-H14: 병합 예정 역의 노선역을 개통으로 바꾸면 거부
+    // V-H14: 병합 예정 역의 정거장을 개통으로 바꾸면 거부
     await expectDomainError(
       apply([{ op: 'update', entity_type: 'line_station', id: 'ls-fx-two--fx-d-new', data: { status: 'operating' } }]),
       'validation',

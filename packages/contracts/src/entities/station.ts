@@ -39,7 +39,7 @@ const shape = {
   history_text: optText(),
   intro_text: optText(),
   merge_into_id: nullish(idSchema('station')),
-  /** 노선역이 없는 역에서만(V-H13) */
+  /** 정거장이 없는 역에서만(V-H13) */
   own_status: nullish(z.enum(codes.status.values)),
   own_opened: optFuzzy(),
   own_closed: optFuzzy(),
