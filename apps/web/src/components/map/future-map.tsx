@@ -12,6 +12,8 @@ import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { codeLabel, isCode, type PublicTarget } from '@k-raildex/contracts';
 import {
+  CONSTRUCTION_LINE,
+  NO_COLOR_LINE,
   DISCLAIMER,
   FREIGHT_LINE,
   GEOMETRY_QUALITY_LABELS,
@@ -1045,7 +1047,8 @@ function Legend({ odbl }: { odbl: boolean }) {
     { w: 4, dash: '8 5', label: '기본계획~실시설계(굵은 점선)', color: STAGE_COLORS.basic_plan! },
     { w: 2, dash: '3 3', label: '그 전 단계(가는 점선)', color: STAGE_COLORS.feasibility! },
     { w: 2, dash: '3 3', label: '선형 미확정(개략)', color: '#7A8798', op: 0.75 },
-    { w: 2.5, label: '운영 중(수도권 전철 공식 색, 그 밖 상태색)', color: STATUS_COLORS.operating! },
+    { w: 2.5, label: '운영 중(공식 노선색, 없으면 검정에 가까운 색)', color: NO_COLOR_LINE },
+    { w: 3, dash: '8 5', label: CONSTRUCTION_LINE.label, color: CONSTRUCTION_LINE.color },
     { w: FREIGHT_LINE.width, label: FREIGHT_LINE.label, color: FREIGHT_LINE.color },
   ];
   return (

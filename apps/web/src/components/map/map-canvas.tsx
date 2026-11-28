@@ -34,6 +34,8 @@ import {
   LINE_STYLES,
   STAGE_COLORS,
   STAGE_FALLBACK_COLOR,
+  CONSTRUCTION_LINE,
+  NO_COLOR_LINE,
   STATUS_COLORS,
 } from '@k-raildex/map';
 import type { MapHash } from '@/lib/map-years';
@@ -69,14 +71,16 @@ function matchPairs(table: Readonly<Record<string, string>>): unknown[] {
   return out;
 }
 
-/** color → (계획이면) 단계 대표색 → 상태 대표색 */
+/** 공사 중(상태 under_construction — 현재 지도의 공사 중 구간·공사 중 노선) → 진한 회색, color → (계획이면) 단계 대표색 → 검정에 가까운 색(2026-11-28) */
 const LINE_COLOR = [
   'case',
+  ['==', ['get', 'status'], 'under_construction'],
+  CONSTRUCTION_LINE.color,
   ['!=', ['coalesce', ['get', 'color'], ''], ''],
   ['get', 'color'],
   ['!=', ['coalesce', ['get', 'stage'], ''], ''],
   ['match', ['get', 'stage'], ...matchPairs(STAGE_COLORS), STAGE_FALLBACK_COLOR],
-  ['match', ['coalesce', ['get', 'status'], ''], ...matchPairs(STATUS_COLORS), STAGE_FALLBACK_COLOR],
+  NO_COLOR_LINE,
 ];
 
 const isSchematic = ['==', ['get', 'quality'], 'schematic'];

@@ -10,7 +10,13 @@ import { Link } from '@tanstack/react-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Marker, type MapLayerMouseEvent } from 'maplibre-gl';
 import { codeLabel, isCode } from '@k-raildex/contracts';
-import { depotLayers, STAGE_FALLBACK_COLOR, type LayerSpec } from '@k-raildex/map';
+import {
+  CONSTRUCTION_LINE,
+  depotLayers,
+  isConstructionExpression,
+  NO_COLOR_LINE,
+  type LayerSpec,
+} from '@k-raildex/map';
 import { Badge, Button, Card, cn, Empty, Input, Label } from '@k-raildex/ui';
 import { AlertTriangle, ArrowDown, ArrowUp, MapPin, RotateCcw, Trash2 } from 'lucide-react';
 import { api, apiOptional, errorText, type EntityResponse } from '../lib/api';
@@ -23,27 +29,28 @@ import { useFeaturePopup } from './FeaturePopup';
 import { useMapPick, type PickKind } from './pick';
 import { ReviewIssues, ReviewPicker, ReviewTag, useReviewList } from './ReviewPicker';
 
-const DEFAULT_COLOR = '#2563EB';
+/** 노선색이 없을 때(선·순서 표식·점선) — 지도와 같은 검정에 가까운 색 */
+const DEFAULT_COLOR = NO_COLOR_LINE;
 
 const BG_LAYERS: LayerSpec[] = [
   {
     id: 'lm-line',
     type: 'line',
     source: 'lm-lines',
-    filter: ['!=', ['get', 'is_construction'], true],
+    filter: ['!', isConstructionExpression()],
     layout: { 'line-cap': 'round', 'line-join': 'round' },
-    paint: { 'line-color': ['coalesce', ['get', 'color'], STAGE_FALLBACK_COLOR], 'line-width': 2, 'line-opacity': 0.3 },
+    paint: { 'line-color': ['coalesce', ['get', 'color'], NO_COLOR_LINE], 'line-width': 2, 'line-opacity': 0.3 },
   },
   {
     id: 'lm-line-construction',
     type: 'line',
     source: 'lm-lines',
-    filter: ['==', ['get', 'is_construction'], true],
+    filter: isConstructionExpression(),
     paint: {
-      'line-color': ['coalesce', ['get', 'color'], STAGE_FALLBACK_COLOR],
+      'line-color': CONSTRUCTION_LINE.color,
       'line-width': 2,
-      'line-dasharray': [2, 1.2],
-      'line-opacity': 0.3,
+      'line-dasharray': [...CONSTRUCTION_LINE.dasharray],
+      'line-opacity': 0.4,
     },
   },
 ];
@@ -52,16 +59,20 @@ const SEL_LAYERS: LayerSpec[] = [
     id: 'lm-sel-line',
     type: 'line',
     source: 'lm-sel',
-    filter: ['!=', ['get', 'is_construction'], true],
+    filter: ['!', isConstructionExpression()],
     layout: { 'line-cap': 'round', 'line-join': 'round' },
-    paint: { 'line-color': ['coalesce', ['get', 'color'], DEFAULT_COLOR], 'line-width': 6 },
+    paint: { 'line-color': ['coalesce', ['get', 'color'], NO_COLOR_LINE], 'line-width': 6 },
   },
   {
     id: 'lm-sel-line-construction',
     type: 'line',
     source: 'lm-sel',
-    filter: ['==', ['get', 'is_construction'], true],
-    paint: { 'line-color': ['coalesce', ['get', 'color'], DEFAULT_COLOR], 'line-width': 6, 'line-dasharray': [2, 1.2] },
+    filter: isConstructionExpression(),
+    paint: {
+      'line-color': CONSTRUCTION_LINE.color,
+      'line-width': 6,
+      'line-dasharray': [...CONSTRUCTION_LINE.dasharray],
+    },
   },
 ];
 /** 노선역 순서대로 이은 선(지선별) — 순서 확인용 */

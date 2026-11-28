@@ -8,7 +8,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { QueryClientProvider, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { Popup, type Map as MlMap, type MapLayerMouseEvent } from 'maplibre-gl';
 import { codeLabel, formatFuzzy, isCode, type FuzzyDate } from '@k-raildex/contracts';
-import { STAGE_FALLBACK_COLOR } from '@k-raildex/map';
+import { NO_COLOR_LINE, STAGE_FALLBACK_COLOR } from '@k-raildex/map';
 import { api } from '../lib/api';
 import { router } from '../router';
 import { keyOf, pickTargets, targetOf, type PopupTarget } from './targets';
@@ -182,9 +182,13 @@ function PlanBody({ id, props }: { id: string; props: Record<string, unknown> })
 }
 
 const KIND_LABEL: Record<PopupTarget['kind'], string> = { station: '역 그룹', line: '노선', plan: '계획' };
-/** 지도와 같은 색: 노선색 → 없으면 지도 기본색 */
+/** 지도와 같은 색: 노선색 → 없으면 지도 기본색(현재 노선 검정에 가까운 색, 계획 단계 기본색) */
 const swatchOf = (t: PopupTarget) =>
-  typeof t.props.color === 'string' && t.props.color ? t.props.color : STAGE_FALLBACK_COLOR;
+  typeof t.props.color === 'string' && t.props.color
+    ? t.props.color
+    : t.kind === 'line'
+      ? NO_COLOR_LINE
+      : STAGE_FALLBACK_COLOR;
 
 /** 겹친 대상 고르기 */
 function Chooser({

@@ -36,6 +36,17 @@ export const STAGE_COLORS: Readonly<Record<string, string>> = {
 };
 export const STAGE_FALLBACK_COLOR = '#7A8798';
 
+/** 공식 노선색이 없는 노선(현재 지도) — 검정에 가까운 색(2026-11-28 사용자 요청) */
+export const NO_COLOR_LINE = '#222222';
+/** 공사 중 노선(현재 지도) — 노선색과 관계없이 진한 회색 점선(2026-11-28 사용자 요청) */
+export const CONSTRUCTION_LINE = { color: '#4B5058', dasharray: [2, 1.2], label: '공사 중(진한 회색 점선)' } as const;
+/** 공사 중 선: 공사 중 way(is_construction) 또는 노선 상태 공사 중 */
+export const isConstructionExpression = (): unknown[] => [
+  'any',
+  ['==', ['get', 'is_construction'], true],
+  ['==', ['get', 'status'], 'under_construction'],
+];
+
 /** 12단계 진행 띠 순서(docs/05 FR-ADM-055) */
 export const STAGE_ORDER = [
   'concept',
@@ -184,22 +195,26 @@ export function futureStationLayers(source: string): LayerSpec[] {
 
 /** 현재 노선 레이어(공사 중은 점선) */
 export function currentLineLayers(source: string): LayerSpec[] {
-  const color = ['coalesce', ['get', 'color'], STAGE_FALLBACK_COLOR];
   return [
     {
       id: 'current-line',
       type: 'line',
       source,
-      filter: ['!=', ['get', 'is_construction'], true],
+      filter: ['!', isConstructionExpression()],
       layout: { 'line-cap': 'round', 'line-join': 'round' },
-      paint: { 'line-color': color, 'line-width': 3, 'line-opacity': 0.85 },
+      paint: { 'line-color': ['coalesce', ['get', 'color'], NO_COLOR_LINE], 'line-width': 3, 'line-opacity': 0.85 },
     },
     {
       id: 'current-line-construction',
       type: 'line',
       source,
-      filter: ['==', ['get', 'is_construction'], true],
-      paint: { 'line-color': color, 'line-width': 3, 'line-dasharray': [2, 1.2], 'line-opacity': 0.85 },
+      filter: isConstructionExpression(),
+      paint: {
+        'line-color': CONSTRUCTION_LINE.color,
+        'line-width': 3,
+        'line-dasharray': [...CONSTRUCTION_LINE.dasharray],
+        'line-opacity': 0.9,
+      },
     },
   ];
 }

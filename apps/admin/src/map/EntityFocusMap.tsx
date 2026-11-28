@@ -9,7 +9,7 @@ import { Link, useNavigate } from '@tanstack/react-router';
 import { useEffect, useMemo, useRef } from 'react';
 import { Popup, type MapLayerMouseEvent, type Map as MlMap } from 'maplibre-gl';
 import type { EntityType } from '@k-raildex/contracts';
-import type { LayerSpec } from '@k-raildex/map';
+import { CONSTRUCTION_LINE, isConstructionExpression, NO_COLOR_LINE, type LayerSpec } from '@k-raildex/map';
 import { Badge, Card, Empty } from '@k-raildex/ui';
 import { api, apiOptional } from '../lib/api';
 import { toSlug } from '../lib/entity-types';
@@ -33,7 +33,17 @@ interface MapFocus {
 const HILITE = '#F59E0B';
 const BASE = '#9AA3AE';
 const TRACK = '#7C3AED';
-const lineColor = ['coalesce', ['get', 'color'], '#4B5563'];
+/** 공식 노선색 → 없으면 검정에 가까운 색, 공사 중은 진한 회색(점선은 아래 공사 중 층) */
+const lineColor = [
+  'case',
+  isConstructionExpression(),
+  CONSTRUCTION_LINE.color,
+  ['coalesce', ['get', 'color'], NO_COLOR_LINE],
+];
+const notCons = ['!', isConstructionExpression()];
+const isCons = isConstructionExpression();
+/** 강조 필터 + 공사 중 여부(line-dasharray 는 데이터 식을 못 쓰므로 층을 나눈다) */
+const withCons = (cons: boolean, f: unknown[]) => ['all', cons ? isCons : notCons, f];
 const inList = (prop: string, ids: string[]) => ['in', ['get', prop], ['literal', ids]];
 
 // 레이어(아래 → 위). 강조 필터는 데이터가 오면 setFilter 로 바꾼다
@@ -42,8 +52,21 @@ const LINE_LAYERS: LayerSpec[] = [
     id: 'fx-line-base',
     type: 'line',
     source: 'fx-lines',
+    filter: notCons,
     layout: { 'line-cap': 'round', 'line-join': 'round' },
     paint: { 'line-color': BASE, 'line-width': 1.5, 'line-opacity': 0.45 },
+  },
+  {
+    id: 'fx-line-base-cons',
+    type: 'line',
+    source: 'fx-lines',
+    filter: isCons,
+    paint: {
+      'line-color': BASE,
+      'line-width': 1.5,
+      'line-opacity': 0.45,
+      'line-dasharray': [...CONSTRUCTION_LINE.dasharray],
+    },
   },
   {
     id: 'fx-line-context',
@@ -52,6 +75,18 @@ const LINE_LAYERS: LayerSpec[] = [
     filter: inList('line_id', []),
     layout: { 'line-cap': 'round', 'line-join': 'round' },
     paint: { 'line-color': lineColor, 'line-width': 3.5, 'line-opacity': 0.9 },
+  },
+  {
+    id: 'fx-line-context-cons',
+    type: 'line',
+    source: 'fx-lines',
+    filter: inList('line_id', []),
+    paint: {
+      'line-color': lineColor,
+      'line-width': 3.5,
+      'line-opacity': 0.9,
+      'line-dasharray': [...CONSTRUCTION_LINE.dasharray],
+    },
   },
   {
     id: 'fx-line-halo',
@@ -68,6 +103,13 @@ const LINE_LAYERS: LayerSpec[] = [
     filter: inList('line_id', []),
     layout: { 'line-cap': 'round', 'line-join': 'round' },
     paint: { 'line-color': lineColor, 'line-width': 6 },
+  },
+  {
+    id: 'fx-line-primary-cons',
+    type: 'line',
+    source: 'fx-lines',
+    filter: inList('line_id', []),
+    paint: { 'line-color': lineColor, 'line-width': 6, 'line-dasharray': [...CONSTRUCTION_LINE.dasharray] },
   },
 ];
 const TRACK_LAYERS: LayerSpec[] = [
@@ -133,7 +175,15 @@ const FACILITY_LAYERS: LayerSpec[] = [
     },
   },
 ];
-const HOVER_LAYERS = ['fx-station-primary', 'fx-station-context', 'fx-facility', 'fx-line-primary', 'fx-line-context'];
+const HOVER_LAYERS = [
+  'fx-station-primary',
+  'fx-station-context',
+  'fx-facility',
+  'fx-line-primary',
+  'fx-line-primary-cons',
+  'fx-line-context',
+  'fx-line-context-cons',
+];
 
 export function EntityFocusMap({ type, id }: { type: EntityType; id: string }) {
   const navigate = useNavigate();
@@ -171,9 +221,11 @@ export function EntityFocusMap({ type, id }: { type: EntityType; id: string }) {
     const set = (layer: string, filter: unknown[]) => {
       if (map.getLayer(layer)) map.setFilter(layer, filter as never);
     };
-    set('fx-line-context', inList('line_id', f.context.line_ids));
+    set('fx-line-context', withCons(false, inList('line_id', f.context.line_ids)));
+    set('fx-line-context-cons', withCons(true, inList('line_id', f.context.line_ids)));
     set('fx-line-halo', inList('line_id', f.primary.line_ids));
-    set('fx-line-primary', inList('line_id', f.primary.line_ids));
+    set('fx-line-primary', withCons(false, inList('line_id', f.primary.line_ids)));
+    set('fx-line-primary-cons', withCons(true, inList('line_id', f.primary.line_ids)));
     set('fx-station-context', inList('station_id', f.context.station_ids));
     set('fx-station-primary', inList('station_id', f.primary.station_ids));
     set('fx-track-focus', inList('facility_id', [...f.primary.facility_ids, ...f.context.facility_ids]));
