@@ -55,6 +55,10 @@ describe('목록·상세', () => {
         expect.objectContaining({ from_table: 'line_osm_map', to_table: 'osm.relation', kind: 'logical' }),
       ]),
     );
+    const byName = new Map(g.tables.map((x: { name: string; label_ko: string | null }) => [x.name, x.label_ko]));
+    expect(byName.get('station')).toBe('역 그룹');
+    expect(byName.get('plan_line')).toBe('계획 노선');
+    expect(byName.get('osm.relation')).toBe('OSM relation');
     const cases = (await req('GET', '/v1/admin/schema/cases')).json();
     expect(cases.items.length).toBeGreaterThan(5);
     const tr = (await req('GET', '/v1/admin/schema/trace?type=line&id=line-fx-one')).json();

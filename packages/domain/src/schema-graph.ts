@@ -6,6 +6,7 @@
  *   OSM 좌표는 돌려주지 않는다(개수·길이·태그 이름만, C-6).
  * - schemaCases: 다양한 경우의 예시 개체를 DB 에서 골라 준다.
  */
+import { entityUiMeta, type EntityType } from '@k-raildex/contracts';
 import type { QueryResultRow } from 'pg';
 import type { Queryable } from './db';
 import { DomainError } from './errors';
@@ -23,6 +24,8 @@ export interface SchemaTable {
   kind: 'table' | 'view';
   /** 이 표를 원천으로 쓰는 개체 종류(entity_type) */
   entity_type: string | null;
+  /** 한국어 이름(개체 표는 관리 앱 개체 이름, 하위 표·뷰는 TABLE_LABELS) */
+  label_ko: string | null;
   /** 대략적인 행 수(pg_class.reltuples, 뷰는 null) */
   rows: number | null;
   columns: SchemaColumn[];
@@ -40,6 +43,94 @@ export interface SchemaGraph {
   tables: SchemaTable[];
   relations: SchemaRelation[];
 }
+
+/** 하위 표·뷰·osm 의 한국어 이름(개체 표는 entityUiMeta 라벨) */
+export const TABLE_LABELS: Record<string, string> = {
+  'osm.extract': 'OSM 추출 실행',
+  'osm.relation': 'OSM relation',
+  'osm.relation_member': 'OSM relation 구성 way',
+  'osm.way': 'OSM way(선로)',
+  'osm.v_facility_way': '시설 선로(OSM way)',
+  'osm.v_line_geometry': '노선 선형(OSM)',
+  'osm.v_line_way': '노선별 OSM way',
+  api_token: 'API 토큰',
+  app_setting: '앱 설정',
+  app_user: '사용자',
+  change_evidence: '변경 근거',
+  change_op: '변경 연산',
+  changeset: '변경 묶음',
+  data_version: '데이터 버전',
+  document: '문서(원문 파일)',
+  entity: '개체 색인(모든 id)',
+  entity_attachment: '첨부',
+  entity_name: '이름·별칭',
+  entity_table: '개체 종류 ↔ 표',
+  event_area: '연표 이벤트 권역',
+  event_target: '연표 이벤트 대상',
+  external_ref: '외부 코드',
+  facility_line: '시설 노선(담당·붙은 선로)',
+  facility_osm_map: '시설 OSM 선로 대응',
+  id_redirect: 'id 바뀜(옛 id → 새 id)',
+  line_operator: '노선 운영기관',
+  line_osm_map: '노선 OSM 대응',
+  line_region: '노선 시·도',
+  mv_map_line: '지도 노선(물리 뷰)',
+  mv_map_station: '지도 역(물리 뷰)',
+  mv_search: '검색 색인',
+  mv_service_geometry: '운행 계통 선형',
+  mv_service_segment: '운행 계통 구간',
+  plan_geometry: '계획 선형',
+  plan_line: '계획 노선',
+  plan_milestone: '계획 기대 일정',
+  plan_program_figure: '상위 계획 수치',
+  plan_program_notice: '상위 계획 고시',
+  plan_program_point: '상위 계획 요점',
+  plan_ref: '상위 계획 반영',
+  plan_region: '계획 시·도',
+  plan_relation: '계획 사이 관계',
+  plan_stage_event: '계획 단계 이력',
+  plan_station: '계획 역',
+  plan_watch_keyword: '계획 감시 검색어',
+  record_source: '개체 출처 연결',
+  ref_area: '권역 코드',
+  ref_external_system: '외부 코드 체계',
+  ref_region: '시·도 코드',
+  rolling_stock_range_line: '차량번호대 노선',
+  rolling_stock_range_service: '차량번호대 운행 계통',
+  schema_migration: '마이그레이션 기록',
+  service_line: '운행 계통 노선',
+  source_document: '출처 문서',
+  stop_pattern: '정차 패턴',
+  stop_pattern_stop: '정차 패턴 정차역',
+  timetable_entry: '시간표 행',
+  timetable_set: '시간표 묶음',
+  train_number_range_line: '열차번호대 노선',
+  train_number_range_service: '열차번호대 운행 계통',
+  transfer_center_plan: '환승센터 계획',
+  transfer_center_plan_ref: '환승센터 계획 반영',
+  transfer_center_station: '환승센터 역',
+  transfer_center_status_event: '환승센터 상태 이력',
+  v_event_all: '연표(전체)',
+  v_event_derived: '연표(자동)',
+  v_line_area: '노선 권역',
+  v_line_branch: '노선 본선·지선',
+  v_line_plan_shape: '노선 계획 선형',
+  v_line_station_operator: '노선역 운영기관',
+  v_plan_area: '계획 권역',
+  v_plan_shape: '계획 지도 선형',
+  v_plan_stage: '계획 현재 단계',
+  v_plan_target_open: '계획 개통 목표',
+  v_service_area: '운행 계통 권역',
+  v_service_color: '운행 계통 색',
+  v_station_area: '역 그룹 권역',
+  v_station_line: '역 그룹 노선',
+  v_station_line_class: '역 그룹 노선 분류',
+  v_station_review: '역 그룹 검수',
+  v_station_service: '역 그룹 정차 계통',
+  v_station_status: '역 그룹 상태',
+  v_timetable_summary: '시간표 요약',
+  v_unopened_target: '미개통 목표',
+};
 
 const qualified = (schema: string, name: string) => (schema === 'public' ? name : `${schema}.${name}`);
 
@@ -135,11 +226,13 @@ export async function schemaGraph(db: Queryable): Promise<SchemaGraph> {
     const key = qualified(r.schema, r.table);
     let t = tables.get(key);
     if (!t) {
+      const et = r.schema === 'public' ? (entityOf.get(r.table) ?? null) : null;
       t = {
         schema: r.schema,
         name: key,
         kind: r.kind as 'table' | 'view',
-        entity_type: r.schema === 'public' ? (entityOf.get(r.table) ?? null) : null,
+        entity_type: et,
+        label_ko: et ? entityUiMeta[et as EntityType].label : (TABLE_LABELS[key] ?? null),
         rows: r.rows == null ? null : Number(r.rows),
         columns: [],
       };

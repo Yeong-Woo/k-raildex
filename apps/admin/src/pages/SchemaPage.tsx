@@ -21,6 +21,7 @@ interface SchemaTable {
   name: string;
   kind: 'table' | 'view';
   entity_type: string | null;
+  label_ko: string | null;
   rows: number | null;
   columns: SchemaColumn[];
 }
@@ -88,6 +89,10 @@ export function SchemaPage() {
     queryFn: () => api<{ tables: SchemaTable[]; relations: SchemaRelation[] }>('/v1/admin/schema'),
     staleTime: 10 * 60_000,
   });
+  const labels = useMemo(
+    () => new Map((schema.data?.tables ?? []).filter((t) => t.label_ko).map((t) => [t.name, t.label_ko!])),
+    [schema.data],
+  );
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-2">
@@ -120,6 +125,7 @@ export function SchemaPage() {
         </TabsContent>
         <TabsContent value="trace" className="pt-3">
           <TraceTab
+            labels={labels}
             type={search.type}
             id={search.id}
             onPick={(type, id) => void navigate({ search: { ...search, tab: 'trace', type, id } })}
@@ -149,7 +155,9 @@ function ErdTab({
   const byName = useMemo(() => new Map(tables.map((t) => [t.name, t])), [tables]);
   const groups = useMemo(() => {
     const f = filter.trim().toLowerCase();
-    const hit = tables.filter((t) => !f || t.name.includes(f) || t.columns.some((c) => c.name.includes(f)));
+    const hit = tables.filter(
+      (t) => !f || t.name.includes(f) || (t.label_ko ?? '').includes(f) || t.columns.some((c) => c.name.includes(f)),
+    );
     return [
       { label: '개체 표', items: hit.filter((t) => t.kind === 'table' && t.entity_type) },
       {
@@ -197,7 +205,12 @@ function ErdTab({
                   className={`flex w-full items-center justify-between rounded px-2 py-0.5 text-left font-mono text-xs hover:bg-muted ${sel?.name === t.name ? 'bg-muted font-semibold' : ''}`}
                   onClick={() => onSelect(t.name)}
                 >
-                  <span className="truncate">{t.name}</span>
+                  <span className="min-w-0">
+                    <span className="block truncate">{t.name}</span>
+                    {t.label_ko ? (
+                      <span className="block truncate font-sans text-[11px] text-fg-muted">{t.label_ko}</span>
+                    ) : null}
+                  </span>
                   {t.rows != null ? <span className="text-fg-muted">{t.rows.toLocaleString()}</span> : null}
                 </button>
               ))}
@@ -220,7 +233,7 @@ function ErdTab({
             onSelect={onSelect}
           />
         </Card>
-        {sel ? <TableDetail table={sel} relations={relations} onSelect={onSelect} /> : null}
+        {sel ? <TableDetail table={sel} byName={byName} relations={relations} onSelect={onSelect} /> : null}
       </div>
     </div>
   );
@@ -229,7 +242,7 @@ function ErdTab({
 const CARD_W = 230;
 const GAP_X = 70;
 const ROW_H = 17;
-const HEAD_H = 26;
+const HEAD_H = 40;
 const GAP_Y = 18;
 const MAX_ROWS = 14;
 
@@ -339,8 +352,11 @@ function ErdCanvas({
               {name}
               {t.kind === 'view' ? ' (뷰)' : ''}
             </text>
+            <text x={8} y={32} className="fill-current text-[11px] opacity-70">
+              {t.label_ko ?? ''}
+            </text>
             {t.rows != null ? (
-              <text x={CARD_W - 8} y={17} textAnchor="end" className="fill-current text-[10px] opacity-60">
+              <text x={CARD_W - 8} y={32} textAnchor="end" className="fill-current text-[10px] opacity-60">
                 {t.rows.toLocaleString()}행
               </text>
             ) : null}
@@ -378,13 +394,16 @@ function ErdCanvas({
 
 function TableDetail({
   table,
+  byName,
   relations,
   onSelect,
 }: {
   table: SchemaTable;
+  byName: Map<string, SchemaTable>;
   relations: SchemaRelation[];
   onSelect: (t: string) => void;
 }) {
+  const labelOf = (t: string) => byName.get(t)?.label_ko ?? null;
   const out = relations.filter((r) => r.from_table === table.name);
   const inc = relations.filter((r) => r.to_table === table.name || (r.to_table === '*' && table.entity_type));
   const relLink = (t: string) =>
@@ -393,12 +412,14 @@ function TableDetail({
     ) : (
       <button className="font-mono text-primary hover:underline" onClick={() => onSelect(t)}>
         {t}
+        {labelOf(t) ? <span className="ml-1 font-sans text-fg-muted">({labelOf(t)})</span> : null}
       </button>
     );
   return (
     <Card className="flex flex-col gap-3 p-3 text-sm">
       <div className="flex flex-wrap items-center gap-2">
         <code className="font-semibold">{table.name}</code>
+        {table.label_ko ? <span className="font-semibold">{table.label_ko}</span> : null}
         <Badge>{table.kind === 'view' ? '뷰' : '표'}</Badge>
         {table.entity_type ? (
           <Link
@@ -483,10 +504,12 @@ const ROOT_TYPES = [
 ];
 
 function TraceTab({
+  labels,
   type,
   id,
   onPick,
 }: {
+  labels: Map<string, string>;
   type: string | undefined;
   id: string | undefined;
   onPick: (type: string, id: string) => void;
@@ -555,7 +578,7 @@ function TraceTab({
       ) : trace.isError || !trace.data ? (
         <Empty>찾지 못함</Empty>
       ) : (
-        <TraceView trace={trace.data} onPick={onPick} />
+        <TraceView trace={trace.data} onPick={onPick} labels={labels} />
       )}
     </div>
   );
@@ -566,7 +589,21 @@ const NODE_H = 44;
 const NODE_GAP_Y = 10;
 const COL_GAP = 60;
 
-function TraceView({ trace, onPick }: { trace: Trace; onPick: (type: string, id: string) => void }) {
+function TraceView({
+  trace,
+  onPick,
+  labels,
+}: {
+  trace: Trace;
+  onPick: (type: string, id: string) => void;
+  labels: Map<string, string>;
+}) {
+  /** 저장 위치 문자열(표.열 · 표 → 표)에 표 한국어 이름을 붙인다 */
+  const viaKo = (via: string) =>
+    [...new Set(via.match(/[a-z_]+(?:\.[a-z_]+)?/g) ?? [])]
+      .map((tok) => labels.get(tok) ?? labels.get(tok.split('.')[0]!) ?? null)
+      .filter(Boolean)
+      .join(' · ');
   const navigate = useNavigate();
   const layers = LAYERS.filter((l) => trace.nodes.some((n) => n.layer === l.key));
   const pos = new Map<string, { x: number; y: number }>();
@@ -624,7 +661,7 @@ function TraceView({ trace, onPick }: { trace: Trace; onPick: (type: string, id:
                 strokeOpacity={on ? 0.55 : 0.08}
                 markerEnd="url(#tr-arrow)"
               >
-                <title>{`${e.label} — ${e.via}`}</title>
+                <title>{`${e.label} — ${e.via}${viaKo(e.via) ? ` (${viaKo(e.via)})` : ''}`}</title>
               </path>
             );
           })}
@@ -651,7 +688,7 @@ function TraceView({ trace, onPick }: { trace: Trace; onPick: (type: string, id:
                   else onPick(n.entity_type, n.id);
                 }}
               >
-                <title>{`${n.id}\n저장: ${n.table}${n.entity_type ? '\n클릭: 여기서 다시 추적 · Shift+클릭: 편집 화면' : ''}`}</title>
+                <title>{`${n.id}\n저장: ${n.table}${viaKo(n.table) ? ` (${viaKo(n.table)})` : ''}${n.entity_type ? '\n클릭: 여기서 다시 추적 · Shift+클릭: 편집 화면' : ''}`}</title>
                 <rect
                   width={NODE_W}
                   height={NODE_H}
@@ -693,7 +730,10 @@ function TraceView({ trace, onPick }: { trace: Trace; onPick: (type: string, id:
                   <td className="px-2 py-0.5">{a?.label ?? e.from}</td>
                   <td className="px-2 py-0.5">{e.label}</td>
                   <td className="px-2 py-0.5">{b?.label ?? e.to}</td>
-                  <td className="px-2 py-0.5 font-mono text-fg-muted">{e.via}</td>
+                  <td className="px-2 py-0.5 text-fg-muted">
+                    <span className="font-mono">{e.via}</span>
+                    {viaKo(e.via) ? <span className="ml-1">({viaKo(e.via)})</span> : null}
+                  </td>
                 </tr>
               );
             })}
