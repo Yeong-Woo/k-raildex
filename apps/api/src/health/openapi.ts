@@ -108,7 +108,7 @@ export function buildOpenApi(): Json {
       get: {
         tags: tag,
         summary: `${type} 목록`,
-        parameters: ['q', 'status', 'review_status', 'region', 'area', 'updated_since', 'sort']
+        parameters: ['q', 'status', 'review_status', 'region', 'area', 'line', 'operator', 'updated_since', 'sort']
           .map((n) => queryParam(n))
           .concat([
             queryParam('include_deleted', { type: 'boolean' }),

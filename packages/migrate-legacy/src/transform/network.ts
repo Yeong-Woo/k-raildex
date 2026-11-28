@@ -288,7 +288,8 @@ export function transformNetwork(input: NetworkInput, report: MigrationReport): 
         name_hanja: string | null;
         name_full: string | null;
       }),
-      kind: (s.kind ?? 'station') as StationCreate['kind'],
+      // 0039(2026-11-28): 역 그룹 종류는 여객역·화물역만 — 옛 신호장·조차장·차량기지·분기점은 여객역으로 들이고 시설·지선으로 따로 옮긴다
+      kind: (s.kind === 'freight' ? 'freight' : 'station') as StationCreate['kind'],
       region_code: region,
       region_basis: null,
       address: s.address ?? null,

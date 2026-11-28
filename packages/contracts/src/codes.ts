@@ -47,11 +47,8 @@ export const codes = {
   }),
   stationKind: table({
     station: { ko: '여객역' },
-    signal_box: { ko: '신호장·신호소' },
-    junction: { ko: '분기점·연결선' },
-    yard: { ko: '조차장' },
-    depot: { ko: '차량기지' },
     freight: { ko: '화물역' },
+    // 신호장·신호소·조차장·차량기지는 시설(facilityKind), 분기점·연결선은 지선(line)으로 옮김 — 0038·0039, 2026-11-28
   }),
   /** 한국철도공사 정거장 등급(직제상 지위, 직제규정 시행세칙 — 0031) */
   korailStationClass: table({

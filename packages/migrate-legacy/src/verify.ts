@@ -574,6 +574,7 @@ export async function runVerify(db: Queryable, legacy: LegacyData, tr: Transform
     STATION_FIELDS,
     (f, l) => {
       if (f === 'review_status') return 'D-2';
+      if (f === 'kind') return '역 그룹 종류 정리(0039): 신호장·조차장·차량기지·분기점은 시설·지선으로';
       if (f === 'service_kinds' && droppedStops.has(String(l.id))) return '정차역 노선역 미해석으로 제외(이관 리포트)';
       if ((f === 'opened_at' || f === 'closed_at') && multiLine.has(String(l.id))) return 'D-6';
       return null;

@@ -22,6 +22,10 @@ export interface ListQuery {
   region?: string;
   /** 권역 코드(파생 뷰) */
   area?: string;
+  /** 노선 id — 역 그룹(노선역 소속)·노선역·운행 계통(지나는 노선)·시설(시설 노선)·노선(본선) */
+  line?: string;
+  /** 운영기관 id — 노선(line_operator)·노선역(지정 또는 노선 운영기관)·역 그룹·운행 계통(노선 경유)·시설 */
+  operator?: string;
   include_deleted?: boolean;
   /** 휴지통: 삭제된 것만 */
   deleted_only?: boolean;
@@ -197,6 +201,45 @@ function areaCond(type: EntityType, cols: Map<string, ColumnInfo>, area: string,
   throw badQuery('area', `${type} 는 area 필터를 지원하지 않음`);
 }
 
+function lineCond(type: EntityType, line: string, p: Params): string {
+  const v = p.add(line);
+  switch (type) {
+    case 'station':
+      return `EXISTS (SELECT 1 FROM line_station x WHERE x.station_id = t.id AND x.deleted_at IS NULL AND x.line_id = ${v})`;
+    case 'line_station':
+      return `t.line_id = ${v}`;
+    case 'service':
+      return `EXISTS (SELECT 1 FROM service_line x WHERE x.service_id = t.id AND x.line_id = ${v})`;
+    case 'facility':
+      return `EXISTS (SELECT 1 FROM facility_line x WHERE x.facility_id = t.id AND x.line_id = ${v})`;
+    case 'line':
+      return `(t.branch_of_id = ${v} OR t.parent_line_id = ${v})`;
+    default:
+      throw badQuery('line', `${type} 는 line 필터를 지원하지 않음`);
+  }
+}
+
+/** 노선역의 실제 운영기관: 지정값, 없으면 노선 운영기관 */
+const LS_OPERATOR = (ls: string, v: string) =>
+  `(${ls}.operator_id = ${v} OR (${ls}.operator_id IS NULL AND EXISTS (SELECT 1 FROM line_operator lo WHERE lo.line_id = ${ls}.line_id AND lo.operator_id = ${v})))`;
+
+function operatorCond(type: EntityType, cols: Map<string, ColumnInfo>, operator: string, p: Params): string {
+  const v = p.add(operator);
+  switch (type) {
+    case 'line':
+      return `EXISTS (SELECT 1 FROM line_operator lo WHERE lo.line_id = t.id AND lo.operator_id = ${v})`;
+    case 'line_station':
+      return LS_OPERATOR('t', v);
+    case 'station':
+      return `EXISTS (SELECT 1 FROM line_station x WHERE x.station_id = t.id AND x.deleted_at IS NULL AND ${LS_OPERATOR('x', v)})`;
+    case 'service':
+      return `EXISTS (SELECT 1 FROM service_line x JOIN line_operator lo ON lo.line_id = x.line_id WHERE x.service_id = t.id AND lo.operator_id = ${v})`;
+    default:
+      if (cols.has('operator_id')) return `t.operator_id = ${v}`;
+      throw badQuery('operator', `${type} 는 operator 필터를 지원하지 않음`);
+  }
+}
+
 // ---------------------------------------------------------------------------
 // 목록
 // ---------------------------------------------------------------------------
@@ -234,6 +277,8 @@ export async function listEntities(
   }
   if (query.region) where.push(regionCond(type, cols, query.region, p));
   if (query.area) where.push(areaCond(type, cols, query.area, p));
+  if (query.line) where.push(lineCond(type, query.line, p));
+  if (query.operator) where.push(operatorCond(type, cols, query.operator, p));
   if (query.updated_since) {
     const d = new Date(query.updated_since);
     if (Number.isNaN(d.getTime())) throw badQuery('updated_since', 'ISO 날짜·시각이 아님');

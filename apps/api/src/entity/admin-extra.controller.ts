@@ -3,7 +3,15 @@
  */
 import { Body, Controller, Get, HttpCode, Inject, Param, Post, Put, Query } from '@nestjs/common';
 import { codes, idSchema } from '@k-raildex/contracts';
-import { listTrash, lookup, mergePreview } from '@k-raildex/domain';
+import {
+  listTrash,
+  lookup,
+  mergePreview,
+  schemaCases,
+  schemaGraph,
+  schemaTrace,
+  TRACE_ROOT_TYPES,
+} from '@k-raildex/domain';
 import { z } from 'zod';
 import { CurrentPrincipal, RequireScope, type Principal } from '../auth/principal';
 import { boolParam, entityTypeParam, limitParam, offsetParam, writeOptionsSchema } from '../common/http';
@@ -30,6 +38,28 @@ export class AdminExtraController {
       limit: q.limit,
       offset: q.offset,
     });
+  }
+
+  /** 데이터 스키마(관리 앱 "데이터 스키마"): 표·열·관계 */
+  @Get('schema')
+  @RequireScope('admin:read')
+  async schema() {
+    return schemaGraph(this.svc.db);
+  }
+
+  /** 관계 예시 경우(DB 에서 고른 개체) */
+  @Get('schema/cases')
+  @RequireScope('admin:read')
+  async schemaCases() {
+    return { items: await schemaCases(this.svc.db) };
+  }
+
+  /** 한 개체에서 계획·노선·노선역·역 그룹·시설·지도 선형·OSM relation 까지 관계 추적 */
+  @Get('schema/trace')
+  @RequireScope('admin:read')
+  async schemaTrace(@Query() query: Q) {
+    const q = z.object({ type: z.enum(TRACE_ROOT_TYPES), id: z.string().min(1) }).parse(query);
+    return schemaTrace(this.svc.db, q.type, q.id);
   }
 
   @Get('lookup')

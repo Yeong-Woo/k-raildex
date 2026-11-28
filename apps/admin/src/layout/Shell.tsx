@@ -12,6 +12,7 @@ import {
   LayoutDashboard,
   Map as MapIcon,
   Moon,
+  Network,
   Search,
   Settings2,
   Sheet,
@@ -151,6 +152,9 @@ export function Shell() {
           <div className="px-2 text-xs font-semibold text-fg-muted">조사</div>
           <NavLink to="/external">
             <Globe className="size-4" /> 외부 API
+          </NavLink>
+          <NavLink to="/schema">
+            <Network className="size-4" /> 데이터 스키마
           </NavLink>
         </nav>
         <nav className="flex flex-col gap-0.5">

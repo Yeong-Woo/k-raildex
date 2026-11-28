@@ -10,6 +10,7 @@ import { Quality } from './pages/Quality';
 import { MapPage } from './pages/MapPage';
 import { Bulk } from './pages/Bulk';
 import { External, type ExternalSearch } from './pages/External';
+import { SchemaPage, type SchemaSearch } from './pages/SchemaPage';
 
 const rootRoute = createRootRoute({ component: Shell });
 
@@ -21,17 +22,21 @@ export interface ListSearch {
   review_status?: string;
   offset?: number;
   sort?: string;
+  /** 개체별 필터(region·area·line·operator·열 이름 = 값, EntityList 의 LIST_FILTERS) */
+  [filter: string]: string | number | undefined;
 }
 const list = createRoute({
   getParentRoute: () => rootRoute,
   path: '/data/$type',
-  validateSearch: (s: Record<string, unknown>): ListSearch => ({
-    q: typeof s.q === 'string' ? s.q : undefined,
-    status: typeof s.status === 'string' ? s.status : undefined,
-    review_status: typeof s.review_status === 'string' ? s.review_status : undefined,
-    offset: typeof s.offset === 'number' ? s.offset : undefined,
-    sort: typeof s.sort === 'string' ? s.sort : undefined,
-  }),
+  validateSearch: (s: Record<string, unknown>): ListSearch => {
+    const out: ListSearch = {};
+    for (const [k, v] of Object.entries(s)) {
+      if (k === 'offset') out.offset = typeof v === 'number' ? v : undefined;
+      else if (typeof v === 'string' && v !== '') out[k] = v;
+      else if (typeof v === 'boolean') out[k] = String(v);
+    }
+    return out;
+  },
   component: EntityList,
 });
 const detail = createRoute({
@@ -102,7 +107,20 @@ const external = createRoute({
   component: External,
 });
 
+const schemaRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/schema',
+  validateSearch: (s: Record<string, unknown>): SchemaSearch => ({
+    tab: s.tab === 'erd' || s.tab === 'trace' ? s.tab : undefined,
+    table: typeof s.table === 'string' ? s.table : undefined,
+    type: typeof s.type === 'string' ? s.type : undefined,
+    id: typeof s.id === 'string' ? s.id : undefined,
+  }),
+  component: SchemaPage,
+});
+
 const routeTree = rootRoute.addChildren([
+  schemaRoute,
   dashboard,
   list,
   detail,

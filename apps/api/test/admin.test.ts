@@ -32,6 +32,39 @@ describe('목록·상세', () => {
     const ls = await req('GET', '/v1/admin/line-station?line_id=line-fx-two&sort=seq');
     expect(ls.json().items.map((i: { id: string }) => i.id)).toEqual(['ls-fx-two--fx-a', 'ls-fx-two--fx-e']);
     expect((await req('GET', '/v1/admin/plan?status=construction')).json().total).toBe(1);
+    // 관계 필터(노선·운영기관)
+    expect((await req('GET', '/v1/admin/station?line=line-fx-two')).json().total).toBe(2);
+    expect(
+      (await req('GET', '/v1/admin/line?operator=op-fx-metro')).json().items.map((i: { id: string }) => i.id),
+    ).toEqual(['line-fx-one']);
+  });
+
+  it('데이터 스키마: 표·관계·예시·추적', async () => {
+    const g = (await req('GET', '/v1/admin/schema')).json();
+    expect(g.tables.map((x: { name: string }) => x.name)).toEqual(
+      expect.arrayContaining(['line', 'line_station', 'osm.relation']),
+    );
+    expect(g.relations).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          from_table: 'line_station',
+          from_columns: ['line_id'],
+          to_table: 'line',
+          kind: 'fk',
+        }),
+        expect.objectContaining({ from_table: 'line_osm_map', to_table: 'osm.relation', kind: 'logical' }),
+      ]),
+    );
+    const cases = (await req('GET', '/v1/admin/schema/cases')).json();
+    expect(cases.items.length).toBeGreaterThan(5);
+    const tr = (await req('GET', '/v1/admin/schema/trace?type=line&id=line-fx-one')).json();
+    expect(tr.root).toBe('line:line-fx-one');
+    expect(tr.nodes.map((n: { layer: string }) => n.layer)).toEqual(
+      expect.arrayContaining(['line', 'line_station', 'station']),
+    );
+    expect(tr.edges).toEqual(expect.arrayContaining([expect.objectContaining({ via: 'line_station.station_id' })]));
+    expect((await req('GET', '/v1/admin/schema/trace?type=line&id=line-nope')).statusCode).toBe(404);
+    expect((await req('GET', '/v1/admin/schema/trace?type=source&id=x')).statusCode).toBe(400);
   });
 
   it('잘못된 쿼리 → 400/422, 모르는 종류 → 404', async () => {

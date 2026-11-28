@@ -322,7 +322,7 @@ CREATE TABLE operator (
 CREATE TABLE station (
   id              text PRIMARY KEY REFERENCES entity(id),   -- stn-… (공개 역 페이지)
   name_ko, name_en, name_hanja, name_full,                  -- 대표 이름
-  kind            text NOT NULL DEFAULT 'station',          -- station|signal_box|junction|yard|depot|freight
+  kind            text NOT NULL DEFAULT 'station',          -- station|freight (0039: 신호장·조차장·차량기지는 facility, 분기점·연결선은 line)
   region_code     text REFERENCES ref_region(code),
   region_basis    text,            -- address|interpolated|manual
   address         text,
@@ -756,7 +756,7 @@ CREATE TABLE facility_line (facility_id text REFERENCES facility(id), line_id te
   note text, ord int, PRIMARY KEY (facility_id, line_id, role));
 ```
 
-- 0034 의 역 그룹 하위 표(`station_depot`·`station_depot_line`)는 0035 에서 없앴다. `station.kind = depot` 인 역 그룹은 시설로 옮긴다. 신호장(signal_box)·조차장(yard)도 시설로 옮기고(0038), 분기점·연결선(junction) 역 그룹은 지운다 — 연결선은 원 노선의 지선(노선 개체)으로 둔다(2026-11-27 사용자 지시).
+- 0034 의 역 그룹 하위 표(`station_depot`·`station_depot_line`)는 0035 에서 없앴다. `station.kind = depot` 인 역 그룹은 시설로 옮긴다. 신호장(signal_box)·조차장(yard)도 시설로 옮기고(0038), 분기점·연결선(junction) 역 그룹은 지운다 — 연결선은 원 노선의 지선(노선 개체)으로 둔다(2026-11-27 사용자 지시). 0039(2026-11-28)에서 역 그룹 종류를 station·freight 로 줄였다.
 - 공개: `/facilities/<id>/`, 지도 현재 보기 "차량기지" 레이어(`/v1/public/map/depots.geojson`).
 - OSM 시설 선로(0036): `facility_osm_map`(facility_id, way_names, way_ids, radius_m 기본 800) — OSM id·이름만. 뷰 `osm.v_facility_way` = 이름·개별 way + 시설 좌표 반경 안 기지 안 선로(`service=yard`, 수집기 `ways_yards_kr`) + 붙은 기지선(role connects·line_role depot_line)의 노선 선형. 기지 안 선로는 노선 이름 배정(`osm.v_line_way`)에 쓰지 않는다.
 
@@ -884,7 +884,7 @@ CREATE TABLE app_setting (key text PRIMARY KEY, value jsonb NOT NULL, updated_at
 | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `entity_type`                           | source, operator, station, line_station, line, train_class, service, plan_program, plan, event, train_number_range, rolling_stock_range, transfer_center, route_map, glossary_term                                                                                                                                 |
 | `status`(역 단독·노선역·노선·운행 계통) | operating 운영 중 / suspended 휴업 / under_construction 공사 중 / planned 계획 / abandoned 계획 폐기 / closed 폐선·폐역·운행 종료                                                                                                                                                                                  |
-| `station.kind`                          | station 여객역 / signal_box 신호장·신호소 / junction 분기점·연결선 / yard 조차장 / depot 차량기지 / freight 화물역                                                                                                                                                                                                 |
+| `station.kind`                          | station 여객역 / freight 화물역. 0039(2026-11-28)부터 이 둘만 — 옛 값(signal_box·junction·yard·depot)은 소프트 삭제된 행에만 남는다(CHECK 는 살아 있는 행만 검사)                                                                                                                                                  |
 | `facility.functions`                    | stabling 주박 / inspection 검수 / light_maintenance 경정비 / heavy_maintenance 중정비 / track_maintenance 시설·선로 보수 (0034)                                                                                                                                                                                    |
 | `station.korail_class`                  | management 관리역 / ordinary 보통역 / operating_halt 운전간이역 / staffed_halt 배치간이역 / consigned_ticket 갑종 위탁발매소 / unstaffed_halt 무배치간이역(을종 위탁 포함) / temporary_platform 임시승강장 / yard 조차장 / signal_station 신호장 / signal_post 신호소 (한국철도공사 직제규정 시행세칙, 0031)       |
 | `coord_source` / `coord_basis`          | official, manual, derived / parcel, district, township, existing_station                                                                                                                                                                                                                                           |

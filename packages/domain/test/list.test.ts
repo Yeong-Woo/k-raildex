@@ -111,6 +111,19 @@ describe('listEntities', () => {
     expect((await listEntities(db, 'source', {})).items[0]!.name_ko).toBe('시험용 고시');
   });
 
+  it('노선·운영기관 관계 필터', async () => {
+    // line-fx-two 노선역: 가(2호선)·마
+    expect((await listEntities(db, 'station', { line: 'line-fx-two' })).total).toBe(2);
+    expect((await listEntities(db, 'line_station', { line: 'line-fx-one' })).total).toBe(4);
+    // 운영기관: line-fx-one 만 op-fx-metro
+    expect((await listEntities(db, 'line', { operator: 'op-fx-metro' })).items.map((i) => i.id)).toEqual([
+      'line-fx-one',
+    ]);
+    expect((await listEntities(db, 'line_station', { operator: 'op-fx-metro' })).total).toBe(4);
+    expect((await listEntities(db, 'station', { operator: 'op-fx-metro' })).total).toBe(4);
+    await expect(listEntities(db, 'source', { line: 'line-fx-one' })).rejects.toBeInstanceOf(DomainError);
+  });
+
   it('updated_since', async () => {
     expect((await listEntities(db, 'station', { updated_since: '2000-01-01' })).total).toBe(6);
     expect((await listEntities(db, 'station', { updated_since: '2999-01-01T00:00:00Z' })).total).toBe(0);

@@ -7,6 +7,8 @@ import { Badge, Button, Card, Empty, Input, Select } from '@k-raildex/ui';
 import { Plus } from 'lucide-react';
 import { api, qs } from '../lib/api';
 import { fromSlug } from '../lib/entity-types';
+import { LIST_FILTERS, ListFilters } from './ListFilters';
+import type { ListSearch } from '../router';
 
 interface ListItem {
   id: string;
@@ -28,12 +30,17 @@ export function EntityList() {
   const navigate = useNavigate({ from: '/data/$type' });
   const type = fromSlug(slug);
   const [q, setQ] = useState(search.q ?? '');
+  const extra: Record<string, string | undefined> = {};
+  for (const d of (type && LIST_FILTERS[type]) || []) {
+    const v = search[d.key];
+    if (typeof v === 'string') extra[d.key] = v;
+  }
   const query = useQuery({
     queryKey: ['list', type, search],
     enabled: !!type,
     queryFn: () =>
       api<{ items: ListItem[]; total: number }>(
-        `/v1/admin/${slug}${qs({ q: search.q, status: search.status, review_status: search.review_status, sort: search.sort, offset: search.offset ?? 0, limit: LIMIT })}`,
+        `/v1/admin/${slug}${qs({ ...extra, q: search.q, status: search.status, review_status: search.review_status, sort: search.sort, offset: search.offset ?? 0, limit: LIMIT })}`,
       ),
   });
   if (!type) return <Empty>알 수 없는 개체 종류</Empty>;
@@ -107,9 +114,27 @@ export function EntityList() {
           <option value="unverified">검수 전</option>
           <option value="flagged">이의 있음</option>
         </Select>
+        <ListFilters
+          type={type}
+          values={search}
+          onChange={(k, v) => void navigate({ search: { ...search, [k]: v, offset: undefined } })}
+        />
         <Button type="submit" variant="secondary">
           검색
         </Button>
+        {Object.keys(extra).length ? (
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => {
+              const next: ListSearch = { ...search, offset: undefined };
+              for (const k of Object.keys(extra)) delete next[k];
+              void navigate({ search: next });
+            }}
+          >
+            필터 지우기
+          </Button>
+        ) : null}
       </form>
       <Card>
         {query.isLoading ? (

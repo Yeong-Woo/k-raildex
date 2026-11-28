@@ -25,3 +25,4 @@ export * from './external-catalog';
 export * from './ops';
 export * from './ops-refetch';
 export * from './public';
+export * from './schema-graph';
