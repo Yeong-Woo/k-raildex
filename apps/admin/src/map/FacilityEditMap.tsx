@@ -14,6 +14,7 @@ import { Button, Card, cn } from '@k-raildex/ui';
 import { Crosshair, ExternalLink, MapPin, X } from 'lucide-react';
 import { api, apiOptional, errorText, type EntityResponse } from '../lib/api';
 import { useGeoJsonLayer, useMapLibre, type FeatureCollection } from './useMap';
+import { useMapPick, type PickKind } from './pick';
 import { ReviewIssues, ReviewPicker, ReviewTag, useReviewList } from './ReviewPicker';
 
 interface FacilityData {
@@ -33,9 +34,12 @@ const round = (v: number) => Math.round(v * 1e6) / 1e6;
 export function FacilityEditMap({
   facilityId,
   onSelect,
+  onPick,
 }: {
   facilityId: string | null;
   onSelect: (id: string | null) => void;
+  /** 역 그룹·노선 클릭 → 그 편집으로 */
+  onPick: (kind: PickKind, id: string) => void;
 }) {
   const qc = useQueryClient();
   const { container, map } = useMapLibre();
@@ -78,6 +82,14 @@ export function FacilityEditMap({
     setPlacing(false);
     onSelect(id);
   };
+
+  useMapPick(
+    map,
+    { station: ['current-station'], facility: ['depots-depot'], line: ['current-line', 'current-line-construction'] },
+    'facility',
+    onPick,
+    !placing,
+  );
 
   // 시설 점 클릭 → 고르기
   useEffect(() => {

@@ -18,6 +18,10 @@ import {
   type MapAtQuery,
   publicMapDepots,
   facilityTracks,
+  mapFocus,
+  MAP_FOCUS_TYPES,
+  DomainError,
+  type MapFocusType,
 } from '@k-raildex/domain';
 import { RequireScope } from '../auth/principal';
 import { boolParam } from '../common/http';
@@ -73,6 +77,15 @@ export class MapController {
   @RequireScope('admin:read')
   async currentLines() {
     return currentMapLines(this.dbs.db);
+  }
+
+  /** 개체 지도 강조(상세 화면 지도 탭): 강조할 노선·역 그룹·시설 id + 시설 점 */
+  @Get('focus/:type/:id')
+  @RequireScope('admin:read')
+  async focus(@Param('type') type: string, @Param('id') id: string) {
+    if (!(MAP_FOCUS_TYPES as readonly string[]).includes(type))
+      throw new DomainError('validation', `지도 강조를 지원하지 않는 종류: ${type}`);
+    return mapFocus(this.dbs.db, type as MapFocusType, id);
   }
 
   /** OSM way(참고, ODbL): bbox=w,s,e,n · line_id · unassigned=true. 3000건 상한(truncated) */

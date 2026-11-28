@@ -1,7 +1,7 @@
 /** 개체 상세 = 편집(FR-ADM-020~028) */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useParams, useSearch } from '@tanstack/react-router';
-import { useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { entityContracts, entityUiMeta, type EntityType } from '@k-raildex/contracts';
 import {
@@ -27,6 +27,10 @@ import { ManagedStations } from '../editors/ManagedStations';
 import { AttachmentsTab } from '../editors/AttachmentsTab';
 import { MergeStationButton } from '../editors/MergeStation';
 import { RenameIdButton } from '../editors/RenameId';
+
+// 지도 강조 탭(MapLibre 는 무거우므로 탭을 열 때만 불러온다)
+const FOCUS_MAP_TYPES: readonly EntityType[] = ['station', 'line_station', 'line', 'service', 'facility'];
+const EntityFocusMap = lazy(() => import('../map/EntityFocusMap').then((m) => ({ default: m.EntityFocusMap })));
 
 type Obj = Record<string, unknown>;
 interface EntityResponse {
@@ -291,6 +295,7 @@ function Detail({ type, id, tab }: { type: EntityType; id: string; tab: string }
           {!isNew && type === 'line' ? <TabsTrigger value="stations">역 순서</TabsTrigger> : null}
           {!isNew && type === 'station' ? <TabsTrigger value="line-stations">노선별</TabsTrigger> : null}
           {!isNew && type === 'line_station' ? <TabsTrigger value="managed">관리역</TabsTrigger> : null}
+          {!isNew && FOCUS_MAP_TYPES.includes(type) ? <TabsTrigger value="map">지도</TabsTrigger> : null}
           {!isNew ? <TabsTrigger value="attachments">첨부</TabsTrigger> : null}
           {!isNew ? <TabsTrigger value="derived">파생 값</TabsTrigger> : null}
           {!isNew ? <TabsTrigger value="history">이력</TabsTrigger> : null}
@@ -323,6 +328,13 @@ function Detail({ type, id, tab }: { type: EntityType; id: string; tab: string }
                   ls={q.data.data as { id: string }}
                   operatorId={(q.data.derived.operator_id as string | null | undefined) ?? null}
                 />
+              </TabsContent>
+            ) : null}
+            {FOCUS_MAP_TYPES.includes(type) ? (
+              <TabsContent value="map" className="pt-4">
+                <Suspense fallback={<Empty>지도 불러오는 중…</Empty>}>
+                  <EntityFocusMap type={type} id={id} />
+                </Suspense>
               </TabsContent>
             ) : null}
             <TabsContent value="attachments" className="pt-4">

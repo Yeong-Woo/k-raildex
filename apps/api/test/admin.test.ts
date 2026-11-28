@@ -71,6 +71,21 @@ describe('목록·상세', () => {
     expect((await req('GET', '/v1/admin/schema/trace?type=source&id=x')).statusCode).toBe(400);
   });
 
+  it('개체 지도 강조(map/focus)', async () => {
+    const ln = (await req('GET', '/v1/admin/map/focus/line/line-fx-one')).json();
+    expect(ln.primary.line_ids).toEqual(['line-fx-one']);
+    expect(ln.context.station_ids.length).toBe(4);
+    expect(ln.names['line-fx-one']).toBe(ln.name_ko);
+    const st = (await req('GET', '/v1/admin/map/focus/station/stn-fx-a')).json();
+    expect(st.primary.station_ids).toEqual(['stn-fx-a']);
+    expect(st.context.line_ids).toEqual(expect.arrayContaining(['line-fx-one', 'line-fx-two']));
+    const ls = (await req('GET', '/v1/admin/map/focus/line_station/ls-fx-two--fx-a')).json();
+    expect(ls.primary.station_ids).toEqual(['stn-fx-a']);
+    expect(ls.context.line_ids).toEqual(['line-fx-two']);
+    expect((await req('GET', '/v1/admin/map/focus/line/line-nope')).statusCode).toBe(404);
+    expect((await req('GET', '/v1/admin/map/focus/source/x')).statusCode).toBe(422);
+  });
+
   it('잘못된 쿼리 → 400/422, 모르는 종류 → 404', async () => {
     const bad = await req('GET', '/v1/admin/station?limit=1000');
     expect(bad.statusCode).toBe(400);

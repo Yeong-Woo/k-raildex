@@ -99,7 +99,9 @@ test('지도 편집·노선 편집: 목록에서 고르기 — 노선명 병기,
   await expect(page).toHaveURL(/station=stn-fx-c/);
   await expect(page.getByTestId('map-selected-station')).toContainText('다');
 
-  await page.goto('/map?tool=line');
+  // 같은 화면의 [노선] 대상(2026-11-28 통합)
+  await page.getByTestId('edit-target-line').click();
+  await expect(page.getByTestId('edit-target-line')).toHaveAttribute('aria-pressed', 'true');
   const lines = page.getByTestId('review-list-line');
   await lines.getByTestId('review-row').filter({ hasText: 'line-fx-two' }).click();
   await expect(page.getByTestId('lm-line-summary')).toContainText('시험 2호선');
@@ -373,9 +375,8 @@ test('시설(차량기지): 망 메뉴에서 만들고 기능 체크·담당 노
   expect(at('역 그룹')).toBeLessThan(at('노선역'));
   expect(at('노선역')).toBeLessThan(at('노선'));
   expect(at('시설')).toBeGreaterThan(at('노선'));
-  expect(labels.map((x) => x.trim())).toEqual(
-    expect.arrayContaining(['역·시설 편집', '현재 노선 편집', '미래 노선 편집']),
-  );
+  expect(labels.map((x) => x.trim())).not.toContain('현재 노선 편집');
+  expect(labels.map((x) => x.trim())).toEqual(expect.arrayContaining(['역·시설·노선 편집', '미래 노선 편집']));
   const r = await page.request.post(`${api}/v1/admin/facility`, {
     data: {
       id: 'fac-e2e-depot',

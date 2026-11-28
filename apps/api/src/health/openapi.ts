@@ -249,6 +249,11 @@ export function buildOpenApi(): Json {
     ['get', '/v1/admin/map/stations', '시점별 역 GeoJSON'],
     ['get', '/v1/admin/map/current-stations', '현재 역 GeoJSON(mv_map_station)'],
     ['get', '/v1/admin/map/current-lines', '현재 노선 GeoJSON(mv_map_line, ODbL)'],
+    [
+      'get',
+      '/v1/admin/map/focus/{type}/{id}',
+      '개체 지도 강조(역 그룹·노선역·노선·운행 계통·시설): 강조할 노선·역 그룹·시설 id + 시설 점',
+    ],
     ['get', '/v1/admin/map/timeline', '연도별 개통 예정 계획 수'],
     ['get', '/v1/admin/tokens', '서비스 토큰 목록'],
     ['post', '/v1/admin/tokens', '서비스 토큰 발급(평문은 한 번만)'],

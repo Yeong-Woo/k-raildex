@@ -115,10 +115,7 @@ export function Shell() {
         <nav className="flex flex-col gap-0.5">
           <div className="px-2 text-xs font-semibold text-fg-muted">지도</div>
           <NavLink to="/map" search={{ tab: 'edit' }}>
-            <MapIcon className="size-4" /> 역·시설 편집
-          </NavLink>
-          <NavLink to="/map" search={{ tool: 'line' }}>
-            <MapIcon className="size-4" /> 현재 노선 편집
+            <MapIcon className="size-4" /> 역·시설·노선 편집
           </NavLink>
           <NavLink to="/map" search={{ tool: 'geometry' }}>
             <MapIcon className="size-4" /> 미래 노선 편집

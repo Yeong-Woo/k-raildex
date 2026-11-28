@@ -10,7 +10,7 @@ import { Link } from '@tanstack/react-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Marker, type MapLayerMouseEvent } from 'maplibre-gl';
 import { codeLabel, isCode } from '@k-raildex/contracts';
-import { STAGE_FALLBACK_COLOR, type LayerSpec } from '@k-raildex/map';
+import { depotLayers, STAGE_FALLBACK_COLOR, type LayerSpec } from '@k-raildex/map';
 import { Badge, Button, Card, cn, Empty, Input, Label } from '@k-raildex/ui';
 import { AlertTriangle, ArrowDown, ArrowUp, MapPin, RotateCcw, Trash2 } from 'lucide-react';
 import { api, apiOptional, errorText, type EntityResponse } from '../lib/api';
@@ -20,6 +20,7 @@ import { newLineStationRow, useLineStations } from '../editors/useLineStations';
 import { bestInsertIndex, type Coord } from './geo';
 import { boundsOf, EMPTY_FC, useGeoJsonLayer, useMapLibre, type FeatureCollection } from './useMap';
 import { useFeaturePopup } from './FeaturePopup';
+import { useMapPick, type PickKind } from './pick';
 import { ReviewIssues, ReviewPicker, ReviewTag, useReviewList } from './ReviewPicker';
 
 const DEFAULT_COLOR = '#2563EB';
@@ -86,7 +87,9 @@ const STATION_LAYERS: LayerSpec[] = [
     },
   },
 ];
-const POPUP_LAYERS = ['lm-station', 'lm-sel-line', 'lm-sel-line-construction', 'lm-line', 'lm-line-construction'];
+/** 고른 노선만 정보 팝업. 역 그룹·시설·다른 노선 클릭은 고르기(useMapPick) */
+const POPUP_LAYERS = ['lm-sel-line', 'lm-sel-line-construction'];
+const DEPOT_LAYERS = depotLayers('lm-depots');
 
 interface LineData {
   name_ko: string;
@@ -97,9 +100,12 @@ interface LineData {
 export function LineMapEditor({
   lineId,
   onLineChange,
+  onPick,
 }: {
   lineId: string | null;
   onLineChange: (id: string | null) => void;
+  /** 역 그룹·시설 클릭 → 그 편집으로(노선 클릭은 onLineChange) */
+  onPick: (kind: PickKind, id: string) => void;
 }) {
   const { container, map } = useMapLibre();
   const [adding, setAdding] = useState(false);
@@ -177,8 +183,26 @@ export function LineMapEditor({
   useGeoJsonLayer(map, 'lm-path', pathFc, PATH_LAYERS);
   useGeoJsonLayer(map, 'lm-stations', stations.data, STATION_LAYERS);
 
-  // 추가 모드가 아닐 때만 역·노선 정보 팝업
+  // 차량기지 점(누르면 시설 편집)
+  const depots = useQuery({
+    queryKey: ['map', 'depots'],
+    queryFn: () => apiOptional<FeatureCollection>('/v1/admin/map/depots'),
+  });
+  useGeoJsonLayer(map, 'lm-depots', depots.data, DEPOT_LAYERS);
+
+  // 추가 모드가 아닐 때만: 고른 노선 정보 팝업, 역 그룹·시설·노선 클릭 → 고르기
   useFeaturePopup(map, POPUP_LAYERS, !adding);
+  useMapPick(
+    map,
+    {
+      station: ['lm-station'],
+      facility: ['lm-depots-depot'],
+      line: ['lm-sel-line', 'lm-sel-line-construction', 'lm-line', 'lm-line-construction'],
+    },
+    null,
+    (kind, id) => (kind === 'line' ? id !== lineId && onLineChange(id) : onPick(kind, id)),
+    !adding,
+  );
 
   // 노선을 고르면(데이터가 다 오면 한 번) 그 노선 범위로
   const fitted = useRef<string | null>(null);

@@ -17,6 +17,7 @@ import { api, apiOptional, errorText, type EntityResponse } from '../lib/api';
 import { RefInput } from '../form/widgets/RefInput';
 import { useGeoJsonLayer, useMapLibre, type FeatureCollection } from './useMap';
 import { useFeaturePopup } from './FeaturePopup';
+import { useMapPick, type PickKind } from './pick';
 import { ReviewIssues, ReviewPicker, ReviewTag, useReviewList } from './ReviewPicker';
 import { KeepSplitButton, MergeStationButton } from '../editors/MergeStation';
 
@@ -34,7 +35,7 @@ type Pending = LngLat & { from?: { id: string; name: string } };
 
 const round = (v: number) => Math.round(v * 1e6) / 1e6;
 
-export function EditMap() {
+export function EditMap({ onPick }: { onPick: (kind: PickKind, id: string) => void }) {
   const search = useSearch({ from: '/map' });
   const navigate = useNavigate({ from: '/map' });
   const qc = useQueryClient();
@@ -74,8 +75,15 @@ export function EditMap() {
     queryFn: () => apiOptional<FeatureCollection>('/v1/admin/map/depots'),
   });
   useGeoJsonLayer(map, 'depots', depots.data, depotLayers('depots'));
-  // 역·노선 클릭 → 정보 팝업(좌표 찍기 중에는 끔). 역 클릭은 아래에서 옆 패널 선택도 한다
-  useFeaturePopup(map, ['current-station', 'current-line', 'current-line-construction'], !placing && !picking);
+  // 역 클릭 → 정보 팝업 + 옆 패널 선택(좌표 찍기 중에는 끔). 노선·시설 클릭 → 그 편집으로(useMapPick)
+  useFeaturePopup(map, ['current-station'], !placing && !picking);
+  useMapPick(
+    map,
+    { station: ['current-station'], facility: ['depots-depot'], line: ['current-line', 'current-line-construction'] },
+    'station',
+    onPick,
+    !placing && !picking,
+  );
 
   const select = (id: string | null) => {
     setPending(null);
@@ -95,32 +103,13 @@ export function EditMap() {
     };
     const enter = () => (map.getCanvas().style.cursor = 'pointer');
     const leave = () => (map.getCanvas().style.cursor = '');
-    // 차량기지(시설) 점 → 시설 편집 화면
-    const onDepot = (e: MapLayerMouseEvent) => {
-      const id = e.features?.[0]?.properties?.facility_id;
-      if (typeof id === 'string')
-        void navigate({
-          search: ((s: Record<string, unknown>) => ({
-            ...s,
-            station: undefined,
-            target: 'facility',
-            facility: id,
-          })) as never,
-        });
-    };
     map.on('click', 'current-station', onClick);
-    map.on('click', 'depots-depot', onDepot);
-    for (const id of ['current-station', 'depots-depot']) {
-      map.on('mouseenter', id, enter);
-      map.on('mouseleave', id, leave);
-    }
+    map.on('mouseenter', 'current-station', enter);
+    map.on('mouseleave', 'current-station', leave);
     return () => {
       map.off('click', 'current-station', onClick);
-      map.off('click', 'depots-depot', onDepot);
-      for (const id of ['current-station', 'depots-depot']) {
-        map.off('mouseenter', id, enter);
-        map.off('mouseleave', id, leave);
-      }
+      map.off('mouseenter', 'current-station', enter);
+      map.off('mouseleave', 'current-station', leave);
     };
     // select·takeFrom 은 ref·navigate 로만 상태를 바꾼다
   }, [map]);

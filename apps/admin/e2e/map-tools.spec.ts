@@ -270,8 +270,10 @@ test('노선 편집: 지도에서 역을 클릭해 노선역에 넣고 저장하
   const before = await stationsOf();
   expect(before.map((x) => x.station_id)).not.toContain('stn-fx-c');
 
+  // 옛 링크(?tool=line)는 통합 화면의 [노선] 대상으로 연다
   await page.goto('/map?tool=line&line=line-fx-two');
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('현재 노선 편집');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('역·시설·노선 편집');
+  await expect(page.getByTestId('edit-target-line')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByTestId('lm-line-summary')).toContainText('시험 2호선');
   await expect(page.getByTestId('lm-line-summary').getByRole('link', { name: /노선 상세 편집/ })).toHaveAttribute(
     'href',
@@ -319,7 +321,7 @@ test('노선 편집: 지도에서 역을 클릭해 노선역에 넣고 저장하
     before.map((x) => x.station_id),
   );
 
-  // 추가 모드가 아니면 역 점 클릭 → 정보 팝업
+  // 추가 모드가 아니면 역 점 클릭 → 같은 화면의 [역 그룹] 대상으로 바뀌고 그 역 그룹을 고른다(2026-11-28 통합)
   await waitMapReady(page, 'lm-stations');
   await page.evaluate(() =>
     (window as unknown as { __kraildexMap: { jumpTo(o: { center: Coord; zoom: number }): void } }).__kraildexMap.jumpTo(
@@ -328,7 +330,11 @@ test('노선 편집: 지도에서 역을 클릭해 노선역에 넣고 저장하
   );
   await waitMapReady(page, 'lm-stations');
   await clickLngLat(page, 'line-map', [127.0, 37.4]);
-  await expect(page.locator('.maplibregl-popup')).toContainText('stn-fx-e');
+  await expect(page).toHaveURL(/station=stn-fx-e/);
+  await expect(page.getByTestId('edit-target-station')).toHaveAttribute('aria-pressed', 'true');
+  // 다시 [노선] 으로 오면 고른 노선이 그대로
+  await page.getByTestId('edit-target-line').click();
+  await expect(page.getByTestId('lm-line-summary')).toContainText('시험 2호선');
 });
 
 test('계획 선형 편집: 계획 목록을 품질 규칙으로 걸러 고른다', async ({ page }) => {
@@ -382,7 +388,7 @@ test('역·시설 편집 [시설]: 좌표 없는 시설을 고르고 지도에�
   });
   expect(r.ok(), await r.text()).toBe(true);
   await page.goto('/map?tab=edit&target=facility');
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('역·시설 편집');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('역·시설·노선 편집');
   await expect(page.getByTestId('edit-target-facility')).toHaveAttribute('aria-pressed', 'true');
   await waitMapReady(page, 'current-lines');
   const list = page.getByTestId('review-list-facility');
@@ -404,4 +410,22 @@ test('역·시설 편집 [시설]: 좌표 없는 시설을 고르고 지도에�
     headers: { 'If-Match': String(d.version) },
   });
   expect(del.ok()).toBe(true);
+});
+
+test('상세 [지도] 탭: 노선을 강조하고 둘레 역 그룹 목록에서 열면 그 역 그룹 지도 탭', async ({ page }) => {
+  await page.goto('/data/line/line-fx-two?tab=map');
+  await expect(page.getByTestId('entity-focus-map')).toBeVisible();
+  await waitMapReady(page, 'fx-lines');
+  const filter = await page.evaluate(() =>
+    (window as unknown as { __kraildexMap: { getFilter(id: string): unknown } }).__kraildexMap.getFilter(
+      'fx-line-primary',
+    ),
+  );
+  expect(JSON.stringify(filter)).toContain('line-fx-two');
+  const aside = page.getByTestId('entity-focus-list');
+  await expect(aside).toContainText('강조');
+  await expect(aside).toContainText('시험 2호선');
+  await aside.getByRole('link', { name: '열기' }).nth(1).click();
+  await expect(page).toHaveURL(/\/data\/station\/stn-[^?]+\?tab=map/);
+  await expect(page.getByTestId('entity-focus-map')).toBeVisible();
 });

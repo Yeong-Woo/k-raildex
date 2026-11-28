@@ -366,3 +366,111 @@ export async function facilityTracks(db: Queryable): Promise<FeatureCollection> 
   );
   return { type: 'FeatureCollection', attribution: OSM_ATTRIBUTION, features: collect(rows) };
 }
+
+/** 개체 지도 강조(2026-11-28): 상세 화면 지도에서 강조할 노선·역 그룹·시설 id */
+export const MAP_FOCUS_TYPES = ['station', 'line_station', 'line', 'service', 'facility'] as const;
+export type MapFocusType = (typeof MAP_FOCUS_TYPES)[number];
+export interface MapFocusSet {
+  line_ids: string[];
+  station_ids: string[];
+  facility_ids: string[];
+}
+export interface MapFocus {
+  type: MapFocusType;
+  id: string;
+  name_ko: string | null;
+  /** 개체 자신(노선역이면 그 역 그룹, 운행 계통이면 지나는 노선) */
+  primary: MapFocusSet;
+  /** 둘레(역 그룹이 지나는 노선, 노선의 역 그룹·지선·시설, 시설이 담당하는 노선 등) */
+  context: MapFocusSet;
+  /** 이름표: id → 이름(목록·툴팁용) */
+  names: Record<string, string>;
+  /** 시설 점(자체 좌표 facility.geom — 차량기지 외 신호장·조차장도) */
+  features: FeatureCollection['features'];
+}
+
+export async function mapFocus(db: Queryable, type: MapFocusType, id: string): Promise<MapFocus> {
+  const ids = async (sql: string, args: unknown[] = [id]) =>
+    (await db.query<{ id: string }>(sql, args)).rows.map((r) => r.id);
+  const table = type === 'line_station' ? 'line_station' : type;
+  const self = await db.query<{ name_ko: string | null }>(
+    `SELECT name_ko FROM ${table} WHERE id = $1 AND deleted_at IS NULL`,
+    [id],
+  );
+  if (!self.rows[0]) throw new DomainError('not_found', `${type} ${id} 가 없음`);
+  const primary: MapFocusSet = { line_ids: [], station_ids: [], facility_ids: [] };
+  const context: MapFocusSet = { line_ids: [], station_ids: [], facility_ids: [] };
+  const LINE_STATIONS = `SELECT DISTINCT x.station_id AS id FROM line_station x JOIN station s ON s.id = x.station_id AND s.deleted_at IS NULL
+                          WHERE x.line_id = ANY($1) AND x.deleted_at IS NULL ORDER BY 1`;
+  const LINE_FACILITIES = `SELECT DISTINCT fl.facility_id AS id FROM facility_line fl JOIN facility f ON f.id = fl.facility_id AND f.deleted_at IS NULL
+                            WHERE fl.line_id = ANY($1) ORDER BY 1`;
+  switch (type) {
+    case 'station':
+      primary.station_ids = [id];
+      context.line_ids = await ids(
+        `SELECT DISTINCT x.line_id AS id FROM line_station x JOIN line l ON l.id = x.line_id AND l.deleted_at IS NULL
+          WHERE x.station_id = $1 AND x.deleted_at IS NULL ORDER BY 1`,
+      );
+      break;
+    case 'line_station': {
+      const r = await db.query<{ station_id: string; line_id: string }>(
+        `SELECT station_id, line_id FROM line_station WHERE id = $1`,
+        [id],
+      );
+      primary.station_ids = [r.rows[0]!.station_id];
+      context.line_ids = [r.rows[0]!.line_id];
+      // 같은 노선의 앞뒤 노선역
+      context.station_ids = await ids(
+        `WITH me AS (SELECT line_id, seq FROM line_station WHERE id = $1)
+         SELECT x.station_id AS id FROM line_station x, me
+          WHERE x.line_id = me.line_id AND x.deleted_at IS NULL AND x.id <> $1 AND abs(x.seq - me.seq) = 1 ORDER BY x.seq`,
+      );
+      break;
+    }
+    case 'line':
+      primary.line_ids = [id];
+      context.station_ids = await ids(LINE_STATIONS, [[id]]);
+      // 본선·지선(v_line_branch)·합칠 노선
+      context.line_ids = await ids(
+        `SELECT branch_of_line_id AS id FROM v_line_branch WHERE line_id = $1 AND branch_of_line_id IS NOT NULL
+         UNION SELECT line_id FROM v_line_branch WHERE branch_of_line_id = $1
+         UNION SELECT parent_line_id FROM line WHERE id = $1 AND parent_line_id IS NOT NULL
+         UNION SELECT id FROM line WHERE parent_line_id = $1 AND deleted_at IS NULL ORDER BY 1`,
+      );
+      context.facility_ids = await ids(LINE_FACILITIES, [[id]]);
+      break;
+    case 'service':
+      primary.line_ids = await ids(
+        `SELECT x.line_id AS id FROM service_line x JOIN line l ON l.id = x.line_id AND l.deleted_at IS NULL
+          WHERE x.service_id = $1 ORDER BY x.seq`,
+      );
+      context.station_ids = await ids(LINE_STATIONS, [primary.line_ids]);
+      break;
+    case 'facility':
+      primary.facility_ids = [id];
+      context.line_ids = await ids(
+        `SELECT fl.line_id AS id FROM facility_line fl JOIN line l ON l.id = fl.line_id AND l.deleted_at IS NULL
+          WHERE fl.facility_id = $1 ORDER BY fl.ord, fl.line_id`,
+      );
+      break;
+  }
+  const allLines = [...primary.line_ids, ...context.line_ids];
+  const allStations = [...primary.station_ids, ...context.station_ids];
+  const allFac = [...primary.facility_ids, ...context.facility_ids];
+  const names: Record<string, string> = {};
+  const nm = await db.query<{ id: string; name_ko: string }>(
+    `SELECT id, name_ko FROM line WHERE id = ANY($1)
+     UNION ALL SELECT id, name_ko FROM station WHERE id = ANY($2)
+     UNION ALL SELECT id, name_ko FROM facility WHERE id = ANY($3)`,
+    [allLines, allStations, allFac],
+  );
+  for (const r of nm.rows) names[r.id] = r.name_ko;
+  const pts = await db.query<{ id: string; geometry: unknown; properties: Record<string, unknown> }>(
+    `SELECT f.id, ST_AsGeoJSON(f.geom::geometry, 6)::json AS geometry,
+            json_build_object('facility_id', f.id, 'name_ko', f.name_ko, 'kind', f.kind, 'status', f.status,
+              'primary', f.id = ANY($2)) AS properties
+       FROM facility f WHERE f.id = ANY($1) AND f.deleted_at IS NULL AND f.geom IS NOT NULL ORDER BY f.id`,
+    [allFac, primary.facility_ids],
+  );
+  return { type, id, name_ko: self.rows[0].name_ko, primary, context, names, features: collect(pts.rows) };
+}
