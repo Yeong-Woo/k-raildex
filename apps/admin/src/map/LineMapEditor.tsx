@@ -8,6 +8,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Marker, type MapLayerMouseEvent } from 'maplibre-gl';
 import { codeLabel, isCode } from '@k-raildex/contracts';
 import {
@@ -18,15 +19,16 @@ import {
   type LayerSpec,
 } from '@k-raildex/map';
 import { Badge, Button, Card, cn, Empty, Input, Label } from '@k-raildex/ui';
-import { AlertTriangle, ArrowDown, ArrowUp, MapPin, RotateCcw, Trash2 } from 'lucide-react';
+import { AlertTriangle, ArrowDown, ArrowUp, MapPin, RotateCcw, Trash2, X } from 'lucide-react';
 import { api, apiOptional, errorText, type EntityResponse } from '../lib/api';
 import { kmRegressions, type LsRow } from '../lib/line-stations';
 import { useLabel } from '../form/widgets/RefInput';
 import { newLineStationRow, useLineStations } from '../editors/useLineStations';
 import { bestInsertIndex, type Coord } from './geo';
-import { boundsOf, EMPTY_FC, useGeoJsonLayer, useMapLibre, type FeatureCollection } from './useMap';
+import { boundsOf, EMPTY_FC, useGeoJsonLayer, type FeatureCollection } from './useMap';
+import type { MapPanelProps } from './EditWorkspace';
 import { useFeaturePopup } from './FeaturePopup';
-import { useMapPick, type PickKind } from './pick';
+import { useMapPick } from './pick';
 import { ReviewIssues, ReviewPicker, ReviewTag, useReviewList } from './ReviewPicker';
 
 /** 노선색이 없을 때(선·순서 표식·점선) — 지도와 같은 검정에 가까운 색 */
@@ -109,16 +111,17 @@ interface LineData {
 }
 
 export function LineMapEditor({
+  map,
+  overlay,
+  keepView,
   lineId,
   onLineChange,
   onPick,
-}: {
+}: MapPanelProps & {
   lineId: string | null;
+  /** 노선 고르기·해제(null). 역 그룹·시설 팝업의 [… 편집]은 onPick */
   onLineChange: (id: string | null) => void;
-  /** 역 그룹·시설 클릭 → 그 편집으로(노선 클릭은 onLineChange) */
-  onPick: (kind: PickKind, id: string) => void;
 }) {
-  const { container, map } = useMapLibre();
   const [adding, setAdding] = useState(false);
   const [message, setMessage] = useState<{ tone: 'good' | 'warn'; text: string } | null>(null);
   const markers = useRef<Marker[]>([]);
@@ -140,6 +143,12 @@ export function LineMapEditor({
   const lineReview = lineId ? review.data?.items.find((it) => it.id === lineId) : undefined;
   const ls = useLineStations(lineId);
   const { rows, setRows } = ls;
+  const fitWanted = useRef(!keepView);
+  /** 고른 노선 해제(노선 목록으로). 저장 안 한 역 순서가 있으면 묻는다 */
+  const clearLine = () => {
+    if (ls.dirty && !window.confirm('저장하지 않은 역 순서 변경이 있습니다. 버리고 노선 선택을 해제할까요?')) return;
+    onLineChange(null);
+  };
 
   // 노선이 바뀌면 추가 모드·안내를 끈다
   useEffect(() => {
@@ -204,10 +213,11 @@ export function LineMapEditor({
   // 추가 모드가 아닐 때만 고른 노선 정보 팝업
   useFeaturePopup(map, POPUP_LAYERS, !adding);
 
-  // 노선을 고르면(데이터가 다 오면 한 번) 그 노선 범위로
+  // 노선을 목록에서 고르면(데이터가 다 오면 한 번) 그 노선 범위로. 대상을 바꿔 들어왔거나(keepView)
+  // 지도에서 노선을 눌러 골랐으면 지도를 옮기지 않는다
   const fitted = useRef<string | null>(null);
   useEffect(() => {
-    if (!map || !lineId || fitted.current === lineId || !ls.query.data || !stations.data) return;
+    if (!map || !lineId || !fitWanted.current || fitted.current === lineId || !ls.query.data || !stations.data) return;
     const pts = ls.original.map(coordOf).filter((c): c is Coord => !!c);
     const b = boundsOf({
       type: 'FeatureCollection',
@@ -298,7 +308,11 @@ export function LineMapEditor({
       line: ['lm-line', 'lm-line-construction'],
     },
     null,
-    (kind, id) => (kind === 'line' ? onLineChange(id) : onPick(kind, id)),
+    (kind, id) => {
+      if (kind !== 'line') return onPick(kind, id);
+      fitWanted.current = false;
+      onLineChange(id);
+    },
     !adding,
     (hit) =>
       hit.kind === 'line' && hit.id === lineId
@@ -315,11 +329,23 @@ export function LineMapEditor({
     [next[i], next[j]] = [next[j]!, next[i]!];
     setRows(next);
   };
+  // Esc = 추가 모드 끄기, 아니면 노선 선택 해제(입력 칸에서는 무시)
+  const escRef = useRef<() => void>(() => {});
+  escRef.current = () => (adding ? setAdding(false) : lineId ? clearLine() : undefined);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (e.key !== 'Escape' || t?.closest('input, textarea, select, [role="dialog"]')) return;
+      escRef.current();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
   const regress = kmRegressions(rows);
   const line = entity.data?.data;
 
   return (
-    <div className="absolute inset-0 flex">
+    <>
       <aside className="flex w-96 shrink-0 flex-col gap-3 overflow-y-auto border-r border-border bg-bg-elevated p-3 text-sm">
         <div className={cn('flex min-h-0 flex-col', lineId ? 'h-64 shrink-0' : 'flex-1')}>
           <Label>노선</Label>
@@ -327,7 +353,10 @@ export function LineMapEditor({
             type="line"
             selectedId={lineId}
             className="min-h-0 flex-1"
-            onSelect={(it) => onLineChange(it.id)}
+            onSelect={(it) => {
+              fitWanted.current = true;
+              onLineChange(it.id);
+            }}
           />
         </div>
         {lineId && line ? (
@@ -337,6 +366,16 @@ export function LineMapEditor({
               <strong>{line.name_ko}</strong>
               <Badge>{isCode('status', line.status) ? codeLabel('status', line.status) : line.status}</Badge>
               {lineReview ? <ReviewTag issues={lineReview.issues} className="ml-auto" /> : null}
+              <button
+                type="button"
+                className={cn('text-fg-muted hover:text-fg', !lineReview && 'ml-auto')}
+                aria-label="노선 선택 해제"
+                title="노선 선택 해제(Esc)"
+                data-testid="lm-clear"
+                onClick={clearLine}
+              >
+                <X className="size-4" />
+              </button>
             </div>
             <div className="mt-0.5 text-[11px] text-fg-muted">{lineId}</div>
             {lineReview ? <ReviewIssues issues={lineReview.issues} /> : null}
@@ -546,17 +585,15 @@ export function LineMapEditor({
           <p className="mt-1">선형 © OpenStreetMap contributors, ODbL — 참고용</p>
         </section>
       </aside>
-      <div className="relative min-w-0 flex-1">
-        <div className="absolute inset-0">
-          <div ref={container} className="h-full w-full" data-testid="line-map" />
-        </div>
-        {stations.data === null ? (
-          <div className="absolute top-3 left-3 rounded-md border border-border bg-bg-elevated/95 px-3 py-2 text-xs shadow">
-            현재 지도 API 가 아직 없습니다.
-          </div>
-        ) : null}
-      </div>
-    </div>
+      {overlay && stations.data === null
+        ? createPortal(
+            <div className="absolute top-3 left-3 rounded-md border border-border bg-bg-elevated/95 px-3 py-2 text-xs shadow">
+              현재 지도 API 가 아직 없습니다.
+            </div>,
+            overlay,
+          )
+        : null}
+    </>
   );
 }
 

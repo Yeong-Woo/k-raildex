@@ -96,6 +96,18 @@ export function useGeoJsonLayer(
     }
     // layers 는 상수로 넘긴다(의존성에서 뺌)
   }, [map, sourceId, data]);
+  // 지도를 여러 화면이 함께 쓰므로(역·시설·노선 편집) 이 훅을 쓴 화면이 사라지면 소스·레이어도 뺀다
+  useEffect(() => {
+    if (!map) return;
+    return () => {
+      try {
+        for (const l of layers) if (map.getLayer(l.id)) map.removeLayer(l.id);
+        if (map.getSource(sourceId)) map.removeSource(sourceId);
+      } catch {
+        // 지도가 먼저 정리됐다
+      }
+    };
+  }, [map, sourceId]);
 }
 
 /** 좌표 배열 전체 경계 */

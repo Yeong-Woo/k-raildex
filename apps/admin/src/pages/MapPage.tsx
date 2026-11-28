@@ -6,14 +6,12 @@ import { Empty } from '@k-raildex/ui';
 import type { PickKind } from '../map/pick';
 
 // MapLibre 는 무거우므로 지도 화면에서만 불러온다
-const EditMap = lazy(() => import('../map/EditMap').then((m) => ({ default: m.EditMap })));
-const FacilityEditMap = lazy(() => import('../map/FacilityEditMap').then((m) => ({ default: m.FacilityEditMap })));
+const EditWorkspace = lazy(() => import('../map/EditWorkspace').then((m) => ({ default: m.EditWorkspace })));
 const FutureMap = lazy(() => import('../map/FutureMap').then((m) => ({ default: m.FutureMap })));
 const SatelliteCompare = lazy(() => import('../map/SatelliteCompare').then((m) => ({ default: m.SatelliteCompare })));
 const PlanGeometryEditor = lazy(() =>
   import('../map/PlanGeometryEditor').then((m) => ({ default: m.PlanGeometryEditor })),
 );
-const LineMapEditor = lazy(() => import('../map/LineMapEditor').then((m) => ({ default: m.LineMapEditor })));
 const OsmMappingCheck = lazy(() => import('../map/OsmMappingCheck').then((m) => ({ default: m.OsmMappingCheck })));
 
 type RouteTab = 'edit' | 'future' | 'satellite';
@@ -68,7 +66,7 @@ export function MapPage() {
       }) as never,
       replace: true,
     });
-  /** 지도에서 누른 역 그룹·시설·노선 → 그 대상 편집으로(다른 대상의 고른 것은 그대로 둔다) */
+  /** 지도에서 누른 역 그룹·시설·노선 → 그 대상 목록으로(지도는 그대로, 다른 대상의 고른 것도 그대로 둔다) */
   const pick = (kind: PickKind, id: string | null) =>
     setTool({
       tool: undefined,
@@ -121,17 +119,14 @@ export function MapPage() {
                 ))}
               </div>
               <div className="relative min-h-0 flex-1">
-                {target === 'facility' ? (
-                  <FacilityEditMap
-                    facilityId={str(raw.facility)}
-                    onSelect={(id) => pick('facility', id)}
-                    onPick={pick}
-                  />
-                ) : target === 'line' ? (
-                  <LineMapEditor lineId={str(raw.line)} onLineChange={(id) => pick('line', id)} onPick={pick} />
-                ) : (
-                  <EditMap onPick={pick} />
-                )}
+                <EditWorkspace
+                  target={target}
+                  facilityId={str(raw.facility)}
+                  lineId={str(raw.line)}
+                  onPick={pick}
+                  onFacility={(id) => pick('facility', id)}
+                  onLine={(id) => pick('line', id)}
+                />
               </div>
             </div>
           ) : tab === 'future' ? (

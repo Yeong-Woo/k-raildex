@@ -7,6 +7,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useSearch } from '@tanstack/react-router';
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { toast } from 'sonner';
 import { Marker, type MapLayerMouseEvent } from 'maplibre-gl';
 import { codeLabel, isCode } from '@k-raildex/contracts';
@@ -15,9 +16,10 @@ import { Button, Card } from '@k-raildex/ui';
 import { Copy, Crosshair, ExternalLink, MapPin, X } from 'lucide-react';
 import { api, apiOptional, errorText, type EntityResponse } from '../lib/api';
 import { RefInput } from '../form/widgets/RefInput';
-import { useGeoJsonLayer, useMapLibre, type FeatureCollection } from './useMap';
+import { useGeoJsonLayer, type FeatureCollection } from './useMap';
+import type { MapPanelProps } from './EditWorkspace';
 import { useFeaturePopup } from './FeaturePopup';
-import { useMapPick, type PickKind } from './pick';
+import { useMapPick } from './pick';
 import { ReviewIssues, ReviewPicker, ReviewTag, useReviewList } from './ReviewPicker';
 import { KeepSplitButton, MergeStationButton } from '../editors/MergeStation';
 
@@ -35,11 +37,10 @@ type Pending = LngLat & { from?: { id: string; name: string } };
 
 const round = (v: number) => Math.round(v * 1e6) / 1e6;
 
-export function EditMap({ onPick }: { onPick: (kind: PickKind, id: string) => void }) {
+export function EditMap({ map, overlay, keepView, onPick }: MapPanelProps) {
   const search = useSearch({ from: '/map' });
   const navigate = useNavigate({ from: '/map' });
   const qc = useQueryClient();
-  const { container, map } = useMapLibre();
   const stationId = search.station ?? null;
   const [pending, setPending] = useState<Pending | null>(null);
   const [placing, setPlacing] = useState(false);
@@ -50,6 +51,7 @@ export function EditMap({ onPick }: { onPick: (kind: PickKind, id: string) => vo
   const stationIdRef = useRef(stationId);
   stationIdRef.current = stationId;
   const marker = useRef<Marker | null>(null);
+  const flyWanted = useRef(!keepView);
 
   const stations = useQuery({
     queryKey: ['map', 'current-stations'],
@@ -86,6 +88,7 @@ export function EditMap({ onPick }: { onPick: (kind: PickKind, id: string) => vo
   );
 
   const select = (id: string | null) => {
+    flyWanted.current = true;
     setPending(null);
     setPlacing(false);
     setPicking(false);
@@ -170,9 +173,12 @@ export function EditMap({ onPick }: { onPick: (kind: PickKind, id: string) => vo
     [],
   );
 
-  // 역을 고르면 그리로 이동
+  // 역을 고르면 그리로 이동. 대상을 바꿔 들어왔으면(keepView) 이 목록에서 새로 고를 때까지 지도를 옮기지 않는다
+  const flown = useRef<string | null>(null);
   useEffect(() => {
-    if (map && data?.geom) map.flyTo({ center: [data.geom.lng, data.geom.lat], zoom: Math.max(map.getZoom(), 14) });
+    if (!map || !data?.geom || !flyWanted.current || flown.current === data.id) return;
+    flown.current = data.id;
+    map.flyTo({ center: [data.geom.lng, data.geom.lat], zoom: Math.max(map.getZoom(), 14) });
   }, [map, data?.id]);
 
   const save = useMutation({
@@ -202,7 +208,7 @@ export function EditMap({ onPick }: { onPick: (kind: PickKind, id: string) => vo
   const apiMissing = stations.data === null || lines.data === null;
 
   return (
-    <div className="absolute inset-0 flex">
+    <>
       <aside className="flex w-80 shrink-0 flex-col gap-3 overflow-y-auto border-r border-border bg-bg-elevated p-3">
         {stationId ? (
           <Card className="p-3 text-sm" data-testid="map-selected-station">
@@ -338,26 +344,28 @@ export function EditMap({ onPick }: { onPick: (kind: PickKind, id: string) => vo
           {lines.data?.attribution ? <p>{lines.data.attribution}</p> : null}
         </section>
       </aside>
-      <div className="relative min-w-0 flex-1">
-        <div className="absolute inset-0">
-          <div ref={container} className="h-full w-full" data-testid="edit-map" />
-        </div>
-        {apiMissing ? (
-          <div className="absolute top-3 left-3 rounded-md border border-border bg-bg-elevated/95 px-3 py-2 text-xs shadow">
-            지도 API(/v1/admin/map/current-*)가 아직 없어 배경 지도만 표시합니다.
-          </div>
-        ) : null}
-        {placing ? (
-          <div className="absolute top-3 left-1/2 -translate-x-1/2 rounded-md bg-primary px-3 py-1.5 text-xs text-primary-fg shadow">
-            {data?.name_ko ?? stationId} — 지도를 클릭해 좌표를 찍으세요
-          </div>
-        ) : null}
-        {picking ? (
-          <div className="absolute top-3 left-1/2 -translate-x-1/2 rounded-md bg-primary px-3 py-1.5 text-xs text-primary-fg shadow">
-            {data?.name_ko ?? stationId} — 좌표를 가져올 역 점을 클릭하세요
-          </div>
-        ) : null}
-      </div>
-    </div>
+      {overlay
+        ? createPortal(
+            <>
+              {apiMissing ? (
+                <div className="absolute top-3 left-3 rounded-md border border-border bg-bg-elevated/95 px-3 py-2 text-xs shadow">
+                  지도 API(/v1/admin/map/current-*)가 아직 없어 배경 지도만 표시합니다.
+                </div>
+              ) : null}
+              {placing ? (
+                <div className="absolute top-3 left-1/2 -translate-x-1/2 rounded-md bg-primary px-3 py-1.5 text-xs text-primary-fg shadow">
+                  {data?.name_ko ?? stationId} — 지도를 클릭해 좌표를 찍으세요
+                </div>
+              ) : null}
+              {picking ? (
+                <div className="absolute top-3 left-1/2 -translate-x-1/2 rounded-md bg-primary px-3 py-1.5 text-xs text-primary-fg shadow">
+                  {data?.name_ko ?? stationId} — 좌표를 가져올 역 점을 클릭하세요
+                </div>
+              ) : null}
+            </>,
+            overlay,
+          )
+        : null}
+    </>
   );
 }

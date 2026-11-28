@@ -13,8 +13,9 @@ import { currentLineLayers, currentStationLayers, depotLayers, facilityTrackLaye
 import { Button, Card, cn } from '@k-raildex/ui';
 import { Crosshair, ExternalLink, MapPin, X } from 'lucide-react';
 import { api, apiOptional, errorText, type EntityResponse } from '../lib/api';
-import { useGeoJsonLayer, useMapLibre, type FeatureCollection } from './useMap';
-import { useMapPick, type PickKind } from './pick';
+import { useGeoJsonLayer, type FeatureCollection } from './useMap';
+import type { MapPanelProps } from './EditWorkspace';
+import { useMapPick } from './pick';
 import { ReviewIssues, ReviewPicker, ReviewTag, useReviewList } from './ReviewPicker';
 
 interface FacilityData {
@@ -32,20 +33,21 @@ type LngLat = { lng: number; lat: number };
 const round = (v: number) => Math.round(v * 1e6) / 1e6;
 
 export function FacilityEditMap({
+  map,
+  keepView,
   facilityId,
   onSelect,
   onPick,
-}: {
+}: MapPanelProps & {
   facilityId: string | null;
   onSelect: (id: string | null) => void;
-  /** 역 그룹·노선 클릭 → 그 편집으로 */
-  onPick: (kind: PickKind, id: string) => void;
 }) {
   const qc = useQueryClient();
-  const { container, map } = useMapLibre();
   const [pending, setPending] = useState<LngLat | null>(null);
   const [placing, setPlacing] = useState(false);
   const marker = useRef<Marker | null>(null);
+  // 대상을 바꿔 들어왔으면(keepView) 이 목록에서 새로 고를 때까지 지도를 옮기지 않는다
+  const flyWanted = useRef(!keepView);
 
   const lines = useQuery({
     queryKey: ['map', 'current-lines'],
@@ -78,6 +80,7 @@ export function FacilityEditMap({
   const data = fac.data?.data;
 
   const select = (id: string | null) => {
+    flyWanted.current = true;
     setPending(null);
     setPlacing(false);
     onSelect(id);
@@ -146,8 +149,11 @@ export function FacilityEditMap({
   useEffect(() => () => void marker.current?.remove(), []);
 
   // 고르면 그리로(좌표 없으면 담당 노선 쪽은 모르므로 그대로)
+  const flown = useRef<string | null>(null);
   useEffect(() => {
-    if (map && data?.geom) map.flyTo({ center: [data.geom.lng, data.geom.lat], zoom: Math.max(map.getZoom(), 14) });
+    if (!map || !data?.geom || !flyWanted.current || flown.current === data.id) return;
+    flown.current = data.id;
+    map.flyTo({ center: [data.geom.lng, data.geom.lat], zoom: Math.max(map.getZoom(), 14) });
   }, [map, data?.id]);
 
   const save = useMutation({
@@ -168,7 +174,7 @@ export function FacilityEditMap({
   });
 
   return (
-    <div className="absolute inset-0 flex">
+    <>
       <aside className="flex w-80 shrink-0 flex-col gap-3 overflow-y-auto border-r border-border bg-bg-elevated p-3">
         {facilityId ? (
           <Card className="p-3 text-sm" data-testid="facility-selected">
@@ -257,11 +263,6 @@ export function FacilityEditMap({
           }}
         />
       </aside>
-      <div className="relative min-w-0 flex-1">
-        <div className="absolute inset-0">
-          <div ref={container} className="h-full w-full" data-testid="facility-map" />
-        </div>
-      </div>
-    </div>
+    </>
   );
 }

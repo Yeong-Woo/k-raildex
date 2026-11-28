@@ -334,12 +334,30 @@ test('노선 편집: 지도에서 역을 클릭해 노선역에 넣고 저장하
   await expect(pop).toBeVisible();
   await expect(pop.getByTestId('pick-add')).toBeVisible();
   await expect(page.getByTestId('edit-target-line')).toHaveAttribute('aria-pressed', 'true');
+  // 대상을 바꿔도 지도는 그대로(같은 인스턴스·같은 위치) — 목록만 바뀐다
+  type TaggedMap = { __tag?: string; getCenter(): { lng: number; lat: number }; getZoom(): number };
+  const view = () =>
+    page.evaluate(() => {
+      const m = (window as unknown as { __kraildexMap: TaggedMap }).__kraildexMap;
+      const c = m.getCenter();
+      return { tag: m.__tag ?? null, lng: c.lng.toFixed(5), lat: c.lat.toFixed(5), zoom: m.getZoom().toFixed(3) };
+    });
+  await page.evaluate(() => ((window as unknown as { __kraildexMap: TaggedMap }).__kraildexMap.__tag = 'same'));
+  const v0 = await view();
   await pop.getByTestId('pick-edit').click();
   await expect(page).toHaveURL(/station=stn-fx-e/);
   await expect(page.getByTestId('edit-target-station')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByTestId('map-selected-station')).toBeVisible();
+  expect(await view()).toEqual(v0);
   // 다시 [노선] 으로 오면 고른 노선이 그대로
   await page.getByTestId('edit-target-line').click();
   await expect(page.getByTestId('lm-line-summary')).toContainText('시험 2호선');
+  expect(await view()).toEqual(v0);
+  // 고른 노선 해제 → 노선 목록으로(지도 그대로)
+  await page.getByTestId('lm-clear').click();
+  await expect(page.getByTestId('lm-line-summary')).toHaveCount(0);
+  await expect(page).not.toHaveURL(/line=line-fx-two/);
+  expect(await view()).toEqual(v0);
 });
 
 test('계획 선형 편집: 계획 목록을 품질 규칙으로 걸러 고른다', async ({ page }) => {
