@@ -2,7 +2,15 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type pg from 'pg';
 import { freshDb, type FreshDb } from '@k-raildex/db/testing';
-import { applyChangeset, DomainError, ensureServiceUser, fixtureOps, lineStopTable, stopNeighbors } from '../src';
+import {
+  applyChangeset,
+  currentMapStations,
+  DomainError,
+  ensureServiceUser,
+  fixtureOps,
+  lineStopTable,
+  stopNeighbors,
+} from '../src';
 
 let fx: FreshDb;
 let db: pg.Client;
@@ -34,7 +42,15 @@ beforeAll(async () => {
       {
         op: 'create',
         entity_type: 'station',
-        data: { id: 'stn-fx-sig', name_ko: '시험신호장', kind: 'operational', checked_at: D, sources: src },
+        data: {
+          id: 'stn-fx-sig',
+          name_ko: '시험신호장',
+          kind: 'operational',
+          geom: { lat: 37.6, lng: 127.1 },
+          coord_source: 'official',
+          checked_at: D,
+          sources: src,
+        },
       },
       {
         op: 'create',
@@ -129,5 +145,13 @@ describe('정거장 순서 표(v_line_stop·v_line_stop_link)', () => {
         ],
       }),
     ).rejects.toMatchObject({ details: { violations: [expect.objectContaining({ rule: 'V-H19' })] } });
+  });
+
+  it('관리 앱 지도 역 점(0046): 신호장 등 여객역 아닌 역 그룹도 나온다 — 구분 = 정거장 등급', async () => {
+    await db.query('SELECT refresh_derived()');
+    const fc = await currentMapStations(db);
+    const sig = fc.features.find((f) => f.id === 'stn-fx-sig');
+    expect(sig?.properties).toMatchObject({ kind: 'operational', stop_class: 'signal_station', status: 'operating' });
+    expect(fc.features.find((f) => f.id === 'stn-fx-a')?.properties).toMatchObject({ kind: 'station' });
   });
 });

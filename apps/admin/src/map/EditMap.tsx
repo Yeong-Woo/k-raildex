@@ -11,7 +11,7 @@ import { createPortal } from 'react-dom';
 import { toast } from 'sonner';
 import { Marker, type MapLayerMouseEvent } from 'maplibre-gl';
 import { codeLabel, isCode } from '@k-raildex/contracts';
-import { CLOSED_LINE, CONSTRUCTION_LINE, STATUS_COLORS } from '@k-raildex/map';
+import { CLOSED_LINE, CONSTRUCTION_LINE, STATUS_COLORS, STOP_KIND_STROKE } from '@k-raildex/map';
 import { Button, Card } from '@k-raildex/ui';
 import { Copy, Crosshair, ExternalLink, MapPin, X } from 'lucide-react';
 import { api, apiOptional, errorText, type EntityResponse } from '../lib/api';
@@ -326,6 +326,15 @@ export function EditMap({ map, overlay, keepView, onPick }: MapPanelProps) {
             <li className="col-span-2 flex items-center gap-1">
               <span className="inline-block size-2.5 rounded-full border-2 border-[#F59E0B]" /> 근사 좌표(대표점)
             </li>
+            {Object.entries(STOP_KIND_STROKE).map(([k, v]) => (
+              <li key={k} className="col-span-2 flex items-center gap-1">
+                <span
+                  className="inline-block size-2 rounded-full border-2"
+                  style={{ borderColor: v.color, background: STATUS_COLORS.operating }}
+                />
+                {v.label}
+              </li>
+            ))}
             <li className="col-span-2 flex items-center gap-1">
               <span
                 className="inline-block w-4 border-t-2 border-dashed"

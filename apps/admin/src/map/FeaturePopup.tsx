@@ -15,8 +15,10 @@ import { keyOf, pickTargets, targetOf, type PopupTarget } from './targets';
 
 export { pickTargets, targetOf, type PopupTarget };
 
-const label = (domain: 'status' | 'railClass' | 'lineCategory' | 'planStage' | 'coordSource', v: unknown) =>
-  typeof v === 'string' && isCode(domain, v) ? codeLabel(domain, v) : typeof v === 'string' ? v : null;
+const label = (
+  domain: 'status' | 'railClass' | 'lineCategory' | 'planStage' | 'coordSource' | 'stationKind',
+  v: unknown,
+) => (typeof v === 'string' && isCode(domain, v) ? codeLabel(domain, v) : typeof v === 'string' ? v : null);
 
 /** MapLibre 는 배열 속성을 JSON 문자열로 넘길 때가 있다 */
 const arr = (v: unknown): string[] => {
@@ -95,6 +97,13 @@ function StationBody({ id, props, onPick }: { id: string; props: Record<string, 
         {st.data?.data.name_en ? <span className="ml-1 font-normal text-fg-muted">{st.data.data.name_en}</span> : null}
       </div>
       <Row k="상태">{label('status', status)}</Row>
+      {typeof props.stop_class === 'string' && props.stop_class !== 'station' ? (
+        <Row k="구분">
+          {isCode('korailStationClass', props.stop_class)
+            ? codeLabel('korailStationClass', props.stop_class)
+            : label('stationKind', props.stop_class)}
+        </Row>
+      ) : null}
       <Row k="노선">
         {lineIds.length
           ? lineIds.map((l, i) => (

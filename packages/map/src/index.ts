@@ -272,24 +272,37 @@ export function facilityTrackLayers(source: string): LayerSpec[] {
   ];
 }
 
+/** 여객역 아닌 역 그룹 점의 테두리(관리 앱 지도, 0046): 운전 취급(신호장·신호소·조차장) 진회색, 화물역 갈색 */
+export const STOP_KIND_STROKE: Readonly<Record<'operational' | 'freight', { color: string; label: string }>> = {
+  operational: { color: '#1F2937', label: '신호장·신호소·조차장(작은 점, 진한 테두리)' },
+  freight: { color: '#8B5A2B', label: '화물역(작은 점, 갈색 테두리)' },
+};
+
 export function currentStationLayers(source: string): LayerSpec[] {
   const pairs: unknown[] = [];
   for (const [k, v] of Object.entries(STATUS_COLORS)) pairs.push(k, v);
+  // 속성 kind 가 없으면(공개 지도) 여객역 — 모양은 그대로
+  const kind = ['coalesce', ['get', 'kind'], 'station'];
+  const small = ['!=', kind, 'station'];
   return [
     {
       id: 'current-station',
       type: 'circle',
       source,
       paint: {
-        'circle-radius': ['interpolate', ['linear'], ['zoom'], 7, 3, 13, 6],
+        'circle-radius': ['interpolate', ['linear'], ['zoom'], 7, ['case', small, 2.2, 3], 13, ['case', small, 4.5, 6]],
         'circle-color': ['match', ['coalesce', ['get', 'status'], ''], ...pairs, STATUS_COLORS.abandoned],
         'circle-stroke-color': [
           'case',
+          ['==', kind, 'operational'],
+          STOP_KIND_STROKE.operational.color,
+          ['==', kind, 'freight'],
+          STOP_KIND_STROKE.freight.color,
           ['!=', ['coalesce', ['get', 'coord_basis'], ''], ''],
           STATUS_COLORS.under_construction,
           '#FFFFFF',
         ],
-        'circle-stroke-width': 1.5,
+        'circle-stroke-width': ['case', small, 2, 1.5],
       },
     },
   ];

@@ -23,8 +23,9 @@ function header(q: PublicMapAt) {
 
 /**
  * 차량기지 지도 점(시설 kind depot, 좌표 있음 — 0035). 색은 첫 담당 노선색. 현재 지도 전용.
+ * allKinds = 관리 앱 지도: 시험 선로 등 모든 시설 종류(2026-11-29 사용자 지시 — 모든 시설을 지도에).
  */
-export async function publicMapDepots(db: Queryable): Promise<FeatureCollection> {
+export async function publicMapDepots(db: Queryable, opts: { allKinds?: boolean } = {}): Promise<FeatureCollection> {
   const { rows } = await db.query<{ fc: FeatureCollection }>(
     `SELECT json_build_object('type', 'FeatureCollection', 'features', coalesce(json_agg(f ORDER BY f->'properties'->>'facility_id'), '[]'::json)) AS fc
        FROM (
@@ -43,8 +44,9 @@ export async function publicMapDepots(db: Queryable): Promise<FeatureCollection>
                                WHERE fl.facility_id = x.id AND fl.role = 'serves' ORDER BY fl.ord, l.id LIMIT 1),
                     'approximate', x.coord_basis IS NOT NULL)) AS f
            FROM facility x
-          WHERE x.deleted_at IS NULL AND x.kind = 'depot' AND x.geom IS NOT NULL
+          WHERE x.deleted_at IS NULL AND ($1 OR x.kind = 'depot') AND x.geom IS NOT NULL
        ) q`,
+    [opts.allKinds === true],
   );
   return rows[0]!.fc;
 }

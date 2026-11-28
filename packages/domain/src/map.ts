@@ -101,11 +101,16 @@ export async function currentMapStations(db: Queryable): Promise<FeatureCollecti
   const { rows } = await db.query<{ id: string; geometry: unknown; properties: Record<string, unknown> }>(
     `SELECT m.station_id AS id, ST_AsGeoJSON(m.geom, 6)::json AS geometry,
             json_build_object('station_id', m.station_id, 'name_ko', m.name_ko, 'status', m.status,
-              'coord_basis', m.coord_basis, 'snapped', m.snapped, 'line_ids', m.line_ids,
+              'coord_basis', m.coord_basis, 'snapped', m.snapped, 'line_ids', m.line_ids, 'kind', m.kind, 'stop_class', m.stop_class,
               -- 선형에 스냅한 역은 자체 좌표도 준다(편집 도구가 OSM 유래 좌표를 저장하지 않도록, C-6)
               'own_coord', CASE WHEN m.snapped THEN json_build_array(round(ST_X(s.geom::geometry)::numeric, 6), round(ST_Y(s.geom::geometry)::numeric, 6)) END
             ) AS properties
-       FROM mv_map_station m LEFT JOIN station s ON s.id = m.station_id AND m.snapped ORDER BY m.station_id`,
+       FROM (SELECT station_id, name_ko, status, coord_basis, snapped, line_ids, geom, 'station'::text AS kind, 'station'::text AS stop_class
+               FROM mv_map_station
+             UNION ALL
+             -- 여객역 아닌 역 그룹(신호장·신호소·조차장·화물역, 폐지 포함 — 0046)
+             SELECT station_id, name_ko, status, coord_basis, snapped, line_ids, geom, kind, stop_class FROM v_map_stop_point) m
+       LEFT JOIN station s ON s.id = m.station_id AND m.snapped ORDER BY m.station_id`,
   );
   return { type: 'FeatureCollection', features: collect(rows) };
 }

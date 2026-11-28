@@ -66,11 +66,11 @@ export class MapController {
     return facilityTracks(this.dbs.db);
   }
 
-  /** 차량기지 점(공개 지도와 같은 자료) */
+  /** 시설 점(공개 지도의 차량기지 + 시험 선로 등 모든 시설 종류) */
   @Get('depots')
   @RequireScope('admin:read')
   async depots() {
-    return publicMapDepots(this.dbs.db);
+    return publicMapDepots(this.dbs.db, { allKinds: true });
   }
 
   @Get('current-lines')
