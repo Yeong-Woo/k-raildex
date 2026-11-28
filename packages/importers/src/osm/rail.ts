@@ -55,6 +55,16 @@ out geom;`,
 area["ISO3166-1"="KR"]["admin_level"="2"]->.kr;
 way(area.kr)["railway"~"^(rail|subway|light_rail|monorail|tram)$"]["service"="yard"][!"railway:preserved"];
 out geom;`,
+  /** 옛 선로(폐선·미사용 — 2026-11-28, 중앙선 (구) 등 폐지 노선 지도). 레일바이크 등 보존 선로(railway=preserved)는 뺀다.
+   *  폐지된 노선(status closed·abandoned)에만 배정한다(osm.is_old_way, 0041) */
+  ways_old_kr: `[out:json][timeout:600];
+area["ISO3166-1"="KR"]["admin_level"="2"]->.kr;
+(
+  way(area.kr)["railway"~"^(disused|abandoned|razed|dismantled)$"];
+  way(area.kr)["disused:railway"][!"railway"];
+  way(area.kr)["abandoned:railway"][!"railway"];
+);
+out geom;`,
   ways_construction_kr: `[out:json][timeout:300];
 area["ISO3166-1"="KR"]["admin_level"="2"]->.kr;
 way(area.kr)["railway"="construction"][!"service"];
@@ -394,6 +404,11 @@ const WAY_TAGS = [
   'tunnel',
   /** 입체 구분(지하 −1·−2, 고가 1) — 겹친 노선이 공용 선로인지 층이 다른지 가리는 데 쓴다 */
   'layer',
+  /** 옛 선로(ways_old_kr): 생애 주기 접두 태그·옛 이름(자전거길이 된 옛 선로는 name 이 길 이름) */
+  'disused:railway',
+  'abandoned:railway',
+  'old_name',
+  'old_railway_name',
 ] as const;
 const REL_TAGS = ['type', 'route', 'name', 'name:ko', 'name:en', 'ref', 'colour', 'operator', 'network', 'from', 'to'];
 
@@ -468,6 +483,7 @@ export async function fetchOsmLive(
     ...r.ways_highspeed.json.elements,
     ...r.ways_tracks_members_kr.json.elements,
     ...r.ways_yards_kr.json.elements,
+    ...r.ways_old_kr.json.elements,
   ])
     if (el.type === 'way') waysMap.set(el.id, el);
   const rels = new Map<number, OverpassElement>();
@@ -487,13 +503,19 @@ export async function fetchOsmLive(
     });
   return {
     ways: {
-      name: 'overpass ways_capital+ways_highspeed+ways_tracks_members_kr+ways_yards_kr',
+      name: 'overpass ways_capital+ways_highspeed+ways_tracks_members_kr+ways_yards_kr+ways_old_kr',
       data: waysToFile([...waysMap.values()], {
         extracted_at: fetchedAt,
-        osm_base_timestamp: base('ways_capital', 'ways_highspeed', 'ways_tracks_members_kr', 'ways_yards_kr'),
-        query: `${OSM_QUERIES.ways_capital}\n\n${OSM_QUERIES.ways_highspeed}\n\n${OSM_QUERIES.ways_tracks_members_kr}\n\n${OSM_QUERIES.ways_yards_kr}`,
+        osm_base_timestamp: base(
+          'ways_capital',
+          'ways_highspeed',
+          'ways_tracks_members_kr',
+          'ways_yards_kr',
+          'ways_old_kr',
+        ),
+        query: `${OSM_QUERIES.ways_capital}\n\n${OSM_QUERIES.ways_highspeed}\n\n${OSM_QUERIES.ways_tracks_members_kr}\n\n${OSM_QUERIES.ways_yards_kr}\n\n${OSM_QUERIES.ways_old_kr}`,
       }),
-      sha256: hash('ways_capital', 'ways_highspeed', 'ways_tracks_members_kr', 'ways_yards_kr'),
+      sha256: hash('ways_capital', 'ways_highspeed', 'ways_tracks_members_kr', 'ways_yards_kr', 'ways_old_kr'),
     },
     construction: {
       name: 'overpass ways_construction_kr',

@@ -772,7 +772,7 @@ CREATE INDEX ON osm.way USING gist (geom);
 ```
 
 - 노선 선형 = `line_osm_map` 배정 결과(`osm.v_line_geometry`, 공사 중 way 는 `is_construction`). 응답에 ODbL 표기.
-- 배정 규칙(`osm.v_line_way`, 기존 build-map 과 같음): 후보 = `relation_ids` 의 member way ∪ 이름(`name` 또는 `name:ko`)이 `way_names` 에 있는 way ∪ `way_ids`. `bbox` 가 있으면 두 후보 모두 way 의 가운데 꼭짓점이 bbox 안인 것만. 같은 way 를 여러 노선이 원하면 `priority` 가 작은 노선(같으면 line_id 순)이 차지하되, 원한 노선의 `share_with` 에 차지한 노선이 있으면 그 way 를 함께 배정한다(공용 구간 — 예: 수서평택고속선 `share_with = {line-gtx-a}`, 수서~동탄). 기존 `claim_first` 는 `priority` 를 앞당겨(−1000) 표현한다. `include_construction = false` 면 공사 중 way 제외.
+- 배정 규칙(`osm.v_line_way`, 기존 build-map 과 같음): 후보 = `relation_ids` 의 member way ∪ 이름(`name` 또는 `name:ko`)이 `way_names` 에 있는 way ∪ `way_ids`. `bbox` 가 있으면 두 후보 모두 way 의 가운데 꼭짓점이 bbox 안인 것만. 같은 way 를 여러 노선이 원하면 `priority` 가 작은 노선(같으면 line_id 순)이 차지하되, 원한 노선의 `share_with` 에 차지한 노선이 있으면 그 way 를 함께 배정한다(공용 구간 — 예: 수서평택고속선 `share_with = {line-gtx-a}`, 수서~동탄). 기존 `claim_first` 는 `priority` 를 앞당겨(−1000) 표현한다. `include_construction = false` 면 공사 중 way 제외. **옛 선로(0041)**: `osm.is_old_way(tags)`(railway 가 운영·공사 중 값이 아님 — 수집기 `ways_old_kr`)인 way 는 상태가 폐지(`closed`·`abandoned`)인 노선에만 배정하고, 폐지 노선에는 옛 선로만 배정한다(같은 이름의 운영 선로와 섞이지 않게). 옛 선로는 `old_name` 으로도 이름 배정한다. 시설 선로(`osm.v_facility_way`)의 이름·반경 후보에서는 옛 선로를 뺀다.
 - 적재는 수집기 `osm-rail`(docs/08 3-1-1): `osm` 스키마 전체를 한 트랜잭션으로 교체, 추출 파일마다 `osm.extract` 1행. `is_construction` = `railway=construction`.
 - 근사 좌표 역의 선형 스냅(parcel 1km·district 3km·township 10km)은 지도 API 가 질의 시 계산.
 

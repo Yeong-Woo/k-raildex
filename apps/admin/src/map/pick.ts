@@ -23,7 +23,7 @@ export interface PickAction {
 export const BASE: PickLayers = {
   station: ['current-station'],
   facility: ['depots-depot'],
-  line: ['current-line', 'current-line-construction'],
+  line: ['current-line', 'current-line-construction', 'current-line-closed'],
 };
 /** 목록의 강조 레이어는 이 아래에 넣는다(시설 선로·역 그룹 점·시설 점이 늘 위) */
 export const OVERLAY_BEFORE = 'facility-tracks-track';

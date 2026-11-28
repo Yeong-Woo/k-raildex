@@ -102,6 +102,8 @@ export async function publicMapLines(db: Queryable, q: PublicMapAt): Promise<Fea
               'quality', 'osm', 'odbl', true, 'delayed', false, 'target_value', NULL, 'target_precision', NULL,
               'passenger', m.passenger_service) AS properties
        FROM mv_map_line m
+      -- 폐지 노선(옛 선로, 0041)은 현재 지도가 아니다 — 관리 앱 지도에서만 보인다
+      WHERE m.status NOT IN ('closed', 'abandoned')
      UNION ALL
      -- OSM 공사 선형이 없는 공사 중 노선은 공사 단계 계획의 계획 선형으로(0027 v_line_plan_shape)
      SELECT 'line:' || s.line_id || ':construction', ST_AsGeoJSON(s.geom, 6)::json,

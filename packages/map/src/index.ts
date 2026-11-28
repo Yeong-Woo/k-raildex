@@ -47,6 +47,11 @@ export const isConstructionExpression = (): unknown[] => [
   ['==', ['get', 'status'], 'under_construction'],
 ];
 
+/** 폐지 노선(옛 선로, 관리 앱 현재 지도만 — 공개 현재 지도에는 없다) — 연한 회색 짧은 점선(2026-11-28) */
+export const CLOSED_LINE = { color: '#9AA0A6', dasharray: [1, 1.5], label: '폐지(옛 선로, 연한 회색 점선)' } as const;
+/** 폐지 선: 노선 상태 폐지·폐선 */
+export const isClosedExpression = (): unknown[] => ['in', ['get', 'status'], ['literal', ['closed', 'abandoned']]];
+
 /** 12단계 진행 띠 순서(docs/05 FR-ADM-055) */
 export const STAGE_ORDER = [
   'concept',
@@ -193,14 +198,27 @@ export function futureStationLayers(source: string): LayerSpec[] {
   ];
 }
 
-/** 현재 노선 레이어(공사 중은 점선) */
+/** 현재 노선 레이어(공사 중은 진한 회색 점선, 폐지(옛 선로)는 연한 회색 점선 — 맨 아래) */
 export function currentLineLayers(source: string): LayerSpec[] {
   return [
+    {
+      id: 'current-line-closed',
+      type: 'line',
+      source,
+      filter: isClosedExpression(),
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: {
+        'line-color': CLOSED_LINE.color,
+        'line-width': 2.5,
+        'line-dasharray': [...CLOSED_LINE.dasharray],
+        'line-opacity': 0.9,
+      },
+    },
     {
       id: 'current-line',
       type: 'line',
       source,
-      filter: ['!', isConstructionExpression()],
+      filter: ['all', ['!', isConstructionExpression()], ['!', isClosedExpression()]],
       layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: { 'line-color': ['coalesce', ['get', 'color'], NO_COLOR_LINE], 'line-width': 3, 'line-opacity': 0.85 },
     },

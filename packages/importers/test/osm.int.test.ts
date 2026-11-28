@@ -260,6 +260,64 @@ describe('osm-rail 수집기(DB)', () => {
     });
   });
 
+  it('옛 선로(0041): 폐지 노선에만 배정하고 폐지 노선에는 옛 선로만(이름·old_name)', async () => {
+    const author = await ensureServiceUser(fx.client, 'system', 'test');
+    // 같은 이름의 옛 선로(105)와 old_name 만 있는 옛 선로(106) — osm 스키마는 기계적 쓰기 경로라 시험에서 직접 넣는다
+    await fx.client.query(
+      `INSERT INTO osm.way (id, tags, is_construction, geom) VALUES
+         (105, '{"railway":"abandoned","name":"시험 1호선"}', false, ST_GeomFromText('LINESTRING(127.3 37.3, 127.31 37.31)', 4326)),
+         (106, '{"railway":"disused","name":"시험 자전거길","old_name":"시험옛선"}', false, ST_GeomFromText('LINESTRING(127.31 37.31, 127.32 37.32)', 4326))`,
+    );
+    await applyChangeset(fx.client, {
+      title: '옛 노선',
+      origin: 'admin_edit',
+      author_id: author,
+      ops: [
+        {
+          op: 'create',
+          entity_type: 'line',
+          data: {
+            id: 'line-fx-old',
+            name_ko: '시험 1호선 (구)',
+            category: 'conventional',
+            rail_class: 'conventional',
+            status: 'closed',
+            checked_at: '2026-11-28',
+            sources: [{ source_id: 'src-fixture-notice' }],
+            osm_map: { way_names: ['시험 1호선', '시험옛선'] },
+          },
+        },
+        {
+          op: 'update',
+          entity_type: 'line',
+          id: 'line-fx-one',
+          data: { osm_map: { relation_ids: [9001], way_names: ['시험 1호선'] } },
+        },
+      ],
+    });
+    const assigned = await q<{ line_id: string; way_id: string }>(
+      `SELECT line_id, way_id FROM osm.v_line_way ORDER BY way_id, line_id`,
+    );
+    const pairs = assigned.map((a) => [a.line_id, Number(a.way_id)]);
+    expect(pairs.filter(([l]) => l === 'line-fx-old')).toEqual([
+      ['line-fx-old', 105],
+      ['line-fx-old', 106],
+    ]);
+    // 운영 노선은 같은 이름이어도 옛 선로를 받지 않는다
+    expect(pairs.filter(([, w]) => w === 105 || w === 106).map(([l]) => l)).toEqual(['line-fx-old', 'line-fx-old']);
+    // 되돌림
+    await applyChangeset(fx.client, {
+      title: '되돌림',
+      origin: 'admin_edit',
+      author_id: author,
+      ops: [
+        { op: 'delete', entity_type: 'line', id: 'line-fx-old', reason: '시험 정리' },
+        { op: 'update', entity_type: 'line', id: 'line-fx-one', data: { osm_map: { relation_ids: [9001] } } },
+      ],
+    });
+    await fx.client.query(`DELETE FROM osm.way WHERE id IN (105, 106)`);
+  });
+
   it('쓰기 도중 실패하면 ROLLBACK — 이전 데이터 유지, 실행 기록 failed', async () => {
     const failing: Queryable = {
       query: ((sql: string, p?: unknown[]) => {
@@ -338,6 +396,19 @@ describe('osm-rail 수집기(DB)', () => {
             ],
           }),
         };
+      if (query === OSM_QUERIES.ways_old_kr)
+        return {
+          status: 200,
+          text: JSON.stringify({
+            ...base,
+            elements: [
+              el(105, { railway: 'abandoned', name: '시험 옛선' }, [
+                [127.3, 37.3],
+                [127.31, 37.31],
+              ]),
+            ],
+          }),
+        };
       if (query === OSM_QUERIES.ways_construction_kr)
         return {
           status: 200,
@@ -374,13 +445,14 @@ describe('osm-rail 수집기(DB)', () => {
     };
     // 재시도 대기(기본 15초×n)를 줄여 부른다
     const input = await fetchOsmLive({ post, pauseMs: 0, retry: { attempts: 3, waitMs: 1 } });
-    expect(calls.length).toBe(8);
+    expect(calls.length).toBe(9);
     const ds = buildOsmDataset(input);
     expect(ds.ways.map((w) => [w.id, w.is_construction])).toEqual([
       [101, false],
       [102, true],
       [103, false],
       [104, false],
+      [105, false],
     ]);
     expect(ds.relations[0]!.tags).toEqual({ type: 'route', route: 'subway', name: '시험 1호선' });
     expect(ds.extracts.map((e) => e.overpass_query?.includes('area["ISO3166-1"="KR"]'))).toEqual([true, true, true]);
