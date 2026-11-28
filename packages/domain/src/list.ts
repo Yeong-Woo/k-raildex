@@ -213,7 +213,8 @@ function lineCond(type: EntityType, line: string, p: Params): string {
     case 'facility':
       return `EXISTS (SELECT 1 FROM facility_line x WHERE x.facility_id = t.id AND x.line_id = ${v})`;
     case 'line':
-      return `(t.branch_of_id = ${v} OR t.parent_line_id = ${v})`;
+      // 본선(v_line_branch: 고시 노선번호 앞 세 자리 또는 수동 branch_of_id) 또는 합칠 노선
+      return `(EXISTS (SELECT 1 FROM v_line_branch x WHERE x.line_id = t.id AND x.branch_of_line_id = ${v}) OR t.parent_line_id = ${v})`;
     default:
       throw badQuery('line', `${type} 는 line 필터를 지원하지 않음`);
   }

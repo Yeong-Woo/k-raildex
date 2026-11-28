@@ -411,28 +411,28 @@ export async function schemaTrace(db: Queryable, type: TraceRootType, id: string
       });
       b.edge(lk, ck, '노선역', 'line_station.line_id');
     }
-    // 본선·합칠 노선
-    const rel = await one<{ branch_of_id: string | null; parent_line_id: string | null }>(
-      `SELECT branch_of_id, parent_line_id FROM line WHERE id = $1`,
+    // 본선(v_line_branch — 고시 노선번호 앞 세 자리, 없으면 수동 line.branch_of_id)·합칠 노선
+    const rel = await one<{ parent_line_id: string | null; branch_of_line_id: string | null; basis: string | null }>(
+      `SELECT l.parent_line_id, b.branch_of_line_id, b.basis FROM line l LEFT JOIN v_line_branch b ON b.line_id = l.id WHERE l.id = $1`,
       [lineId],
     );
-    for (const [col, label] of [
-      ['branch_of_id', '본선(지선의)'],
-      ['parent_line_id', '합칠 노선'],
-    ] as const) {
-      const target = rel?.[col];
-      if (target) {
-        const tk = await lineNode(target);
-        if (tk) b.edge(lk, tk, label, `line.${col}`);
-      }
+    const branchVia = (basis: string | null) =>
+      basis === 'manual' ? 'line.branch_of_id' : 'external_ref(molit_line_no) 앞 세 자리 → v_line_branch';
+    if (rel?.branch_of_line_id) {
+      const tk = await lineNode(rel.branch_of_line_id);
+      if (tk) b.edge(lk, tk, '본선(지선의)', branchVia(rel.basis));
     }
-    const branches = await db.query<{ id: string }>(
-      `SELECT id FROM line WHERE branch_of_id = $1 AND deleted_at IS NULL ORDER BY id`,
+    if (rel?.parent_line_id) {
+      const tk = await lineNode(rel.parent_line_id);
+      if (tk) b.edge(lk, tk, '합칠 노선', 'line.parent_line_id');
+    }
+    const branches = await db.query<{ line_id: string; basis: string }>(
+      `SELECT line_id, basis FROM v_line_branch WHERE branch_of_line_id = $1 ORDER BY line_no NULLS LAST, line_id`,
       [lineId],
     );
-    for (const br of branches.rows.slice(0, 6)) {
-      const bk = await lineNode(br.id);
-      if (bk) b.edge(bk, lk, '본선(지선의)', 'line.branch_of_id');
+    for (const br of branches.rows.slice(0, MAX_LINES)) {
+      const bk = await lineNode(br.line_id);
+      if (bk) b.edge(bk, lk, '본선(지선의)', branchVia(br.basis));
     }
     // 시설
     const fac = await db.query<{ id: string; name_ko: string; kind: string; role: string }>(
@@ -754,9 +754,9 @@ const CASES: { key: string; label: string; desc: string; type: TraceRootType; sq
   {
     key: 'branch',
     label: '노선: 지선이 많은 본선',
-    desc: 'line.branch_of_id 로 이어진 지선·연결선·기지선',
+    desc: '고시 노선번호 또는 line.branch_of_id 로 이어진 지선·연결선·기지선(v_line_branch)',
     type: 'line',
-    sql: `SELECT b.id, b.name_ko FROM line l JOIN line b ON b.id = l.branch_of_id WHERE l.deleted_at IS NULL GROUP BY b.id ORDER BY count(*) DESC, b.id LIMIT 1`,
+    sql: `SELECT p.id, p.name_ko FROM v_line_branch v JOIN line p ON p.id = v.branch_of_line_id GROUP BY p.id ORDER BY count(*) DESC, p.id LIMIT 1`,
   },
   {
     key: 'depot',

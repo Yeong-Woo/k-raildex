@@ -178,3 +178,33 @@ describe('entityLabels', () => {
     expect(m.has('stn-none')).toBe(false);
   });
 });
+
+describe('본선 필터(v_line_branch)', () => {
+  it('노선번호가 없는 기지선도 수동 본선(branch_of_id)으로 본선 필터에 나온다', async () => {
+    await applyChangeset(db, {
+      title: '기지선',
+      origin: 'admin_edit',
+      author_id: author,
+      ops: [
+        {
+          op: 'create',
+          entity_type: 'line',
+          data: {
+            id: 'line-fx-spur',
+            name_ko: '시험 기지선',
+            category: 'conventional',
+            rail_class: 'conventional',
+            status: 'operating',
+            branch_of_id: 'line-fx-one',
+            checked_at: '2026-11-28',
+            sources: [{ source_id: 'src-fixture-notice' }],
+          },
+        },
+      ],
+    });
+    const r = await listEntities(db, 'line', { line: 'line-fx-one' });
+    expect(r.items.map((i) => i.id)).toEqual(['line-fx-spur']);
+    const v = await db.query(`SELECT branch_of_line_id, basis FROM v_line_branch WHERE line_id = 'line-fx-spur'`);
+    expect(v.rows).toEqual([{ branch_of_line_id: 'line-fx-one', basis: 'manual' }]);
+  });
+});
