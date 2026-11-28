@@ -26,11 +26,11 @@ export function defaultOsmDir(): string {
   return join(process.env.LEGACY_ROOT ?? DEFAULT_LEGACY_ROOT, 'data/osm');
 }
 
-/** fetch-osm-rail.ts 의 쿼리(전국 대한민국 행정 경계) */
+/** fetch-osm-rail.ts 의 쿼리(전국 대한민국 행정 경계). 노면전차(railway=tram — 위례선 등) 포함(2026-11-28) */
 export const OSM_QUERIES = {
   ways_capital: `[out:json][timeout:600];
 area["ISO3166-1"="KR"]["admin_level"="2"]->.kr;
-way(area.kr)["railway"~"^(rail|subway|light_rail|monorail|construction)$"][!"service"][!"railway:preserved"];
+way(area.kr)["railway"~"^(rail|subway|light_rail|monorail|tram|construction)$"][!"service"][!"railway:preserved"];
 out geom;`,
   ways_highspeed: `[out:json][timeout:300];
 area["ISO3166-1"="KR"]["admin_level"="2"]->.kr;
@@ -53,7 +53,7 @@ out geom;`,
   /** 차량기지·조차장 안 선로(service=yard) — 시설 선로(2026-11-27, 시설 OSM 보완). 노선 이름 배정에는 쓰지 않는다(v_line_way) */
   ways_yards_kr: `[out:json][timeout:600];
 area["ISO3166-1"="KR"]["admin_level"="2"]->.kr;
-way(area.kr)["railway"~"^(rail|subway|light_rail|monorail)$"]["service"="yard"][!"railway:preserved"];
+way(area.kr)["railway"~"^(rail|subway|light_rail|monorail|tram)$"]["service"="yard"][!"railway:preserved"];
 out geom;`,
   ways_construction_kr: `[out:json][timeout:300];
 area["ISO3166-1"="KR"]["admin_level"="2"]->.kr;
