@@ -4,8 +4,10 @@
  * (이웃 역 사이 경로가 가장 적게 늘어나는 자리, 좌표가 없으면 끝). 저장은 노선 상세 [정거장 순서] 탭과 같은
  * PUT /v1/admin/lines/:id/stations(도메인 적용기, 행 version 확인) — editors/useLineStations.
  * 선은 현재 지도 물리화 뷰(mv_map_line, OSM)라 파생 갱신 뒤에 바뀐다. 역 점은 mv_map_station.
+ * 좌표 없는 정거장(2026-11-29 사용자 지시): 행의 [좌표 찍기] → 지도 클릭(표식 끌어 다듬기) → [좌표 저장] =
+ * 그 역 그룹 좌표(PATCH station, coord_source manual — 역 그룹 편집의 [지도에서 찍기]와 같다).
  */
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -13,7 +15,8 @@ import { Marker, type MapLayerMouseEvent } from 'maplibre-gl';
 import { codeLabel, isCode } from '@k-raildex/contracts';
 import { CONSTRUCTION_LINE, isConstructionExpression, NO_COLOR_LINE, type LayerSpec } from '@k-raildex/map';
 import { Badge, Button, Card, cn, Empty, Input, Label } from '@k-raildex/ui';
-import { AlertTriangle, ArrowDown, ArrowUp, MapPin, RotateCcw, Trash2, X } from 'lucide-react';
+import { AlertTriangle, ArrowDown, ArrowUp, Crosshair, MapPin, RotateCcw, Trash2, X } from 'lucide-react';
+import { toast } from 'sonner';
 import { api, apiOptional, errorText, type EntityResponse } from '../lib/api';
 import { kmRegressions, type LsRow } from '../lib/line-stations';
 import { useLabel } from '../form/widgets/RefInput';
@@ -83,6 +86,12 @@ export function LineMapEditor({
   const [adding, setAdding] = useState(false);
   const [message, setMessage] = useState<{ tone: 'good' | 'warn'; text: string } | null>(null);
   const markers = useRef<Marker[]>([]);
+  const qc = useQueryClient();
+  /** 좌표 찍기: 대상 역 그룹, 찍은(끌어 다듬는) 좌표, 이번 화면에서 저장한 좌표(지도 역 점은 파생 갱신 뒤 반영) */
+  const [placingId, setPlacingId] = useState<string | null>(null);
+  const [pendingCoord, setPendingCoord] = useState<Coord | null>(null);
+  const [placed, setPlaced] = useState<Map<string, Coord>>(() => new Map());
+  const busy = adding || !!placingId;
 
   const stations = useQuery({
     queryKey: ['map', 'current-stations'],
@@ -113,6 +122,8 @@ export function LineMapEditor({
   useEffect(() => {
     setAdding(false);
     setMessage(null);
+    setPlacingId(null);
+    setPendingCoord(null);
   }, [lineId]);
 
   /** 역 id → 지도 좌표·이름(mv_map_station) */
@@ -128,7 +139,9 @@ export function LineMapEditor({
   }, [stations.data]);
   /** 지도 역 점(여객역) → 없으면 역 자체 좌표(화물역·신호장·조차장은 지도 역 점에 없다) */
   const coordOf = (r: LsRow): Coord | null =>
-    stationInfo.get(r.station_id)?.coord ?? (r.station_geom ? [r.station_geom.lng, r.station_geom.lat] : null);
+    placed.get(r.station_id) ??
+    stationInfo.get(r.station_id)?.coord ??
+    (r.station_geom ? [r.station_geom.lng, r.station_geom.lat] : null);
 
   const selFc = useMemo<FeatureCollection>(
     () =>
@@ -155,14 +168,14 @@ export function LineMapEditor({
         .filter((g) => g.length >= 2)
         .map((g) => ({ type: 'Feature', geometry: { type: 'LineString', coordinates: g }, properties: { color } })),
     };
-  }, [rows, stationInfo, color]);
+  }, [rows, stationInfo, color, placed]);
 
   // 노선 선·역 그룹·시설 레이어는 공용 지도(EditWorkspace)가 그린다 — 여기서는 고른 노선 강조·순서 선만(역 그룹 점 아래)
   useGeoJsonLayer(map, 'lm-sel', selFc, SEL_LAYERS, OVERLAY_BEFORE);
   useGeoJsonLayer(map, 'lm-path', pathFc, PATH_LAYERS, OVERLAY_BEFORE);
 
   // 추가 모드가 아닐 때만 고른 노선 정보 팝업
-  useFeaturePopup(map, POPUP_LAYERS, !adding);
+  useFeaturePopup(map, POPUP_LAYERS, !busy);
 
   // 노선을 목록에서 고르면(데이터가 다 오면 한 번) 그 노선 범위로. 대상을 바꿔 들어왔거나(keepView)
   // 지도에서 노선을 눌러 골랐으면 지도를 옮기지 않는다
@@ -184,14 +197,14 @@ export function LineMapEditor({
   }, [map, lineId, ls.query.data, stations.data, selFc]);
 
   // 순서 번호 표식(클릭은 지도로 통과)
-  const markerKey = JSON.stringify(rows.map((r) => [r.station_id, coordOf(r)])) + color;
+  const markerKey = JSON.stringify(rows.map((r) => [r.station_id, coordOf(r)])) + color + (placingId ?? '');
   useEffect(() => {
     for (const m of markers.current) m.remove();
     markers.current = [];
     if (!map) return;
     rows.forEach((r, i) => {
       const c = coordOf(r);
-      if (!c) return;
+      if (!c || r.station_id === placingId) return;
       const el = document.createElement('div');
       el.className =
         'pointer-events-none flex size-5 items-center justify-center rounded-full border-2 bg-white text-[10px] font-bold text-black shadow';
@@ -209,6 +222,64 @@ export function LineMapEditor({
     [],
   );
 
+  // 좌표 찍기: 지도 클릭 = 새 좌표(한 번), 그 뒤 표식을 끌어 다듬는다
+  useEffect(() => {
+    if (!map || !placingId || pendingCoord) return;
+    map.getCanvas().style.cursor = 'crosshair';
+    const onClick = (e: MapLayerMouseEvent) =>
+      setPendingCoord([Number(e.lngLat.lng.toFixed(6)), Number(e.lngLat.lat.toFixed(6))]);
+    map.once('click', onClick);
+    return () => {
+      map.off('click', onClick);
+      map.getCanvas().style.cursor = '';
+    };
+  }, [map, placingId, pendingCoord]);
+  const pendingMarker = useRef<Marker | null>(null);
+  useEffect(() => {
+    pendingMarker.current?.remove();
+    pendingMarker.current = null;
+    if (!map || !placingId || !pendingCoord) return;
+    const m = new Marker({ color: '#F59E0B', draggable: true }).setLngLat(pendingCoord).addTo(map);
+    m.getElement().dataset.testid = 'lm-place-marker';
+    m.on('dragend', () => {
+      const p = m.getLngLat();
+      setPendingCoord([Number(p.lng.toFixed(6)), Number(p.lat.toFixed(6))]);
+    });
+    pendingMarker.current = m;
+    return () => {
+      m.remove();
+    };
+    // 끌기 중에는 같은 표식을 유지한다(좌표가 바뀌어도 다시 만들지 않음)
+  }, [map, placingId, pendingCoord === null]);
+  const cancelPlacing = () => {
+    setPlacingId(null);
+    setPendingCoord(null);
+  };
+  const savePlace = useMutation({
+    mutationFn: async ({ id, coord }: { id: string; coord: Coord }) => {
+      const st = await api<EntityResponse>(`/v1/admin/station/${encodeURIComponent(id)}`);
+      return api(`/v1/admin/station/${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        ifMatch: st.version,
+        json: {
+          geom: { lat: coord[1], lng: coord[0] },
+          coord_source: 'manual',
+          coord_basis: null,
+          coord_same_as_id: null,
+        },
+      });
+    },
+    onSuccess: async (_r, { id, coord }) => {
+      setPlaced((m) => new Map(m).set(id, coord));
+      cancelPlacing();
+      toast.success('좌표를 저장했습니다(수기 확인)');
+      await qc.invalidateQueries({ queryKey: ['entity', 'station', id] });
+      await qc.invalidateQueries({ queryKey: ['map'] });
+      await qc.invalidateQueries({ queryKey: ['quality'] });
+    },
+    onError: (e) => toast.error(errorText(e)),
+  });
+
   // 지도에서 역 추가: 역 점 클릭 → 넣을 자리 계산
   const rowsRef = useRef(rows);
   rowsRef.current = rows;
@@ -225,7 +296,7 @@ export function LineMapEditor({
     }
     const info = infoRef.current;
     const idx = bestInsertIndex(
-      cur.map((r) => info.get(r.station_id)?.coord ?? null),
+      cur.map((r) => placed.get(r.station_id) ?? info.get(r.station_id)?.coord ?? null),
       info.get(id)?.coord ?? null,
     );
     const status = cur[idx - 1]?.status ?? cur[idx]?.status ?? 'operating';
@@ -260,7 +331,7 @@ export function LineMapEditor({
       fitWanted.current = false;
       onLineChange(id);
     },
-    !adding,
+    !busy,
     (hit) =>
       hit.kind === 'line' && hit.id === lineId
         ? null
@@ -278,7 +349,7 @@ export function LineMapEditor({
   };
   // Esc = 추가 모드 끄기, 아니면 노선 선택 해제(입력 칸에서는 무시)
   const escRef = useRef<() => void>(() => {});
-  escRef.current = () => (adding ? setAdding(false) : lineId ? clearLine() : undefined);
+  escRef.current = () => (placingId ? cancelPlacing() : adding ? setAdding(false) : lineId ? clearLine() : undefined);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement | null;
@@ -368,6 +439,7 @@ export function LineMapEditor({
                   size="sm"
                   variant={adding ? 'default' : 'outline'}
                   aria-pressed={adding}
+                  disabled={!!placingId}
                   onClick={() => {
                     setAdding((v) => !v);
                     setMessage(null);
@@ -437,13 +509,27 @@ export function LineMapEditor({
                             {r.station_kind && r.station_kind !== 'station' && isCode('stationKind', r.station_kind) ? (
                               <Badge>{codeLabel('stationKind', r.station_kind)}</Badge>
                             ) : null}
-                            {!coordOf(r) ? (
-                              <span
-                                className="text-[10px] text-warn"
-                                title="역에 좌표가 없습니다 — 지도 편집에서 좌표를 찍을 수 있습니다"
+                            {!coordOf(r) || placingId === r.station_id ? (
+                              <button
+                                type="button"
+                                className={cn(
+                                  'inline-flex items-center gap-0.5 rounded px-1 text-[10px]',
+                                  placingId === r.station_id
+                                    ? 'bg-primary text-primary-fg'
+                                    : 'text-warn hover:bg-warn/10',
+                                )}
+                                title="역 그룹에 좌표가 없습니다 — 눌러서 지도에서 찍습니다"
+                                data-testid="lm-place"
+                                disabled={!!placingId && placingId !== r.station_id}
+                                onClick={() => {
+                                  setAdding(false);
+                                  setPendingCoord(null);
+                                  setPlacingId(placingId === r.station_id ? null : r.station_id);
+                                }}
                               >
-                                좌표 없음
-                              </span>
+                                <Crosshair className="size-3" />
+                                {placingId === r.station_id ? '찍는 중' : '좌표 없음 · 찍기'}
+                              </button>
                             ) : null}
                             {regress.has(i) ? (
                               <span title="km 역행" className="text-warn">
@@ -499,6 +585,33 @@ export function LineMapEditor({
                           <Trash2 className="size-3.5" />
                         </Button>
                       </div>
+                      {placingId === r.station_id ? (
+                        <div
+                          className="mt-1 flex flex-wrap items-center gap-1 pl-6 text-[11px]"
+                          data-testid="lm-place-bar"
+                        >
+                          {pendingCoord ? (
+                            <>
+                              <span className="text-fg-muted">
+                                {pendingCoord[1]}, {pendingCoord[0]} (표식을 끌어 다듬을 수 있음)
+                              </span>
+                              <Button
+                                size="sm"
+                                disabled={savePlace.isPending}
+                                data-testid="lm-place-save"
+                                onClick={() => savePlace.mutate({ id: r.station_id, coord: pendingCoord })}
+                              >
+                                {savePlace.isPending ? '저장 중…' : '좌표 저장'}
+                              </Button>
+                            </>
+                          ) : (
+                            <span className="text-fg-muted">지도를 클릭해 이 역 그룹의 좌표를 찍으세요</span>
+                          )}
+                          <Button size="sm" variant="ghost" onClick={cancelPlacing}>
+                            취소
+                          </Button>
+                        </div>
+                      ) : null}
                       {ls.rowErrors[i] ? <div className="pl-6 text-[11px] text-danger">{ls.rowErrors[i]}</div> : null}
                     </li>
                   ))}
@@ -538,6 +651,15 @@ export function LineMapEditor({
           <p className="mt-1">선형 © OpenStreetMap contributors, ODbL — 참고용</p>
         </section>
       </aside>
+      {overlay && placingId
+        ? createPortal(
+            <div className="absolute top-3 left-1/2 -translate-x-1/2 rounded-md bg-primary px-3 py-1.5 text-xs text-primary-fg shadow">
+              {rows.find((r) => r.station_id === placingId)?.station_name_ko ?? placingId} —{' '}
+              {pendingCoord ? '표식을 끌어 다듬고 [좌표 저장]' : '지도를 클릭해 좌표를 찍으세요'} (Esc = 취소)
+            </div>,
+            overlay,
+          )
+        : null}
       {overlay && stations.data === null
         ? createPortal(
             <div className="absolute top-3 left-3 rounded-md border border-border bg-bg-elevated/95 px-3 py-2 text-xs shadow">

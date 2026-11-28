@@ -468,3 +468,71 @@ test('상세 [지도] 탭: 노선을 강조하고 둘레 역 그룹 목록에서
   await expect(page).toHaveURL(/\/data\/station\/stn-[^?]+\?tab=map/);
   await expect(page.getByTestId('entity-focus-map')).toBeVisible();
 });
+
+test('역·시설·노선 편집 [노선]: 고른 노선의 좌표 없는 정거장을 지도에서 찍어 역 그룹 좌표로 저장한다', async ({
+  page,
+}) => {
+  const api = process.env.E2E_API_URL;
+  const LINE = 'line-fx-two';
+  const r = await page.request.post(`${api}/v1/admin/station`, {
+    data: {
+      id: 'stn-e2e-noxy',
+      name_ko: '좌표없음시험',
+      checked_at: '2026-11-29',
+      sources: [{ source_id: 'src-fixture-notice' }],
+    },
+  });
+  expect(r.ok(), await r.text()).toBe(true);
+  const SKIP = [
+    '_key',
+    'seq',
+    'line_id',
+    'created_at',
+    'updated_at',
+    'deleted_at',
+    'last_changeset_id',
+    'station_name_ko',
+    'station_kind',
+    'station_geom',
+  ];
+  const strip = (it: Record<string, unknown>) =>
+    Object.fromEntries(Object.entries(it).filter(([k]) => !SKIP.includes(k)));
+  const items = async () =>
+    (
+      (await (await page.request.get(`${api}/v1/admin/lines/${LINE}/stations`)).json()) as {
+        items: Record<string, unknown>[];
+      }
+    ).items;
+  const put = async (list: Record<string, unknown>[]) => {
+    const res = await page.request.put(`${api}/v1/admin/lines/${LINE}/stations`, { data: { items: list.map(strip) } });
+    expect(res.ok(), await res.text()).toBe(true);
+  };
+  const before = await items();
+  await put([...before, { station_id: 'stn-e2e-noxy', status: 'operating' }]);
+
+  await page.goto(`/map?tab=edit&target=line&line=${LINE}`);
+  await expect(page.getByTestId('lm-line-summary')).toContainText('시험 2호선');
+  await waitMapReady(page, 'current-stations');
+  const row = page.getByTestId('lm-row').filter({ hasText: '좌표없음시험' });
+  await row.getByTestId('lm-place').click();
+  await expect(row.getByTestId('lm-place-bar')).toContainText('지도를 클릭해');
+  await clickLngLat(page, 'line-map', [127.08, 37.46]);
+  await expect(page.getByTestId('lm-place-marker')).toBeVisible();
+  await row.getByTestId('lm-place-save').click();
+  await expect(page.locator('[data-sonner-toast]').filter({ hasText: '좌표를 저장했습니다' }).first()).toBeVisible();
+  await expect(row.getByTestId('lm-place')).toHaveCount(0);
+  // 정거장 순서는 저장할 것이 없다(좌표는 역 그룹에 바로 저장)
+  await expect(page.getByTestId('lm-dirty')).toHaveCount(0);
+
+  const d = await (await page.request.get(`${api}/v1/admin/station/stn-e2e-noxy`)).json();
+  expect(d.data.coord_source).toBe('manual');
+  expect(Math.abs(d.data.geom.lat - 37.46)).toBeLessThan(0.01);
+  expect(Math.abs(d.data.geom.lng - 127.08)).toBeLessThan(0.01);
+
+  // 정리: 정거장 빼고 역 그룹 삭제
+  await put((await items()).filter((x) => x.station_id !== 'stn-e2e-noxy'));
+  const del = await page.request.delete(`${api}/v1/admin/station/stn-e2e-noxy`, {
+    headers: { 'If-Match': String(d.version) },
+  });
+  expect(del.ok(), await del.text()).toBe(true);
+});
