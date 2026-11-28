@@ -321,7 +321,7 @@ test('노선 편집: 지도에서 역을 클릭해 노선역에 넣고 저장하
     before.map((x) => x.station_id),
   );
 
-  // 추가 모드가 아니면 역 점 클릭 → 같은 화면의 [역 그룹] 대상으로 바뀌고 그 역 그룹을 고른다(2026-11-28 통합)
+  // 추가 모드가 아니면 역 점 클릭 → 화면은 그대로, 팝업([이 노선에 추가]·[역 그룹 편집]). [역 그룹 편집]을 눌러야 전환
   await waitMapReady(page, 'lm-stations');
   await page.evaluate(() =>
     (window as unknown as { __kraildexMap: { jumpTo(o: { center: Coord; zoom: number }): void } }).__kraildexMap.jumpTo(
@@ -330,6 +330,11 @@ test('노선 편집: 지도에서 역을 클릭해 노선역에 넣고 저장하
   );
   await waitMapReady(page, 'lm-stations');
   await clickLngLat(page, 'line-map', [127.0, 37.4]);
+  const pop = page.getByTestId('pick-popup');
+  await expect(pop).toBeVisible();
+  await expect(pop.getByTestId('pick-add')).toBeVisible();
+  await expect(page.getByTestId('edit-target-line')).toHaveAttribute('aria-pressed', 'true');
+  await pop.getByTestId('pick-edit').click();
   await expect(page).toHaveURL(/station=stn-fx-e/);
   await expect(page.getByTestId('edit-target-station')).toHaveAttribute('aria-pressed', 'true');
   // 다시 [노선] 으로 오면 고른 노선이 그대로

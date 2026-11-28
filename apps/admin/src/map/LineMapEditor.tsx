@@ -201,19 +201,8 @@ export function LineMapEditor({
   });
   useGeoJsonLayer(map, 'lm-depots', depots.data, DEPOT_LAYERS);
 
-  // 추가 모드가 아닐 때만: 고른 노선 정보 팝업, 역 그룹·시설·노선 클릭 → 고르기
+  // 추가 모드가 아닐 때만 고른 노선 정보 팝업
   useFeaturePopup(map, POPUP_LAYERS, !adding);
-  useMapPick(
-    map,
-    {
-      station: ['lm-station'],
-      facility: ['lm-depots-depot'],
-      line: ['lm-sel-line', 'lm-sel-line-construction', 'lm-line', 'lm-line-construction'],
-    },
-    null,
-    (kind, id) => (kind === 'line' ? id !== lineId && onLineChange(id) : onPick(kind, id)),
-    !adding,
-  );
 
   // 노선을 고르면(데이터가 다 오면 한 번) 그 노선 범위로
   const fitted = useRef<string | null>(null);
@@ -264,29 +253,33 @@ export function LineMapEditor({
   rowsRef.current = rows;
   const infoRef = useRef(stationInfo);
   infoRef.current = stationInfo;
+  /** 역 그룹을 이 노선 노선역 초안에 넣는다(이웃 역 사이 경로가 가장 적게 늘어나는 자리, 좌표가 없으면 끝) */
+  const addStation = (id: string, nameKo: string | null) => {
+    const name = nameKo ?? id;
+    const cur = rowsRef.current;
+    const at = cur.findIndex((r) => r.station_id === id);
+    if (at >= 0) {
+      setMessage({ tone: 'warn', text: `${name}(${id}): 이미 이 노선의 ${at + 1}번째 역입니다` });
+      return;
+    }
+    const info = infoRef.current;
+    const idx = bestInsertIndex(
+      cur.map((r) => info.get(r.station_id)?.coord ?? null),
+      info.get(id)?.coord ?? null,
+    );
+    const status = cur[idx - 1]?.status ?? cur[idx]?.status ?? 'operating';
+    const row = { ...newLineStationRow(id, status), station_name_ko: nameKo };
+    setRows([...cur.slice(0, idx), row, ...cur.slice(idx)]);
+    setMessage({ tone: 'good', text: `${name}(${id}) → ${idx + 1}번째에 넣었습니다` });
+  };
+  const addRef = useRef(addStation);
+  addRef.current = addStation;
   useEffect(() => {
     if (!map || !adding) return;
     map.getCanvas().style.cursor = 'crosshair';
     const onClick = (e: MapLayerMouseEvent) => {
       const p = e.features?.[0]?.properties as { station_id?: string; name_ko?: string } | undefined;
-      const id = p?.station_id;
-      if (!id) return;
-      const name = p.name_ko ?? id;
-      const cur = rowsRef.current;
-      const at = cur.findIndex((r) => r.station_id === id);
-      if (at >= 0) {
-        setMessage({ tone: 'warn', text: `${name}(${id}): 이미 이 노선의 ${at + 1}번째 역입니다` });
-        return;
-      }
-      const info = infoRef.current;
-      const idx = bestInsertIndex(
-        cur.map((r) => info.get(r.station_id)?.coord ?? null),
-        info.get(id)?.coord ?? null,
-      );
-      const status = cur[idx - 1]?.status ?? cur[idx]?.status ?? 'operating';
-      const row = { ...newLineStationRow(id, status), station_name_ko: p.name_ko ?? null };
-      setRows([...cur.slice(0, idx), row, ...cur.slice(idx)]);
-      setMessage({ tone: 'good', text: `${name}(${id}) → ${idx + 1}번째에 넣었습니다` });
+      if (p?.station_id) addRef.current(p.station_id, p.name_ko ?? null);
     };
     map.on('click', 'lm-station', onClick);
     return () => {
@@ -294,6 +287,26 @@ export function LineMapEditor({
       map.getCanvas().style.cursor = '';
     };
   }, [map, adding]);
+
+  // 추가 모드가 아닐 때: 역 그룹·시설·다른 노선을 누르면 팝업(바로 화면을 바꾸지 않음).
+  // 역 그룹은 [이 노선에 추가]로 이 화면에서 넣고, [… 편집]을 눌러야 전환한다. 고른 노선은 위 정보 팝업.
+  useMapPick(
+    map,
+    {
+      station: ['lm-station'],
+      facility: ['lm-depots-depot'],
+      line: ['lm-line', 'lm-line-construction'],
+    },
+    null,
+    (kind, id) => (kind === 'line' ? onLineChange(id) : onPick(kind, id)),
+    !adding,
+    (hit) =>
+      hit.kind === 'line' && hit.id === lineId
+        ? null
+        : hit.kind === 'station' && lineId
+          ? [{ label: '이 노선에 추가', run: () => addRef.current(hit.id, hit.name), testId: 'pick-add' }]
+          : [],
+  );
 
   const move = (i: number, d: number) => {
     const j = i + d;
