@@ -11,15 +11,15 @@ import { createPortal } from 'react-dom';
 import { toast } from 'sonner';
 import { Marker, type MapLayerMouseEvent } from 'maplibre-gl';
 import { codeLabel, isCode } from '@k-raildex/contracts';
-import { currentLineLayers, currentStationLayers, depotLayers, STATUS_COLORS } from '@k-raildex/map';
+import { STATUS_COLORS } from '@k-raildex/map';
 import { Button, Card } from '@k-raildex/ui';
 import { Copy, Crosshair, ExternalLink, MapPin, X } from 'lucide-react';
 import { api, apiOptional, errorText, type EntityResponse } from '../lib/api';
 import { RefInput } from '../form/widgets/RefInput';
-import { useGeoJsonLayer, type FeatureCollection } from './useMap';
+import type { FeatureCollection } from './useMap';
 import type { MapPanelProps } from './EditWorkspace';
 import { useFeaturePopup } from './FeaturePopup';
-import { useMapPick } from './pick';
+import { BASE, useMapPick } from './pick';
 import { ReviewIssues, ReviewPicker, ReviewTag, useReviewList } from './ReviewPicker';
 import { KeepSplitButton, MergeStationButton } from '../editors/MergeStation';
 
@@ -69,23 +69,10 @@ export function EditMap({ map, overlay, keepView, onPick }: MapPanelProps) {
     queryFn: () => api<EntityResponse<StationData>>(`/v1/admin/station/${encodeURIComponent(stationId!)}`),
   });
 
-  useGeoJsonLayer(map, 'current-lines', lines.data, currentLineLayers('current-lines'));
-  useGeoJsonLayer(map, 'current-stations', stations.data, currentStationLayers('current-stations'));
-  // 차량기지(시설 facility, 0035) — 좌표가 있는 것만. 누르면 시설 편집
-  const depots = useQuery({
-    queryKey: ['map', 'depots'],
-    queryFn: () => apiOptional<FeatureCollection>('/v1/admin/map/depots'),
-  });
-  useGeoJsonLayer(map, 'depots', depots.data, depotLayers('depots'));
+  // 레이어(노선·역 그룹·시설)는 공용 지도(EditWorkspace)가 그린다 — 여기서는 고른 역 그룹 표식만
   // 역 클릭 → 정보 팝업 + 옆 패널 선택(좌표 찍기 중에는 끔). 노선·시설 클릭 → 그 편집으로(useMapPick)
   useFeaturePopup(map, ['current-station'], !placing && !picking);
-  useMapPick(
-    map,
-    { station: ['current-station'], facility: ['depots-depot'], line: ['current-line', 'current-line-construction'] },
-    'station',
-    onPick,
-    !placing && !picking,
-  );
+  useMapPick(map, BASE, 'station', onPick, !placing && !picking);
 
   const select = (id: string | null) => {
     flyWanted.current = true;

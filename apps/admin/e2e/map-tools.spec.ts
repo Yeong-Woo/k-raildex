@@ -283,13 +283,13 @@ test('노선 편집: 지도에서 역을 클릭해 노선역에 넣고 저장하
   await expect(names).toHaveText(before.map((x) => x.station_name_ko ?? x.station_id));
   await expect(page.getByTestId('lm-marker')).toHaveCount(before.length);
 
-  await waitMapReady(page, 'lm-stations');
+  await waitMapReady(page, 'current-stations');
   await page.evaluate(() =>
     (window as unknown as { __kraildexMap: { jumpTo(o: { center: Coord; zoom: number }): void } }).__kraildexMap.jumpTo(
       { center: [127.05, 37.45], zoom: 11 },
     ),
   );
-  await waitMapReady(page, 'lm-stations');
+  await waitMapReady(page, 'current-stations');
 
   // 추가 모드: 이미 있는 역(가)은 다시 넣지 않는다
   await page.getByRole('button', { name: '지도에서 역 추가' }).click();
@@ -322,13 +322,13 @@ test('노선 편집: 지도에서 역을 클릭해 노선역에 넣고 저장하
   );
 
   // 추가 모드가 아니면 역 점 클릭 → 화면은 그대로, 팝업([이 노선에 추가]·[역 그룹 편집]). [역 그룹 편집]을 눌러야 전환
-  await waitMapReady(page, 'lm-stations');
+  await waitMapReady(page, 'current-stations');
   await page.evaluate(() =>
     (window as unknown as { __kraildexMap: { jumpTo(o: { center: Coord; zoom: number }): void } }).__kraildexMap.jumpTo(
       { center: [127.05, 37.45], zoom: 11 },
     ),
   );
-  await waitMapReady(page, 'lm-stations');
+  await waitMapReady(page, 'current-stations');
   await clickLngLat(page, 'line-map', [127.0, 37.4]);
   const pop = page.getByTestId('pick-popup');
   await expect(pop).toBeVisible();
@@ -342,6 +342,18 @@ test('노선 편집: 지도에서 역을 클릭해 노선역에 넣고 저장하
       const c = m.getCenter();
       return { tag: m.__tag ?? null, lng: c.lng.toFixed(5), lat: c.lat.toFixed(5), zoom: m.getZoom().toFixed(3) };
     });
+  // 지도 레이어도 대상과 무관하게 같다(목록 강조 lm-·표식만 더해진다)
+  const baseLayers = () =>
+    page.evaluate(() =>
+      (
+        window as unknown as { __kraildexMap: { getStyle(): { layers: { id: string; paint?: unknown }[] } } }
+      ).__kraildexMap
+        .getStyle()
+        .layers.filter((l) => !l.id.startsWith('lm-'))
+        .map((l) => JSON.stringify([l.id, l.paint ?? null])),
+    );
+  const layers0 = await baseLayers();
+  expect(layers0.some((l) => l.includes('"current-station"'))).toBe(true);
   await page.evaluate(() => ((window as unknown as { __kraildexMap: TaggedMap }).__kraildexMap.__tag = 'same'));
   const v0 = await view();
   await pop.getByTestId('pick-edit').click();
@@ -349,6 +361,10 @@ test('노선 편집: 지도에서 역을 클릭해 노선역에 넣고 저장하
   await expect(page.getByTestId('edit-target-station')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByTestId('map-selected-station')).toBeVisible();
   expect(await view()).toEqual(v0);
+  expect(await baseLayers()).toEqual(layers0);
+  await page.getByTestId('edit-target-facility').click();
+  await expect(page.getByTestId('edit-target-facility')).toHaveAttribute('aria-pressed', 'true');
+  expect(await baseLayers()).toEqual(layers0);
   // 다시 [노선] 으로 오면 고른 노선이 그대로
   await page.getByTestId('edit-target-line').click();
   await expect(page.getByTestId('lm-line-summary')).toContainText('시험 2호선');

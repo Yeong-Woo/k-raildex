@@ -11,13 +11,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Marker, type MapLayerMouseEvent } from 'maplibre-gl';
 import { codeLabel, isCode } from '@k-raildex/contracts';
-import {
-  CONSTRUCTION_LINE,
-  depotLayers,
-  isConstructionExpression,
-  NO_COLOR_LINE,
-  type LayerSpec,
-} from '@k-raildex/map';
+import { CONSTRUCTION_LINE, isConstructionExpression, NO_COLOR_LINE, type LayerSpec } from '@k-raildex/map';
 import { Badge, Button, Card, cn, Empty, Input, Label } from '@k-raildex/ui';
 import { AlertTriangle, ArrowDown, ArrowUp, MapPin, RotateCcw, Trash2, X } from 'lucide-react';
 import { api, apiOptional, errorText, type EntityResponse } from '../lib/api';
@@ -28,40 +22,12 @@ import { bestInsertIndex, type Coord } from './geo';
 import { boundsOf, EMPTY_FC, useGeoJsonLayer, type FeatureCollection } from './useMap';
 import type { MapPanelProps } from './EditWorkspace';
 import { useFeaturePopup } from './FeaturePopup';
-import { useMapPick } from './pick';
+import { BASE, OVERLAY_BEFORE, useMapPick } from './pick';
 import { ReviewIssues, ReviewPicker, ReviewTag, useReviewList } from './ReviewPicker';
 
 /** 노선색이 없을 때(선·순서 표식·점선) — 지도와 같은 검정에 가까운 색 */
 const DEFAULT_COLOR = NO_COLOR_LINE;
 
-/** 배경 노선: 고른 노선이 없으면 다른 대상 지도(currentLineLayers)와 같은 진하기, 고르면 조금만 낮춘다 */
-const BG_STYLE = { none: { width: 3, opacity: 0.85 }, selected: { width: 2.5, opacity: 0.55 } } as const;
-const BG_LAYERS: LayerSpec[] = [
-  {
-    id: 'lm-line',
-    type: 'line',
-    source: 'lm-lines',
-    filter: ['!', isConstructionExpression()],
-    layout: { 'line-cap': 'round', 'line-join': 'round' },
-    paint: {
-      'line-color': ['coalesce', ['get', 'color'], NO_COLOR_LINE],
-      'line-width': BG_STYLE.none.width,
-      'line-opacity': BG_STYLE.none.opacity,
-    },
-  },
-  {
-    id: 'lm-line-construction',
-    type: 'line',
-    source: 'lm-lines',
-    filter: isConstructionExpression(),
-    paint: {
-      'line-color': CONSTRUCTION_LINE.color,
-      'line-width': BG_STYLE.none.width,
-      'line-dasharray': [...CONSTRUCTION_LINE.dasharray],
-      'line-opacity': BG_STYLE.none.opacity,
-    },
-  },
-];
 const SEL_LAYERS: LayerSpec[] = [
   {
     id: 'lm-sel-line',
@@ -93,22 +59,8 @@ const PATH_LAYERS: LayerSpec[] = [
     paint: { 'line-color': ['get', 'color'], 'line-width': 2, 'line-dasharray': [1, 1.5], 'line-opacity': 0.9 },
   },
 ];
-const STATION_LAYERS: LayerSpec[] = [
-  {
-    id: 'lm-station',
-    type: 'circle',
-    source: 'lm-stations',
-    paint: {
-      'circle-radius': ['interpolate', ['linear'], ['zoom'], 7, 2.5, 13, 5],
-      'circle-color': '#475569',
-      'circle-stroke-color': '#FFFFFF',
-      'circle-stroke-width': 1,
-    },
-  },
-];
 /** 고른 노선만 정보 팝업. 역 그룹·시설·다른 노선 클릭은 고르기(useMapPick) */
 const POPUP_LAYERS = ['lm-sel-line', 'lm-sel-line-construction'];
-const DEPOT_LAYERS = depotLayers('lm-depots');
 
 interface LineData {
   name_ko: string;
@@ -204,28 +156,9 @@ export function LineMapEditor({
     };
   }, [rows, stationInfo, color]);
 
-  useGeoJsonLayer(map, 'lm-lines', lines.data, BG_LAYERS);
-  useGeoJsonLayer(map, 'lm-sel', selFc, SEL_LAYERS);
-  useGeoJsonLayer(map, 'lm-path', pathFc, PATH_LAYERS);
-  useGeoJsonLayer(map, 'lm-stations', stations.data, STATION_LAYERS);
-
-  // 차량기지 점(누르면 시설 편집)
-  const depots = useQuery({
-    queryKey: ['map', 'depots'],
-    queryFn: () => apiOptional<FeatureCollection>('/v1/admin/map/depots'),
-  });
-  useGeoJsonLayer(map, 'lm-depots', depots.data, DEPOT_LAYERS);
-
-  // 노선을 고르면 배경 노선만 조금 흐리게(고른 노선이 돋보이게), 해제하면 원래대로
-  useEffect(() => {
-    if (!map) return;
-    const st = lineId ? BG_STYLE.selected : BG_STYLE.none;
-    for (const id of ['lm-line', 'lm-line-construction']) {
-      if (!map.getLayer(id)) continue;
-      map.setPaintProperty(id, 'line-width', st.width);
-      map.setPaintProperty(id, 'line-opacity', st.opacity);
-    }
-  }, [map, lineId, lines.data]);
+  // 노선 선·역 그룹·시설 레이어는 공용 지도(EditWorkspace)가 그린다 — 여기서는 고른 노선 강조·순서 선만(역 그룹 점 아래)
+  useGeoJsonLayer(map, 'lm-sel', selFc, SEL_LAYERS, OVERLAY_BEFORE);
+  useGeoJsonLayer(map, 'lm-path', pathFc, PATH_LAYERS, OVERLAY_BEFORE);
 
   // 추가 모드가 아닐 때만 고른 노선 정보 팝업
   useFeaturePopup(map, POPUP_LAYERS, !adding);
@@ -308,9 +241,9 @@ export function LineMapEditor({
       const p = e.features?.[0]?.properties as { station_id?: string; name_ko?: string } | undefined;
       if (p?.station_id) addRef.current(p.station_id, p.name_ko ?? null);
     };
-    map.on('click', 'lm-station', onClick);
+    map.on('click', BASE.station![0]!, onClick);
     return () => {
-      map.off('click', 'lm-station', onClick);
+      map.off('click', BASE.station![0]!, onClick);
       map.getCanvas().style.cursor = '';
     };
   }, [map, adding]);
@@ -319,11 +252,7 @@ export function LineMapEditor({
   // 역 그룹은 [이 노선에 추가]로 이 화면에서 넣고, [… 편집]을 눌러야 전환한다. 고른 노선은 위 정보 팝업.
   useMapPick(
     map,
-    {
-      station: ['lm-station'],
-      facility: ['lm-depots-depot'],
-      line: ['lm-line', 'lm-line-construction'],
-    },
+    BASE,
     null,
     (kind, id) => {
       if (kind !== 'line') return onPick(kind, id);
@@ -596,7 +525,13 @@ export function LineMapEditor({
               순서대로 이은 선(편집 중 초안)
             </li>
             <li className="flex items-center gap-1">
-              <span className="inline-block size-2 rounded-full bg-[#475569]" /> 역(번호 = 노선역 순서)
+              <span
+                className="inline-flex size-3.5 items-center justify-center rounded-full border-2 bg-white text-[8px] font-bold"
+                style={{ borderColor: color }}
+              >
+                1
+              </span>{' '}
+              번호 = 노선역 순서(역 그룹 점 색은 다른 목록과 같은 상태 색)
             </li>
           </ul>
           <p className="mt-1">선형 © OpenStreetMap contributors, ODbL — 참고용</p>

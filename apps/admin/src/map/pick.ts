@@ -19,6 +19,14 @@ export interface PickAction {
   run: () => void;
   testId?: string;
 }
+/** 역·시설·노선 편집 공용 지도(EditWorkspace)의 레이어 id — 목록이 클릭·고르기에 쓴다 */
+export const BASE: PickLayers = {
+  station: ['current-station'],
+  facility: ['depots-depot'],
+  line: ['current-line', 'current-line-construction'],
+};
+/** 목록의 강조 레이어는 이 아래에 넣는다(시설 선로·역 그룹 점·시설 점이 늘 위) */
+export const OVERLAY_BEFORE = 'facility-tracks-track';
 const ORDER: PickKind[] = ['station', 'facility', 'line'];
 const PROP: Record<PickKind, string> = { station: 'station_id', facility: 'facility_id', line: 'line_id' };
 export const PICK_KIND_LABEL: Record<PickKind, string> = { station: '역 그룹', facility: '시설', line: '노선' };

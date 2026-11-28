@@ -84,6 +84,8 @@ export function useGeoJsonLayer(
   sourceId: string,
   data: FeatureCollection | null | undefined,
   layers: LayerSpec[],
+  /** 이 레이어 아래에 넣는다(없으면 맨 위) */
+  beforeId?: string,
 ) {
   useEffect(() => {
     if (!map) return;
@@ -92,7 +94,9 @@ export function useGeoJsonLayer(
     if (src) src.setData(fc);
     else {
       map.addSource(sourceId, { type: 'geojson', data: fc });
-      for (const l of layers) if (!map.getLayer(l.id)) map.addLayer(l as unknown as LayerSpecification);
+      for (const l of layers)
+        if (!map.getLayer(l.id))
+          map.addLayer(l as unknown as LayerSpecification, beforeId && map.getLayer(beforeId) ? beforeId : undefined);
     }
     // layers 는 상수로 넘긴다(의존성에서 뺌)
   }, [map, sourceId, data]);

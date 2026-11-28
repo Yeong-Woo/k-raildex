@@ -9,13 +9,11 @@ import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Marker, type MapLayerMouseEvent } from 'maplibre-gl';
 import { codeLabel, isCode } from '@k-raildex/contracts';
-import { currentLineLayers, currentStationLayers, depotLayers, facilityTrackLayers } from '@k-raildex/map';
 import { Button, Card, cn } from '@k-raildex/ui';
 import { Crosshair, ExternalLink, MapPin, X } from 'lucide-react';
-import { api, apiOptional, errorText, type EntityResponse } from '../lib/api';
-import { useGeoJsonLayer, type FeatureCollection } from './useMap';
+import { api, errorText, type EntityResponse } from '../lib/api';
 import type { MapPanelProps } from './EditWorkspace';
-import { useMapPick } from './pick';
+import { BASE, useMapPick } from './pick';
 import { ReviewIssues, ReviewPicker, ReviewTag, useReviewList } from './ReviewPicker';
 
 interface FacilityData {
@@ -49,26 +47,7 @@ export function FacilityEditMap({
   // 대상을 바꿔 들어왔으면(keepView) 이 목록에서 새로 고를 때까지 지도를 옮기지 않는다
   const flyWanted = useRef(!keepView);
 
-  const lines = useQuery({
-    queryKey: ['map', 'current-lines'],
-    queryFn: () => apiOptional<FeatureCollection>('/v1/admin/map/current-lines'),
-  });
-  const stations = useQuery({
-    queryKey: ['map', 'current-stations'],
-    queryFn: () => apiOptional<FeatureCollection>('/v1/admin/map/current-stations'),
-  });
-  const depots = useQuery({
-    queryKey: ['map', 'depots'],
-    queryFn: () => apiOptional<FeatureCollection>('/v1/admin/map/depots'),
-  });
-  const tracks = useQuery({
-    queryKey: ['map', 'facility-tracks'],
-    queryFn: () => apiOptional<FeatureCollection>('/v1/admin/map/facility-tracks'),
-  });
-  useGeoJsonLayer(map, 'current-lines', lines.data, currentLineLayers('current-lines'));
-  useGeoJsonLayer(map, 'facility-tracks', tracks.data, facilityTrackLayers('facility-tracks'));
-  useGeoJsonLayer(map, 'current-stations', stations.data, currentStationLayers('current-stations'));
-  useGeoJsonLayer(map, 'depots', depots.data, depotLayers('depots'));
+  // 레이어(노선·시설 선로·역 그룹·시설)는 공용 지도(EditWorkspace)가 그린다 — 여기서는 고른 시설 표식만
 
   const review = useReviewList('facility');
   const item = facilityId ? review.data?.items.find((i) => i.id === facilityId) : undefined;
@@ -86,13 +65,7 @@ export function FacilityEditMap({
     onSelect(id);
   };
 
-  useMapPick(
-    map,
-    { station: ['current-station'], facility: ['depots-depot'], line: ['current-line', 'current-line-construction'] },
-    'facility',
-    onPick,
-    !placing,
-  );
+  useMapPick(map, BASE, 'facility', onPick, !placing);
 
   // 시설 점 클릭 → 고르기
   useEffect(() => {
